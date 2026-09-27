@@ -428,5 +428,35 @@
         "title": "Add project: Minimal Harness"
       }
     ]
+  },
+  {
+    "login": "JakeSelby",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 119,
+        "title": "Add project: Agent Harness"
+      }
+    ]
+  },
+  {
+    "login": "OlyaTi",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 120,
+        "title": "Add project: Mnemoverse"
+      }
+    ]
+  },
+  {
+    "login": "IRONICBo",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 121,
+        "title": "Add project: Jev Social"
+      }
+    ]
   }
 ]

@@ -11,7 +11,7 @@
     "name": "Ryan Alberts",
     "url": "https://github.com/RyanAlberts"
   },
-  "dateModified": "2026-09-20",
+  "dateModified": "2026-09-27",
   "keywords": [
     "agent harness",
     "AI agents",
@@ -288,11 +288,11 @@
         "position": 22,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Kilo Code",
-          "url": "https://github.com/Kilo-Org/kilocode",
-          "description": "VS Code extension and CLI in the Cline/Roo-Code lineage — a natural pick now that Roo-Code is archived upstream. The **harness** is an approval-gated autonomous-mode loop with a provider/tool marketplace; the IDE is the shell.",
+          "name": "Symphony",
+          "url": "https://github.com/openai/symphony",
+          "description": "OpenAI's harness for fanning a task out into many isolated, autonomous coding-agent implementation runs and surfacing the ones that pass, so a team manages outcomes instead of supervising each session.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "mcp, cli, ide, typescript"
+          "keywords": "sandbox"
         }
       },
       {
@@ -300,11 +300,11 @@
         "position": 23,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Symphony",
-          "url": "https://github.com/openai/symphony",
-          "description": "OpenAI's harness for fanning a task out into many isolated, autonomous coding-agent implementation runs and surfacing the ones that pass, so a team manages outcomes instead of supervising each session.",
+          "name": "Kilo Code",
+          "url": "https://github.com/Kilo-Org/kilocode",
+          "description": "VS Code extension and CLI in the Cline/Roo-Code lineage — a natural pick now that Roo-Code is archived upstream. The **harness** is an approval-gated autonomous-mode loop with a provider/tool marketplace; the IDE is the shell.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "sandbox"
+          "keywords": "mcp, cli, ide, typescript"
         }
       },
       {
@@ -876,11 +876,11 @@
         "position": 71,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "agno",
-          "url": "https://github.com/agno-agi/agno",
-          "description": "Python agents with memory, knowledge bases, tools, and structured outputs; continues the PhiData-era product line under the Agno name—production apps, evals, and pipelines.",
+          "name": "langgraph",
+          "url": "https://github.com/langchain-ai/langgraph",
+          "description": "State-machine graphs over LLM steps; checkpointing, human-in-the-loop, and durable execution so workflows survive restarts.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "memory, evals, python"
+          "keywords": "workflow, python"
         }
       },
       {
@@ -888,11 +888,11 @@
         "position": 72,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "langgraph",
-          "url": "https://github.com/langchain-ai/langgraph",
-          "description": "State-machine graphs over LLM steps; checkpointing, human-in-the-loop, and durable execution so workflows survive restarts.",
+          "name": "agno",
+          "url": "https://github.com/agno-agi/agno",
+          "description": "Python agents with memory, knowledge bases, tools, and structured outputs; continues the PhiData-era product line under the Agno name—production apps, evals, and pipelines.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "workflow, python"
+          "keywords": "memory, evals, python"
         }
       },
       {
@@ -936,11 +936,11 @@
         "position": 76,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "letta",
-          "url": "https://github.com/letta-ai/letta",
-          "description": "Python agent runtime with tool use and control flow; lean API; stateful agents with long-horizon memory.",
+          "name": "Stagehand",
+          "url": "https://github.com/browserbase/stagehand",
+          "description": "Browserbase's SDK for browser agents: natural-language actions (act, extract, observe) and deterministic Playwright code mix in one script, so agent flexibility and repeatable automation live in the same **harness**.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "memory, python"
+          "keywords": "browser, typescript"
         }
       },
       {
@@ -948,11 +948,11 @@
         "position": 77,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Stagehand",
-          "url": "https://github.com/browserbase/stagehand",
-          "description": "Browserbase's SDK for browser agents: natural-language actions (act, extract, observe) and deterministic Playwright code mix in one script, so agent flexibility and repeatable automation live in the same **harness**.",
+          "name": "letta",
+          "url": "https://github.com/letta-ai/letta",
+          "description": "Python agent runtime with tool use and control flow; lean API; stateful agents with long-horizon memory.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "browser, typescript"
+          "keywords": "memory, python"
         }
       },
       {
@@ -1632,6 +1632,18 @@
         "position": 134,
         "item": {
           "@type": "SoftwareApplication",
+          "name": "Terminal-Bench",
+          "url": "https://github.com/harbor-framework/terminal-bench",
+          "description": "The terminal-task benchmark coding agents now cite next to SWE-bench: hard, containerized terminal tasks scored end to end. Terminal-Bench 2.0 runs on the harbor evaluation framework; the 1.0 tasks live on in the org's terminal-bench-1 repo.",
+          "applicationCategory": "DeveloperApplication",
+          "keywords": "evals, cli, python"
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 135,
+        "item": {
+          "@type": "SoftwareApplication",
           "name": "SWE-Gym",
           "url": "https://github.com/SWE-Gym/SWE-Gym",
           "description": "Training and evaluation for SWE agents and verifiers (ICML 2025).",
@@ -1641,7 +1653,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 135,
+        "position": 136,
         "item": {
           "@type": "SoftwareApplication",
           "name": "ARC-AGI-2",
@@ -1649,18 +1661,6 @@
           "description": "ARC Prize task set: grid-based abstraction/reasoning; public and private splits for generalization.",
           "applicationCategory": "DeveloperApplication",
           "keywords": ""
-        }
-      },
-      {
-        "@type": "ListItem",
-        "position": 136,
-        "item": {
-          "@type": "SoftwareApplication",
-          "name": "Terminal-Bench",
-          "url": "https://github.com/harbor-framework/terminal-bench",
-          "description": "The terminal-task benchmark coding agents now cite next to SWE-bench: hard, containerized terminal tasks scored end to end. Terminal-Bench 2.0 runs on the harbor evaluation framework; the 1.0 tasks live on in the org's terminal-bench-1 repo.",
-          "applicationCategory": "DeveloperApplication",
-          "keywords": "evals, cli, python"
         }
       },
       {
@@ -1956,11 +1956,11 @@
         "position": 161,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Steel",
-          "url": "https://github.com/steel-dev/steel-browser",
-          "description": "Open-source browser API for agents: cloud or self-hosted Chrome sessions with stealth, residential proxies, CAPTCHA solving, and persistent profiles. The only open-source core in the hosted browser-infrastructure lane (Browserbase and Hyperbrowser are closed).",
+          "name": "strands-agents",
+          "url": "https://github.com/strands-agents/harness-sdk",
+          "description": "Model-driven Python SDK; decorators for tools, native MCP, multi-agent; \"minimal code\" without sacrificing provider choice.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "memory, browser, local"
+          "keywords": "mcp, multi-agent, typed, python"
         }
       },
       {
@@ -1968,11 +1968,11 @@
         "position": 162,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "strands-agents",
-          "url": "https://github.com/strands-agents/harness-sdk",
-          "description": "Model-driven Python SDK; decorators for tools, native MCP, multi-agent; \"minimal code\" without sacrificing provider choice.",
+          "name": "Steel",
+          "url": "https://github.com/steel-dev/steel-browser",
+          "description": "Open-source browser API for agents: cloud or self-hosted Chrome sessions with stealth, residential proxies, CAPTCHA solving, and persistent profiles. The only open-source core in the hosted browser-infrastructure lane (Browserbase and Hyperbrowser are closed).",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "mcp, multi-agent, typed, python"
+          "keywords": "memory, browser, local"
         }
       },
       {
