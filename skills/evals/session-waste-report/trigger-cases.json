@@ -1,0 +1,78 @@
+{
+  "skill": "session-waste-report",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask where tokens, money, or time went across past agent sessions, or which failures repeat; near misses belong to sibling skills or to ccusage.",
+  "cases": [
+    {
+      "id": "where-tokens-went",
+      "prompt": "where did all my tokens and money go last month",
+      "should_trigger": true,
+      "assert": "Runs waste.py --since 30d and leads with its headline, then the top waste rows with their fixes."
+    },
+    {
+      "id": "bill-too-high",
+      "prompt": "why is my Claude Code bill so high",
+      "should_trigger": true,
+      "assert": "Runs the report for Claude Code, ranks waste by dollars, and says the dollars are API list prices."
+    },
+    {
+      "id": "wasteful-habits",
+      "prompt": "which habits waste the most tokens in my agent sessions",
+      "should_trigger": true,
+      "assert": "Reports the waste table ranked by dollars and picks fixes from references/fixes.md."
+    },
+    {
+      "id": "cache-and-rereads",
+      "prompt": "how much am I losing to cache misses and repeated file reads",
+      "should_trigger": true,
+      "assert": "Reports the cache rebuild and re-read rows with tokens, dollars, and share of spend."
+    },
+    {
+      "id": "failure-patterns",
+      "prompt": "show me the failure patterns in my Codex and Gemini CLI sessions",
+      "should_trigger": true,
+      "assert": "Runs the report for both harnesses and reports the failure table with rates per 100."
+    },
+    {
+      "id": "audit-transcripts",
+      "prompt": "audit my agent transcripts for wasted money",
+      "should_trigger": true,
+      "assert": "Runs waste.py once, leads with the headline, and quotes example evidence as data."
+    },
+    {
+      "id": "near-miss-spend-cap",
+      "prompt": "stop the session when it loops or spends more than ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard: stopping a live session."
+    },
+    {
+      "id": "near-miss-mcp-tokens",
+      "prompt": "how many tokens do my MCP servers add to every session",
+      "should_trigger": false,
+      "assert": "Belongs to tool-design-checker: the tool load of MCP servers."
+    },
+    {
+      "id": "near-miss-regression",
+      "prompt": "did my agent get worse after the last Claude Code update",
+      "should_trigger": false,
+      "assert": "Belongs to regression-finder: behavior split by version."
+    },
+    {
+      "id": "near-miss-claims",
+      "prompt": "check whether the agent really ran the tests before it said done",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-daily-totals",
+      "prompt": "show my daily token totals by model",
+      "should_trigger": false,
+      "assert": "Plain totals belong to ccusage; this skill reports habits and failures."
+    },
+    {
+      "id": "near-miss-rule-hook",
+      "prompt": "turn the rule my agent keeps breaking into a hook",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    }
+  ]
+}
