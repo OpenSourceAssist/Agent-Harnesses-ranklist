@@ -1,0 +1,78 @@
+{
+  "skill": "sandbox-check",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask what a coding agent can reach; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "what-can-agent-reach",
+      "prompt": "what can my coding agent actually read and write on this machine",
+      "should_trigger": true,
+      "assert": "Explains what the probe touches, runs probe.py once without --network, and leads with its headline."
+    },
+    {
+      "id": "sandbox-protects-keys",
+      "prompt": "is the Claude Code sandbox really protecting my SSH keys and .env files",
+      "should_trigger": true,
+      "assert": "Runs the probe inside the sandbox and reports secret files as open or blocked, plus settings gaps."
+    },
+    {
+      "id": "blast-radius-injection",
+      "prompt": "how big is the blast radius if my agent gets prompt injected",
+      "should_trigger": true,
+      "assert": "Reports the reach table grouped by risk, Critical first."
+    },
+    {
+      "id": "escape-docker-sudo",
+      "prompt": "could the agent escape the sandbox through Docker or sudo",
+      "should_trigger": true,
+      "assert": "Reports the Docker socket and sudo checks and the matching fixes."
+    },
+    {
+      "id": "codex-secrets-access",
+      "prompt": "check which secrets and credentials Codex can access from its shell",
+      "should_trigger": true,
+      "assert": "Runs the probe through the Codex shell and compares the result with sandbox_mode."
+    },
+    {
+      "id": "git-hooks-startup-files",
+      "prompt": "can the agent write to my git hooks or shell startup files",
+      "should_trigger": true,
+      "assert": "Reports the trust-handoff rows for git hooks and shell startup files."
+    },
+    {
+      "id": "near-miss-deny-rules",
+      "prompt": "test whether my deny rules block git push --force",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester: testing permission rules and hooks against dangerous commands."
+    },
+    {
+      "id": "near-miss-instruction-files",
+      "prompt": "which instruction files does Codex load from this repo",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-spend-cap",
+      "prompt": "stop the session when it loops or spends more than ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    },
+    {
+      "id": "near-miss-mcp-tokens",
+      "prompt": "how many tokens do my MCP servers add to every session",
+      "should_trigger": false,
+      "assert": "Belongs to tool-design-checker."
+    },
+    {
+      "id": "near-miss-leaked-keys",
+      "prompt": "scan my git history for leaked API keys",
+      "should_trigger": false,
+      "assert": "A secret scanner such as gitleaks; this skill checks access, not file contents."
+    },
+    {
+      "id": "near-miss-rule-to-hook",
+      "prompt": "turn the never use npm rule in my CLAUDE.md into a hook",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    }
+  ]
+}

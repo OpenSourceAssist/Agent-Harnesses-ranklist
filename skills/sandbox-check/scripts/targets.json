@@ -1,0 +1,112 @@
+{
+  "about": "Target list for probe.py, checked 2026-09-28. The probe checks access only. It opens and closes secret files without reading a byte, opens existing files for append and closes them without writing, and creates then deletes one empty test file in a folder. Lines that name credential paths carry a marker so the security scanner skips them: skillscan:allow",
+  "roots": {
+    "claude": {"env": "CLAUDE_CONFIG_DIR", "default": "{home}/.claude", "scan": "skillscan:allow"},
+    "codex": {"env": "CODEX_HOME", "default": "{home}/.codex", "scan": "skillscan:allow"},
+    "gemini": {"default": "{home}/.gemini", "scan": "skillscan:allow"},
+    "xdg_config": {"env": "XDG_CONFIG_HOME", "default": "{home}/.config", "scan": "skillscan:allow"},
+    "xdg_data": {"env": "XDG_DATA_HOME", "default": "{home}/.local/share", "scan": "skillscan:allow"},
+    "xdg_runtime": {"env": "XDG_RUNTIME_DIR", "scan": "skillscan:allow"},
+    "gcloud": {"env": "CLOUDSDK_CONFIG", "default": "{home}/.config/gcloud", "scan": "skillscan:allow"},
+    "azure": {"env": "AZURE_CONFIG_DIR", "default": "{home}/.azure", "scan": "skillscan:allow"},
+    "docker": {"env": "DOCKER_CONFIG", "default": "{home}/.docker", "scan": "skillscan:allow"},
+    "gh": {"env": "GH_CONFIG_DIR", "default": "{xdg_config}/gh", "scan": "skillscan:allow"}
+  },
+  "secret_files": [
+    {"id": "ssh-keys", "group": "SSH private keys", "globs": ["{home}/.ssh/id_*", "{home}/.ssh/*.pem", "{home}/.ssh/*.key"], "exclude": ["*.pub"], "pub_siblings": "{home}/.ssh", "scan": "skillscan:allow"},
+    {"id": "aws", "group": "Cloud credentials", "paths": ["{home}/.aws/credentials"], "globs": ["{home}/.aws/sso/cache/*.json", "{home}/.aws/cli/cache/*.json"], "env_paths": ["AWS_SHARED_CREDENTIALS_FILE"], "scan": "skillscan:allow"},
+    {"id": "gcloud", "group": "Cloud credentials", "paths": ["{gcloud}/application_default_credentials.json", "{gcloud}/credentials.db", "{gcloud}/access_tokens.db"], "globs": ["{gcloud}/legacy_credentials/*/adc.json"], "env_paths": ["GOOGLE_APPLICATION_CREDENTIALS"], "scan": "skillscan:allow"},
+    {"id": "azure", "group": "Cloud credentials", "paths": ["{azure}/msal_token_cache.json", "{azure}/msal_token_cache.bin", "{azure}/accessTokens.json", "{azure}/service_principal_entries.json"], "scan": "skillscan:allow"},
+    {"id": "kube", "group": "Cloud credentials", "paths": ["{home}/.kube/config"], "env_paths": ["KUBECONFIG"], "scan": "skillscan:allow"},
+    {"id": "docker-config", "group": "Docker login", "paths": ["{docker}/config.json"], "scan": "skillscan:allow"},
+    {"id": "npmrc", "group": "Package and git tokens", "paths": ["{home}/.npmrc", "{project}/.npmrc"], "scan": "skillscan:allow"},
+    {"id": "pypirc", "group": "Package and git tokens", "paths": ["{home}/.pypirc"], "scan": "skillscan:allow"},
+    {"id": "netrc", "group": "Package and git tokens", "paths": ["{home}/.netrc"], "scan": "skillscan:allow"},
+    {"id": "git-credentials", "group": "Package and git tokens", "paths": ["{home}/.git-credentials", "{xdg_config}/git/credentials"], "scan": "skillscan:allow"},
+    {"id": "gh-hosts", "group": "Package and git tokens", "paths": ["{gh}/hosts.yml"], "scan": "skillscan:allow"},
+    {"id": "harness-logins", "group": "Harness logins", "paths": ["{claude}/.credentials.json", "{codex}/auth.json", "{gemini}/oauth_creds.json", "{gemini}/mcp-oauth-tokens.json", "{gemini}/.env", "{xdg_data}/opencode/auth.json"], "scan": "skillscan:allow"},
+    {"id": "env-files", "group": ".env files", "env_walk": [".env", ".env.*", ".envrc"], "walk_names": [".env", ".env.local", ".envrc", ".env.development", ".env.production"], "exclude": ["*.example", "*.sample", "*.template"], "scan": "skillscan:allow"}
+  ],
+  "trust_files": [
+    {"id": "git-hooks", "group": "Git hooks and config", "risk": "critical", "kind": "dir", "paths": ["{git}/hooks"], "protected_by": ["claude-code", "codex", "cursor"], "why": "git runs these scripts on commit, checkout, merge, and push", "scan": "skillscan:allow"},
+    {"id": "git-config", "group": "Git hooks and config", "risk": "critical", "kind": "file", "paths": ["{git}/config"], "protected_by": ["claude-code", "codex", "cursor"], "why": "git runs the fsmonitor, diff, and merge programs it names", "scan": "skillscan:allow"},
+    {"id": "gitconfig", "group": "Global git config", "risk": "critical", "kind": "file", "paths": ["{home}/.gitconfig"], "outside": true, "why": "every git command reads it, in every repository", "scan": "skillscan:allow"},
+    {"id": "shell-startup", "group": "Shell startup files", "risk": "critical", "kind": "file", "paths": ["{home}/.zshrc", "{home}/.zshenv", "{home}/.zprofile", "{home}/.zlogin", "{home}/.bashrc", "{home}/.bash_profile", "{home}/.bash_login", "{home}/.profile"], "outside": true, "why": "every new terminal runs them with your full rights", "scan": "skillscan:allow"},
+    {"id": "fish-config", "group": "Shell startup files", "risk": "critical", "kind": "file", "paths": ["{xdg_config}/fish/config.fish"], "outside": true, "why": "every new fish shell runs it", "scan": "skillscan:allow"},
+    {"id": "fish-conf-d", "group": "Shell startup files", "risk": "critical", "kind": "dir", "paths": ["{xdg_config}/fish/conf.d"], "outside": true, "why": "every new fish shell runs the files in this folder", "scan": "skillscan:allow"},
+    {"id": "authorized-keys", "group": "SSH login keys", "risk": "critical", "kind": "file", "paths": ["{home}/.ssh/authorized_keys"], "outside": true, "why": "a key added here lets someone log in to this machine", "scan": "skillscan:allow"},
+    {"id": "launch-agents", "group": "Login items", "risk": "critical", "kind": "dir", "paths": ["{home}/Library/LaunchAgents"], "os": "darwin", "outside": true, "why": "macOS starts these programs at every login", "scan": "skillscan:allow"},
+    {"id": "systemd-user", "group": "Login items", "risk": "critical", "kind": "dir", "paths": ["{xdg_config}/systemd/user"], "os": "linux", "outside": true, "why": "systemd starts these services for your user", "scan": "skillscan:allow"},
+    {"id": "autostart", "group": "Login items", "risk": "critical", "kind": "dir", "paths": ["{xdg_config}/autostart"], "os": "linux", "outside": true, "why": "the desktop session starts these programs at login", "scan": "skillscan:allow"},
+    {"id": "vscode", "group": "Editor tasks and settings", "risk": "high", "kind": "dir", "paths": ["{project}/.vscode"], "protected_by": ["claude-code", "cursor"], "why": "VS Code and its forks run tasks.json tasks, some on folder open", "scan": "skillscan:allow"},
+    {"id": "venv-bin", "group": "Python virtualenv", "risk": "high", "kind": "dir", "paths": ["{project}/.venv/bin"], "protected_by": [], "why": "the editor's Python extension runs this interpreter to inspect it", "scan": "skillscan:allow"},
+    {"id": "claude-settings", "group": "Harness settings and hooks", "harness": "claude-code", "risk": "high", "kind": "file", "paths": ["{project}/.claude/settings.json", "{project}/.claude/settings.local.json", "{project}/.mcp.json"], "protected_by": ["claude-code"], "why": "Claude Code and Cursor run the hooks and MCP servers listed here", "scan": "skillscan:allow"},
+    {"id": "claude-user-settings", "group": "Harness settings and hooks", "harness": "claude-code", "risk": "high", "kind": "file", "paths": ["{claude}/settings.json", "{home}/.claude.json"], "outside": true, "why": "Claude Code runs the hooks and MCP servers listed here", "scan": "skillscan:allow"},
+    {"id": "claude-extensions", "group": "Harness settings and hooks", "harness": "claude-code", "risk": "high", "kind": "dir", "paths": ["{project}/.claude/skills", "{project}/.claude/agents"], "protected_by": ["claude-code"], "why": "skill and subagent frontmatter can define hooks that Claude Code runs", "scan": "skillscan:allow"},
+    {"id": "claude-user-extensions", "group": "Harness settings and hooks", "harness": "claude-code", "risk": "high", "kind": "dir", "paths": ["{claude}/skills", "{claude}/agents"], "outside": true, "why": "skill and subagent frontmatter can define hooks that Claude Code runs", "scan": "skillscan:allow"},
+    {"id": "codex-settings", "group": "Harness settings and hooks", "harness": "codex", "risk": "high", "kind": "file", "paths": ["{project}/.codex/config.toml", "{project}/.codex/hooks.json"], "protected_by": ["codex"], "why": "Codex loads these in trusted projects", "scan": "skillscan:allow"},
+    {"id": "codex-user-settings", "group": "Harness settings and hooks", "harness": "codex", "risk": "high", "kind": "file", "paths": ["{codex}/config.toml", "{codex}/hooks.json"], "outside": true, "why": "Codex reads its sandbox mode, hooks, and MCP servers here", "scan": "skillscan:allow"},
+    {"id": "codex-rules", "group": "Harness settings and hooks", "harness": "codex", "risk": "high", "kind": "dir", "paths": ["{codex}/rules"], "outside": true, "why": "Codex command rules here can allow any command", "scan": "skillscan:allow"},
+    {"id": "gemini-settings", "group": "Harness settings and hooks", "harness": "gemini-cli", "risk": "high", "kind": "file", "paths": ["{project}/.gemini/settings.json"], "protected_by": [], "why": "Gemini CLI runs the hooks and MCP servers listed here", "scan": "skillscan:allow"},
+    {"id": "gemini-user-settings", "group": "Harness settings and hooks", "harness": "gemini-cli", "risk": "high", "kind": "file", "paths": ["{gemini}/settings.json", "{gemini}/trustedFolders.json"], "outside": true, "why": "Gemini CLI reads hooks, MCP servers, and folder trust here", "scan": "skillscan:allow"},
+    {"id": "cursor-settings", "group": "Harness settings and hooks", "harness": "cursor", "risk": "high", "kind": "file", "paths": ["{project}/.cursor/hooks.json", "{project}/.cursor/mcp.json", "{project}/.cursor/sandbox.json"], "protected_by": ["cursor"], "why": "Cursor runs these hooks and MCP servers and reads its sandbox rules here", "scan": "skillscan:allow"},
+    {"id": "cursor-user-settings", "group": "Harness settings and hooks", "harness": "cursor", "risk": "high", "kind": "file", "paths": ["{home}/.cursor/hooks.json", "{home}/.cursor/mcp.json", "{home}/.cursor/sandbox.json", "{home}/.cursor/cli-config.json"], "outside": true, "why": "Cursor runs these hooks and MCP servers and reads its permissions here", "scan": "skillscan:allow"},
+    {"id": "opencode-settings", "group": "Harness settings and hooks", "harness": "opencode", "risk": "high", "kind": "file", "paths": ["{project}/opencode.json"], "protected_by": [], "why": "OpenCode reads its permission rules and MCP servers here", "scan": "skillscan:allow"},
+    {"id": "opencode-plugins", "group": "Harness settings and hooks", "harness": "opencode", "risk": "high", "kind": "dir", "paths": ["{project}/.opencode/plugins"], "protected_by": [], "why": "OpenCode runs the plugins in this folder", "scan": "skillscan:allow"},
+    {"id": "opencode-user-settings", "group": "Harness settings and hooks", "harness": "opencode", "risk": "high", "kind": "file", "paths": ["{xdg_config}/opencode/opencode.json"], "outside": true, "why": "OpenCode reads its permission rules and MCP servers here", "scan": "skillscan:allow"},
+    {"id": "opencode-user-plugins", "group": "Harness settings and hooks", "harness": "opencode", "risk": "high", "kind": "dir", "paths": ["{xdg_config}/opencode/plugins"], "outside": true, "why": "OpenCode runs the plugins in this folder", "scan": "skillscan:allow"}
+  ],
+  "docker_sockets": ["{sysroot}/var/run/docker.sock", "{home}/.docker/run/docker.sock", "{home}/.colima/default/docker.sock", "{home}/.orbstack/run/docker.sock", "{home}/.rd/docker.sock", "{sysroot}/run/podman/podman.sock", "{xdg_runtime}/docker.sock", "{xdg_runtime}/podman/podman.sock"],
+  "secret_env": {
+    "include": "PASSWORD|PASSWD|(^|_)(API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|SECRET|TOKEN|PASSPHRASE|CREDENTIALS?|AUTH|PAT|DSN|COOKIE)(_|$)|_KEY$|^DATABASE_URL$|^OP_SESSION_|^MYSQL_PWD$|^SSHPASS$",
+    "exclude": "(_FILE|_FILES|_PATH|_DIR|_SOCK|_SOCKET|_HOST|_PORT|_ENABLED|_DISABLED)$|^GOOGLE_APPLICATION_CREDENTIALS$",
+    "scan": "skillscan:allow"
+  },
+  "harness_markers": {
+    "claude-code": ["CLAUDECODE"],
+    "codex": ["CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "CODEX_VERSION"],
+    "gemini-cli": ["GEMINI_CLI"],
+    "cursor": ["CURSOR_SANDBOX", "CURSOR_ORIG_UID", "CURSOR_SANDBOX_LANDLOCK_STATUS"]
+  },
+  "sandbox_markers": [
+    {"name": "CODEX_SANDBOX", "harness": "codex", "values": ["seatbelt"]},
+    {"name": "CODEX_SANDBOX_NETWORK_DISABLED", "harness": "codex", "values": ["1"]},
+    {"name": "SANDBOX", "harness": "gemini-cli", "values": ["sandbox-exec"]},
+    {"name": "CURSOR_SANDBOX", "harness": "cursor", "values": ["seatbelt", "native"]}
+  ],
+  "container_signs": {
+    "files": ["{sysroot}/.dockerenv", "{sysroot}/run/.containerenv"],
+    "cgroup_file": "{sysroot}/proc/1/cgroup",
+    "cgroup_words": ["docker", "kubepods", "containerd", "lxc", "podman"],
+    "env": ["container", "KUBERNETES_SERVICE_HOST", "CODESPACES", "REMOTE_CONTAINERS", "DEVCONTAINER"]
+  },
+  "network": {
+    "dns": ["github.com", "pypi.org"],
+    "outbound": [["github.com", 443], ["pypi.org", 443]],
+    "metadata": ["169.254.169.254", 80],
+    "proxy_env": ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"]
+  },
+  "settings": {
+    "claude-code": [
+      {"layer": "user", "path": "{claude}/settings.json"},
+      {"layer": "project", "path": "{project}/.claude/settings.json"},
+      {"layer": "local", "path": "{project}/.claude/settings.local.json"},
+      {"layer": "managed", "os": "darwin", "path": "{sysroot}/Library/Application Support/ClaudeCode/managed-settings.json"},
+      {"layer": "managed", "os": "darwin", "dropins": "{sysroot}/Library/Application Support/ClaudeCode/managed-settings.d"},
+      {"layer": "managed", "os": "linux", "path": "{sysroot}/etc/claude-code/managed-settings.json"},
+      {"layer": "managed", "os": "linux", "dropins": "{sysroot}/etc/claude-code/managed-settings.d"}
+    ],
+    "codex": [
+      {"layer": "user", "path": "{codex}/config.toml"}
+    ],
+    "gemini-cli": [
+      {"layer": "user", "path": "{gemini}/settings.json"},
+      {"layer": "project", "path": "{project}/.gemini/settings.json"}
+    ]
+  },
+  "folders": [
+    {"id": "home-folder", "category": "outside-project", "group": "New files in your home folder", "risk": "high", "path": "{home}", "display": "~"},
+    {"id": "parent-folder", "category": "outside-project", "group": "New files in the parent folder", "risk": "medium", "path": "{project}/..", "display": ".."},
+    {"id": "project-folder", "category": "project", "group": "Project folder", "risk": "info", "path": "{project}", "display": "."}
+  ]
+}
