@@ -1,0 +1,42 @@
+{
+  "skill_name": "harness-test-drive",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Which coding agent works best on this repo, Claude Code or Codex? Try them on tasks from my git history.",
+      "expected_output": "The agent mines and validates tasks, shows the estimate for claude-code and codex, asks for a total dollar cap, runs drive.py run only after the user names a number, and answers with the scoreboard headline in bold, the per-harness table, and two or three next steps.",
+      "expectations": [
+        "The agent first runs python3 <skill-dir>/scripts/mine_tasks.py --repo . and confirms the test command with the user",
+        "The agent runs mine_tasks.py with --validate before any agent run, and says how many tasks were kept",
+        "The agent runs drive.py estimate and shows the number of runs and the dollar range before asking for a cap",
+        "The agent asks for a total dollar cap and starts no drive.py run until the user gives a number; it never picks the cap itself",
+        "Every command quotes the skill path: python3 \"<skill-dir>/scripts/...\"",
+        "drive.py run is called with --harness claude-code,codex and --max-usd equal to the user's number",
+        "The answer leads with the headline 'On N tasks from your git history, ...' verbatim in bold, with the harnesses in the ranked order the script printed, followed by the per-harness table"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Also add Gemini CLI to the comparison.",
+      "expected_output": "Before running Gemini CLI, the agent explains that it reports no cost and has no price in the table, so its runs count $0 toward the cap, and it asks for agreement. Only after a clear yes does it rerun drive.py run with gemini-cli added and --allow-unpriced gemini-cli, which resumes and skips finished runs.",
+      "expectations": [
+        "The agent says Gemini CLI's spend cannot be measured and that its runs count $0 toward the cap",
+        "The agent asks for agreement before passing --allow-unpriced gemini-cli, and does not pass it without a clear yes",
+        "The rerun uses the same tasks and results files, so finished Claude Code and Codex runs are not repeated",
+        "The report marks Gemini CLI's cost as not measured instead of showing a dollar figure"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I just cloned an open-source project I don't know. Benchmark coding agents on it, $5 max.",
+      "expected_output": "Before the task check runs any test or setup command, the agent recommends a container or VM: the check runs the repository's commands at up to 31 commits, and each harness loads the repository's own agent settings, edits files, runs the test command, and reads commit messages as prompts. It uses --max-usd 5, says that a Codex run cut off at --timeout is counted as an estimate so the bill can pass the cap, and the caveats say a model may have seen this public project's changes during training.",
+      "expectations": [
+        "Before running mine_tasks.py with --validate, the agent recommends a container or VM for a repository the user did not write, and says why",
+        "The agent still mines and validates tasks, and shows the estimate next to the $5 cap",
+        "drive.py run is called with --max-usd 5, not a different amount",
+        "Next to the $5 cap, the agent says a Codex run has no limit except --timeout, so the bill can pass the cap",
+        "The caveats mention that a model may have seen a public repository's fixes during training, and the sample size"
+      ]
+    }
+  ]
+}

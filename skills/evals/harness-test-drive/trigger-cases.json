@@ -1,0 +1,84 @@
+{
+  "skill": "harness-test-drive",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask which coding agent works best on the user's own code, or what it costs per fix there; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "which-agent-best-codebase",
+      "prompt": "which coding agent works best on my codebase, Claude Code or Codex?",
+      "should_trigger": true,
+      "assert": "Mines tasks with mine_tasks.py, shows the estimate, asks for a dollar cap before any run."
+    },
+    {
+      "id": "benchmark-own-repo",
+      "prompt": "benchmark Claude Code against Codex on my own repository",
+      "should_trigger": true,
+      "assert": "Validates tasks from git history, then runs drive.py with an explicit --max-usd."
+    },
+    {
+      "id": "compare-on-past-bugs",
+      "prompt": "compare coding agents on real bugs from my git history",
+      "should_trigger": true,
+      "assert": "Runs mine_tasks.py --validate and reports the fixes per harness."
+    },
+    {
+      "id": "trial-before-switching",
+      "prompt": "I want to trial Gemini CLI before switching from Claude Code",
+      "should_trigger": true,
+      "assert": "Explains that Gemini CLI cannot be priced and runs only with --allow-unpriced gemini-cli after the user agrees."
+    },
+    {
+      "id": "cost-per-fixed-bug",
+      "prompt": "what does each agent cost per fixed bug on this project",
+      "should_trigger": true,
+      "assert": "Leads with the headline 'On N tasks from your git history, ... passed ... at $Y each'."
+    },
+    {
+      "id": "test-drive-past-commits",
+      "prompt": "test drive Codex and Claude Code on my past commits",
+      "should_trigger": true,
+      "assert": "Uses the commit messages as prompts and the repository's tests as the score."
+    },
+    {
+      "id": "leaderboards-dont-transfer",
+      "prompt": "SWE-bench leaderboards say nothing about my repo, how do I compare harnesses on my own code",
+      "should_trigger": true,
+      "assert": "Runs the mine, estimate, cap, run, report sequence."
+    },
+    {
+      "id": "near-miss-past-spend",
+      "prompt": "how much did my agent sessions cost last month",
+      "should_trigger": false,
+      "assert": "Belongs to session-waste-report: spend from past session transcripts."
+    },
+    {
+      "id": "near-miss-spend-cap-hook",
+      "prompt": "stop the agent when it spends more than ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard: a live session cap."
+    },
+    {
+      "id": "near-miss-got-worse",
+      "prompt": "did Claude Code get worse after the last update",
+      "should_trigger": false,
+      "assert": "Belongs to regression-finder."
+    },
+    {
+      "id": "near-miss-claims",
+      "prompt": "did the agent really run the tests before it said they passed",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-instruction-files",
+      "prompt": "which instruction files does Codex load from this repo",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-token-prices",
+      "prompt": "list the price per million tokens for Claude and GPT models",
+      "should_trigger": false,
+      "assert": "No skill: a pricing lookup, not a test drive."
+    }
+  ]
+}
