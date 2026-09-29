@@ -1,0 +1,90 @@
+{
+  "skill": "tool-design-checker",
+  "purpose": "Trigger routing for tool-design-checker: MCP server authors grading their tools, and users sizing the tool load of the MCP servers configured in their harnesses. Near misses cover building a server and the sibling skills for sandboxes, session cost, instruction files, guardrails, and loops.",
+  "cases": [
+    {
+      "id": "lint-tool-descriptions",
+      "prompt": "lint my MCP server's tool descriptions",
+      "should_trigger": true,
+      "assert": "Runs tools_check.py lint on the server (asking before launching it) and reports grades and fixes."
+    },
+    {
+      "id": "tool-token-load",
+      "prompt": "how many tools and tokens do my MCP servers load into the context window",
+      "should_trigger": true,
+      "assert": "Runs tools_check.py installed, then asks before --launch, and leads with the per-harness tool and token totals."
+    },
+    {
+      "id": "grade-before-publish",
+      "prompt": "grade the tools in my MCP server before I publish it",
+      "should_trigger": true,
+      "assert": "Grades each tool A to F with the stated rubric and lists the five weakest tools with exact fixes."
+    },
+    {
+      "id": "which-servers-installed",
+      "prompt": "which MCP servers do I have installed across Claude Code, Codex and Cursor",
+      "should_trigger": true,
+      "assert": "Runs installed without --launch and shows each server, where it is configured, and the command it runs, with no env values."
+    },
+    {
+      "id": "tools-collide-across-servers",
+      "prompt": "my MCP tools overlap across servers and the model picks the wrong one",
+      "should_trigger": true,
+      "assert": "Launches the configured servers only after a yes, then reports the tool pairs that collide across servers."
+    },
+    {
+      "id": "openai-function-list",
+      "prompt": "review these OpenAI function definitions for unclear parameter descriptions",
+      "should_trigger": true,
+      "assert": "Runs lint --tools on the saved function list and reports param-no-description and unclear-purpose findings."
+    },
+    {
+      "id": "readonly-annotations",
+      "prompt": "does my MCP server need readOnlyHint annotations on its tools",
+      "should_trigger": true,
+      "assert": "Lints the tools and explains the readonly-hint-missing and destructive-hint findings with the MCP defaults."
+    },
+    {
+      "id": "input-schemas",
+      "prompt": "check the input schemas of my MCP tools",
+      "should_trigger": true,
+      "assert": "Reports schema findings such as required fields missing from properties, deep nesting, and large enums."
+    },
+    {
+      "id": "near-miss-build-server",
+      "prompt": "build a new MCP server in Python for my Postgres database",
+      "should_trigger": false,
+      "assert": "Building a server is not grading one; no skill in this set fits."
+    },
+    {
+      "id": "near-miss-sandbox",
+      "prompt": "what secret files and folders can my coding agent read",
+      "should_trigger": false,
+      "assert": "Belongs to sandbox-check."
+    },
+    {
+      "id": "near-miss-session-cost",
+      "prompt": "why did my Claude Code sessions cost so much this month",
+      "should_trigger": false,
+      "assert": "Belongs to session-waste-report."
+    },
+    {
+      "id": "near-miss-agents-md",
+      "prompt": "check which instruction files Codex loads from AGENTS.md",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-guardrails",
+      "prompt": "do my permission rules and hooks block git push --force",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester."
+    },
+    {
+      "id": "near-miss-loop",
+      "prompt": "stop my agent when it keeps calling the same command in a loop",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    }
+  ]
+}
