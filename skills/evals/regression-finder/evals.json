@@ -1,0 +1,43 @@
+{
+  "skill_name": "regression-finder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Claude Code feels worse since last week's update. Can you check whether it actually changed?",
+      "expected_output": "The agent runs regress.py with the defaults. If the update the user means (last week's) was not tested, it leads with that and the sessions it had, then gives the headline as background. Otherwise it leads with the script's bold headline verbatim, shows the flagged changes as a short table with the per-session values and the sessions on each side, says a change placed 'between X and Y' lies somewhere in that span, follows every confounder with the rerun it names, and ends with two or three next actions such as the changelog entries for that span.",
+      "expectations": [
+        "The agent runs python3 \"<skill-dir>/scripts/regress.py\" (Claude Code, split by version, last 90 days) through its shell tool before answering",
+        "The agent checks the By version table for last week's update first; if that update was not tested, the answer leads with that and its session count",
+        "Otherwise the answer leads with the script's headline sentence verbatim, in bold",
+        "Each flagged change is reported with its per-session before and after values and the number of sessions on each side",
+        "A change placed 'between X and Y' is described as somewhere in that span, never as caused by one version",
+        "For each line under 'What else changed at the same point', the agent reruns with the flag it names, copying any --project argument exactly as printed, or explains why the update may not be the cause",
+        "The answer quotes no prompt text, command, or file content from the transcripts, and the agent writes no file the user did not ask for"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Did switching Codex to the new model make it lazier? Check my history.",
+      "expected_output": "The agent runs regress.py --harness codex --by model, which compares each model with the one before it within two weeks of its first use, reports whether any model change passed the test with sample sizes, and if the report says both models were in use at the same time or that the harness version changed at the same point, says so and reruns with --by version to separate the two.",
+      "expectations": [
+        "The agent runs python3 \"<skill-dir>/scripts/regress.py\" with --harness codex and --by model",
+        "The answer leads with the script's headline verbatim",
+        "If the confounders list a harness version change, the agent reruns with --by version and reports both results",
+        "Models the report left out for too little data are named as left out, not as unchanged",
+        "No percentage is presented as a finding unless the report flagged it"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want to file a bug report that Claude Code regressed. Give me the numbers and a chart I can attach.",
+      "expected_output": "The agent runs regress.py, then runs it again with --svg to a path the user can find and --json (or --out) for the data, gives both paths, and summarizes the flagged changes with their per-session values, sessions, adjusted p values, the span they are placed in, and the confounders. If the headline says there is not enough history, it explains the 20-session minimum and offers a longer --since window or --by week before a lower --min-sessions, instead of inventing numbers.",
+      "expectations": [
+        "The agent runs python3 \"<skill-dir>/scripts/regress.py\" and then again with --svg <path>",
+        "The agent gives the user the chart path and the data file or JSON it produced",
+        "The summary includes the sessions on each side and the adjusted p value of each flagged change",
+        "The confounders are included in the summary, since a bug report needs them",
+        "If nothing can be tested, the agent explains the session minimum and offers --since or --by week before a lower --min-sessions, rather than reporting a change"
+      ]
+    }
+  ]
+}

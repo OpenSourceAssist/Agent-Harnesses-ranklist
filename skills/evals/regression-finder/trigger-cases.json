@@ -1,0 +1,84 @@
+{
+  "skill": "regression-finder",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask whether an update, a version, or a model change made the agent worse, and when it started; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "worse-after-update",
+      "prompt": "did claude code get worse after the last update",
+      "should_trigger": true,
+      "assert": "Runs regress.py with the defaults (Claude Code, split by version) and leads with its headline."
+    },
+    {
+      "id": "dumber-since-upgrade",
+      "prompt": "my agent feels dumber since I upgraded codex, is it just me",
+      "should_trigger": true,
+      "assert": "Runs regress.py --harness codex and reports whether any update passed the test, with session counts."
+    },
+    {
+      "id": "which-version-edits-without-reading",
+      "prompt": "which version made claude code start editing files without reading them first",
+      "should_trigger": true,
+      "assert": "Reports the reads-before-the-first-edit change and the update where it was flagged."
+    },
+    {
+      "id": "new-model-before-after",
+      "prompt": "compare how my agent behaved before and after switching to the new model",
+      "should_trigger": true,
+      "assert": "Runs regress.py --by model and names the model change where the numbers moved."
+    },
+    {
+      "id": "week-quality-regressed",
+      "prompt": "find the week my coding agent's quality regressed",
+      "should_trigger": true,
+      "assert": "Runs regress.py --by week and leads with the week where a change was flagged."
+    },
+    {
+      "id": "lazier-new-release",
+      "prompt": "is the new codex release lazier than the old one for me",
+      "should_trigger": true,
+      "assert": "Runs regress.py --harness codex and names the confounders at any flagged update."
+    },
+    {
+      "id": "bug-report-numbers",
+      "prompt": "I need numbers for a bug report that the latest claude code version degraded",
+      "should_trigger": true,
+      "assert": "Runs regress.py, then offers --json and --svg for the report, quoting sample sizes."
+    },
+    {
+      "id": "near-miss-token-waste",
+      "prompt": "where do my tokens go, show me the waste in my sessions",
+      "should_trigger": false,
+      "assert": "Belongs to session-waste-report."
+    },
+    {
+      "id": "near-miss-loop-stop",
+      "prompt": "stop the session when the agent loops or spends too much money",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    },
+    {
+      "id": "near-miss-compare-harnesses",
+      "prompt": "compare Codex and Claude Code on my own past bugs",
+      "should_trigger": false,
+      "assert": "Belongs to harness-test-drive."
+    },
+    {
+      "id": "near-miss-tests-claims",
+      "prompt": "did the agent really run the tests when it said they passed",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-broken-rules",
+      "prompt": "which rules in my AGENTS.md does the agent keep breaking",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    },
+    {
+      "id": "near-miss-install-update",
+      "prompt": "how do I install the newest claude code",
+      "should_trigger": false,
+      "assert": "An installation question for no skill: this skill measures behavior, it does not install or pin versions."
+    }
+  ]
+}
