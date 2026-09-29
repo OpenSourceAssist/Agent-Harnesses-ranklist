@@ -264,7 +264,7 @@ def _records(path, session):
 # ---------------------------------------------------------------------------
 
 _CC_KINDS = {
-    "Bash": "shell", "Read": "read", "NotebookRead": "read", "Edit": "edit", "MultiEdit": "edit",
+    "Bash": "shell", "Monitor": "shell", "Read": "read", "NotebookRead": "read", "Edit": "edit", "MultiEdit": "edit",
     "NotebookEdit": "edit", "Write": "write", "Grep": "search", "Glob": "search", "LS": "search",
     "WebFetch": "web", "WebSearch": "web", "Agent": "agent", "Task": "agent",
 }
@@ -1004,7 +1004,7 @@ def _gm_project_root(folder) -> str:
         return ""
     name = os.path.basename(folder)  # a slug, or sha256(root) for folders made by older versions
     return next((root for root, slug in projects.items()
-                 if name in (slug, hashlib.sha256(root.encode("utf-8")).hexdigest())), "")
+                 if name in (slug, hashlib.sha256(root.encode("utf-8", "surrogateescape")).hexdigest())), "")
 
 
 def _load_gemini(path) -> Session:
@@ -1387,7 +1387,7 @@ def _find_codex(roots, cutoff, project, include_subagents) -> list:
 
 def _find_gemini(roots, cutoff, project, include_subagents) -> list:
     found = []
-    legacy_name = hashlib.sha256(project.encode("utf-8")).hexdigest() if project else ""
+    legacy_name = hashlib.sha256(project.encode("utf-8", "surrogateescape")).hexdigest() if project else ""
     for folder in _scan(os.path.join(roots["gemini-cli"], "tmp")):
         if not folder.is_dir():
             continue
@@ -1518,14 +1518,28 @@ def safe_text(text, limit=160) -> str:
     return s if len(s) <= limit else s[: max(limit - 3, 0)] + "..."
 
 
-def unique_events(sessions):
+def cutoff(days) -> str:
+    """The UTC time `days` days ago, in the form event timestamps use, for
+    unique_events(since=...)."""
+    stamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
+    return stamp.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def unique_events(sessions, since=None):
     """Yield (session, event) for every event across `sessions`, oldest session
     first, skipping an event whose (kind, id) an earlier session already had.
     A forked or resumed Claude Code session starts with a copy of the earlier
-    session's records, ids included; totals must count that copy once."""
+    session's records, ids included; totals must count that copy once.
+    With `since` (an ISO 8601 UTC time, see cutoff()), events older than it
+    are skipped too: find_sessions picks files by modified time, and a
+    recently modified file can hold records months old. Events without a
+    timestamp are kept."""
     seen = set()
+    floor = since[:19] if since else ""
     for s in sorted(sessions, key=lambda s: s.started or s.ended or ""):
         for e in s.events:
+            if floor and e.ts and e.ts[:19] < floor:
+                continue
             if e.id:
                 if (e.kind, e.id) in seen:
                     continue

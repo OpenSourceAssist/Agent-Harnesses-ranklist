@@ -1557,3 +1557,31 @@ def test_safe_text_keeps_untrusted_text_on_one_inert_line():
     out.encode("utf-8")  # a lone surrogate would raise here
     assert T.safe_text("x" * 500, limit=40) == "x" * 37 + "..."
     assert T.safe_text(None) == "None" and T.safe_text("  a \t b  ") == "a b"
+
+
+def test_unique_events_since_drops_old_records_in_a_recent_file():
+    s = T.Session(harness="claude-code", id="a", path="a.jsonl", started="2026-06-01T00:00:00.000Z",
+                  events=[T.Event(kind="assistant", id="old", ts="2026-06-01T00:00:00.000Z"),
+                          T.Event(kind="assistant", id="new", ts="2026-09-20T10:00:00.123Z"),
+                          T.Event(kind="user")])
+    got = [e.id or e.kind for _, e in T.unique_events([s], since="2026-09-01T00:00:00")]
+    assert got == ["new", "user"]
+    assert [e.id for _, e in T.unique_events([s])][:2] == ["old", "new"]
+
+
+def test_cutoff_is_a_utc_timestamp_prefix():
+    import datetime
+    c = T.cutoff(30)
+    assert len(c) == 19 and c[10] == "T"
+    parsed = datetime.datetime.strptime(c, "%Y-%m-%dT%H:%M:%S")
+    age = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - parsed
+    assert datetime.timedelta(days=29, hours=23) < age < datetime.timedelta(days=30, minutes=1)
+
+
+def test_claude_code_monitor_tool_is_a_shell_call():
+    assert T._cc_kind("Monitor") == "shell" and T._cc_kind("Bash") == "shell"
+
+
+def test_find_sessions_accepts_a_project_path_that_is_not_utf8(tmp_path):
+    odd = str(tmp_path) + "/caf\udce9"  # a path byte that is not UTF-8, as os.fsdecode gives it
+    assert T.find_sessions(harness="gemini-cli", project=odd, home=str(tmp_path)) == []

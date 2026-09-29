@@ -78,8 +78,6 @@ def test_suffixes_are_stripped_and_the_longest_known_prefix_wins(model, same_as)
 @pytest.mark.parametrize("model", [
     "claude-opus-5-6",          # a newer version is not priced as an older one
     "gpt-5.5-pro", "gpt-6-astra-mini", "gpt-6-luna-nano",   # another size is another price
-    "claude-sonnet-4-5@20250929",   # Vertex AI sets its own prices
-    "us.anthropic.claude-sonnet-4-5-20250929-v1:0",   # so does Bedrock
     "gemini-3.1-pro", "gemini-2.5-flash", "codex-auto-review", "<synthetic>", "", None,
 ])
 def test_unknown_models_are_unpriced(model):
@@ -137,3 +135,19 @@ def test_price_for_returns_a_copy():
 def test_every_price_entry_can_be_used():
     for model in P.PRICES:
         assert P.cost_usd(U(input=1, cache_read=1, cache_write=2, cache_write_1h=1, output=1), model) > 0
+
+
+@pytest.mark.parametrize("cloud_id, known", [
+    ("us.anthropic.claude-opus-4-8-v1:0", "claude-opus-4-8"),
+    ("anthropic.claude-sonnet-5-v1:0", "claude-sonnet-5"),
+    ("eu.anthropic.claude-haiku-4-5-20251001-v1:0", "claude-haiku-4-5"),
+    ("global.anthropic.claude-opus-5-5-v1", "claude-opus-5-5"),
+    ("claude-opus-4-8@20260101", "claude-opus-4-8"),
+    ("claude-sonnet-5@latest", "claude-sonnet-5"),
+])
+def test_cloud_provider_ids_price_like_the_model(cloud_id, known):
+    assert P.price_for(cloud_id) == P.price_for(known) and P.price_for(known) is not None
+
+
+def test_cloud_normalizing_keeps_unknown_versions_unknown():
+    assert P.price_for("us.anthropic.claude-opus-5-6-v1:0") is None

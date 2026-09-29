@@ -68,12 +68,19 @@ PRICES = {
 
 _CONTEXT_SUFFIX_RE = re.compile(r"\[[^\]]*\]$")            # claude-opus-5-5[1m]
 _DATE_SUFFIX_RE = re.compile(r"-(?:\d{8}|\d{4}-\d\d-\d\d)$")  # -20251001 or -2026-09-01
+# Cloud ids for the same models: Amazon Bedrock (us.anthropic.claude-opus-4-8-v1:0)
+# and Google Vertex AI (claude-opus-4-8@20260101). They get the model's list price:
+# the clouds set their own prices, which can differ a little (regional endpoints),
+# but a list price keeps a spend cap working where "unknown" would count $0.
+_PROVIDER_PREFIX_RE = re.compile(r"^(?:(?:us|eu|apac|jp|au|global|us-gov)\.)?(?:anthropic|openai)\.")
+_PROVIDER_SUFFIX_RE = re.compile(r"(?:-v\d+(?::\d+)?|@\d{8}|@latest)$")
 _SEPARATORS = "-_.@:"
 _SIZE_WORDS = {"mini", "nano", "pro", "max", "lite", "turbo"}  # another size is another price
 
 
 def price_for(model) -> Optional[dict]:
-    """Prices for a model id: the exact id, then the id without a context or
+    """Prices for a model id: the exact id, then the id without a cloud
+    provider prefix or suffix (Bedrock, Vertex AI), a context suffix, or a
     date suffix, then the longest known id it starts with. A newer version
     number or another size after the known id (claude-opus-5-6, gpt-5.5-pro)
     does not count as a match. Returns None when the model is unknown."""
@@ -81,7 +88,8 @@ def price_for(model) -> Optional[dict]:
         return None
     name = model.strip()
     if name not in PRICES:
-        name = _DATE_SUFFIX_RE.sub("", _CONTEXT_SUFFIX_RE.sub("", name))
+        name = _PROVIDER_SUFFIX_RE.sub("", _CONTEXT_SUFFIX_RE.sub("", _PROVIDER_PREFIX_RE.sub("", name)))
+        name = _DATE_SUFFIX_RE.sub("", name)
     if name not in PRICES:
         best = ""
         for known in PRICES:
