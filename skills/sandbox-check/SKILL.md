@@ -94,7 +94,7 @@ directory). Run every command from the user's project folder.
 2. **Run the probe once, through your normal shell tool:**
 
    ```bash
-   python3 <skill-dir>/scripts/probe.py --project .
+   python3 "<skill-dir>/scripts/probe.py" --project .
    ```
 
    `--project` is the folder the agent works in. When `python3.11` or newer is installed (such as
@@ -114,7 +114,7 @@ directory). Run every command from the user's project folder.
    after a clear yes:
 
    ```bash
-   python3 <skill-dir>/scripts/probe.py --project . --network
+   python3 "<skill-dir>/scripts/probe.py" --project . --network
    ```
 
    Done when the user declined, or the new report's Network rows read open or blocked.
