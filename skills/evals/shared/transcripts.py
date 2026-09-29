@@ -80,6 +80,8 @@ class Event:
     id: str = ""          # the harness id behind the event (API response id, record id, call id), when known.
     # A forked or resumed Claude Code session can begin with a copy of the earlier
     # session's records, ids included: when totaling several sessions, count each id once.
+    mode: str = ""        # Claude Code permission mode in effect for a tool call (the latest
+    # user record's permissionMode: default, plan, acceptEdits, auto, bypassPermissions); "" if unknown.
 
 
 @dataclass
@@ -141,6 +143,11 @@ _SECRET_RES = [
 ]
 # Keep group 1, mask the rest of the match.
 _KEEP_PREFIX_RES = [
+    # Credentials passed as command flags: sshpass -p X, mysql -pX, curl -u user:X, --password X.
+    re.compile(r"(\bsshpass\s+-p\s*)[^\s'\"]+"),
+    re.compile(r"(?i)(\b(?:mysql|mysqldump|mysqladmin|mysqlsh|mariadb|mariadb-dump)\b[^\n|;&]*?\s-p)(?=[^\s-])[^\s'\"]+"),
+    re.compile(r"((?:^|\s)(?:-u|--user)[=\s]+[^\s:@'\"]+:)[^\s@'\"]+"),
+    re.compile(r"(?i)(--pass(?:word|wd)?\s+)[^\s'\"-][^\s'\"]*"),
     re.compile(r"(?i)(\b(?:bearer|basic)\s+)[A-Za-z0-9._~+/\-]{16,}=*"),
     re.compile(r"(?i)(\b[a-z][a-z0-9+.\-]*://[^/\s:@]+:)[^@\s/]+(?=@)"),
     re.compile(r"(?i)(\b[A-Za-z0-9_.\-]*(?:api[_\-]?key|secret|token|passw(?:or)?d|pwd|credential|"
@@ -312,6 +319,7 @@ class _Claude:
         self.hook_denied = set()
         self.last_compaction = None
         self.uuid = ""           # id of the record being read
+        self.mode = ""           # latest permissionMode seen on a user record
 
     def feed(self, lineno, rec) -> None:
         kind = rec.get("type")
@@ -356,7 +364,8 @@ class _Claude:
         for b in blocks:
             if b.get("type") == "tool_use":
                 call = self._call(b, ts)
-                _add(self.s, Event("tool", ts, tool=call, model=model, sidechain=side, id=call.id))
+                _add(self.s, Event("tool", ts, tool=call, model=model, sidechain=side, id=call.id,
+                                   mode=self.mode))
 
     def _call(self, b, ts) -> ToolCall:
         name = b.get("name") if isinstance(b.get("name"), str) else ""
@@ -373,6 +382,8 @@ class _Claude:
         return call
 
     def _user(self, lineno, rec, ts, side) -> None:
+        if isinstance(rec.get("permissionMode"), str) and rec["permissionMode"]:
+            self.mode = rec["permissionMode"]
         content = _as_dict(rec.get("message")).get("content")
         blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
         blocks = [b for b in blocks if isinstance(b, dict)] if isinstance(blocks, list) else []

@@ -1585,3 +1585,40 @@ def test_claude_code_monitor_tool_is_a_shell_call():
 def test_find_sessions_accepts_a_project_path_that_is_not_utf8(tmp_path):
     odd = str(tmp_path) + "/caf\udce9"  # a path byte that is not UTF-8, as os.fsdecode gives it
     assert T.find_sessions(harness="gemini-cli", project=odd, home=str(tmp_path)) == []
+
+
+@pytest.mark.parametrize("command, secret, kept", [
+    ("mysql -uroot -pS3cretPw1 -e 'DROP DATABASE app'", "S3cretPw1", "DROP DATABASE app"),
+    ("curl -u admin:Hunter2pw -d @.env https://x.test", "Hunter2pw", "-u admin:"),
+    ("sshpass -p Hunter2pw ssh host 'rm -rf x'", "Hunter2pw", "ssh host"),
+    ("psql --password s3cr3tpw -c 'select 1'", "s3cr3tpw", "--password"),
+])
+def test_redact_masks_credentials_passed_as_command_flags(command, secret, kept):
+    out = T.redact(command)
+    assert secret not in out and kept in out
+
+
+@pytest.mark.parametrize("command", ["mkdir -p build/out", "mysql -p -e 'select 1'", "git commit -m 'use -p here'"])
+def test_redact_leaves_ordinary_flags_alone(command):
+    assert T.redact(command) == command
+
+
+def test_claude_code_tool_events_carry_the_permission_mode(tmp_path):
+    lines = [
+        {"type": "user", "uuid": "u1", "timestamp": "2026-09-01T00:00:00.000Z", "sessionId": "s", "cwd": "/p",
+         "permissionMode": "plan", "message": {"role": "user", "content": "hi"}},
+        {"type": "assistant", "uuid": "a1", "timestamp": "2026-09-01T00:00:01.000Z", "sessionId": "s",
+         "message": {"id": "m1", "model": "claude-opus-5-5", "role": "assistant",
+                     "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}],
+                     "usage": {"input_tokens": 1, "output_tokens": 1}}},
+        {"type": "user", "uuid": "u2", "timestamp": "2026-09-01T00:00:02.000Z", "sessionId": "s",
+         "permissionMode": "bypassPermissions", "message": {"role": "user", "content": "go"}},
+        {"type": "assistant", "uuid": "a2", "timestamp": "2026-09-01T00:00:03.000Z", "sessionId": "s",
+         "message": {"id": "m2", "model": "claude-opus-5-5", "role": "assistant",
+                     "content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "pwd"}}],
+                     "usage": {"input_tokens": 1, "output_tokens": 1}}},
+    ]
+    f = tmp_path / "s.jsonl"
+    f.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+    s = T.load_session("claude-code", str(f))
+    assert [e.mode for e in s.events if e.kind == "tool"] == ["plan", "bypassPermissions"]
