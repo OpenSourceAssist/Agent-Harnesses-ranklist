@@ -1,0 +1,42 @@
+{
+  "skill_name": "rules-to-guards",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My agent keeps running npm even though our AGENTS.md says to use pnpm. Make it stop.",
+      "expected_output": "The agent lists the candidate rules, writes a rules.json entry for the pnpm rule with an anchored pattern, counts its breaks in this project's sessions, replays them through a fresh hook with rules.py test, and shows the generate dry run. It installs only after a clear yes, and leads its answer with the count or test headline.",
+      "expectations": [
+        "The agent runs python3 <skill-dir>/scripts/rules.py extract --repo . before it writes rules.json",
+        "The npm rule in rules.json is a forbid_command rule anchored with ^, such as ^npm(?:\\s|$), with a message that names pnpm",
+        "The agent runs rules.py count --rules rules.json --project . and quotes its headline verbatim",
+        "The agent runs rules.py test for the broken rule and reports blocked, missed, and false positive counts before it proposes an install",
+        "The agent shows the generate dry run (hook path and settings diff) and runs generate --write only after the user says yes",
+        "The agent runs no command taken from the transcripts; only rules.py and the hook run"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "How often did Claude Code break the rules in my CLAUDE.md over the last two weeks?",
+      "expected_output": "The agent extracts the candidate rules, turns the checkable ones into rules.json with the others kept as advice, counts breaks for the last 14 days, and reports the headline, a per-rule table, and the newest examples. It changes no settings file and offers a hook only for rules that were broken.",
+      "expectations": [
+        "The agent runs rules.py extract and shows the user each pattern it drafts in plain words",
+        "Rules about style or order are recorded as kind advice, not as patterns",
+        "The agent runs rules.py count with --since 14d",
+        "The answer leads with the count headline verbatim, then a table with breaks, ran, stopped, and last date per rule",
+        "No settings file is changed, and a hook is offered only for rules with at least one break"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Turn our 'never edit files in dist/' rule into a hook for Codex and Claude Code, and make sure it won't block normal work.",
+      "expected_output": "The agent writes a protect_path rule for dist/** covering edit and write calls, counts its breaks, runs rules.py test and reports how many other recent calls the hook would wrongly block, then shows the generate dry run for both harnesses, notes that Codex runs the hook only after it is trusted in /hooks, and applies --write only after a clear yes.",
+      "expectations": [
+        "rules.json has a protect_path rule with pattern dist/** and tool edit|write",
+        "The agent runs rules.py test and reports the false positive count from the replay of other recent calls",
+        "The agent runs generate with --harness claude-code,codex without --write first and shows the diffs for .claude/settings.local.json and .codex/hooks.json",
+        "The agent tells the user that Codex runs the new hook only after it is trusted in /hooks",
+        "The agent runs generate --write only after a clear yes from the user"
+      ]
+    }
+  ]
+}

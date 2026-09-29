@@ -1,0 +1,78 @@
+{
+  "skill": "rules-to-guards",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask which written rules the agent breaks, how often, or how to enforce them with a hook; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "keeps-breaking-agents-md",
+      "prompt": "my agent keeps breaking the rules in AGENTS.md, enforce them with a hook",
+      "should_trigger": true,
+      "assert": "Runs rules.py extract, drafts rules.json with the user, counts the breaks, and tests a hook before offering to install it."
+    },
+    {
+      "id": "npm-rule-to-hook",
+      "prompt": "turn the never use npm rule in my CLAUDE.md into a hook",
+      "should_trigger": true,
+      "assert": "Writes a forbid_command rule anchored with ^, counts its breaks, replays them with rules.py test, and shows the generate dry run."
+    },
+    {
+      "id": "how-often-violated",
+      "prompt": "how often did Claude Code violate the rules in my CLAUDE.md last month",
+      "should_trigger": true,
+      "assert": "Runs rules.py count with --since 30d and leads with its headline."
+    },
+    {
+      "id": "which-rules-broken",
+      "prompt": "which of my AGENTS.md rules does Codex actually break",
+      "should_trigger": true,
+      "assert": "Extracts the candidate rules, then counts breaks with --harness codex."
+    },
+    {
+      "id": "disobeys-rule",
+      "prompt": "the agent disobeys the pnpm rule in GEMINI.md, stop it from breaking that rule",
+      "should_trigger": true,
+      "assert": "Counts the breaks and proposes a Gemini CLI BeforeTool hook, shown as a dry run first."
+    },
+    {
+      "id": "convert-rules-permissions",
+      "prompt": "convert the rules in my CLAUDE.md into hooks or permission rules",
+      "should_trigger": true,
+      "assert": "Generates the hook and prints the matching permission rules labeled partial."
+    },
+    {
+      "id": "near-miss-deny-rules",
+      "prompt": "test whether my deny rules block git push --force",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester: testing existing permission rules and hooks against dangerous commands."
+    },
+    {
+      "id": "near-miss-instruction-files",
+      "prompt": "which instruction files does Codex load from this repo",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-stale-commands",
+      "prompt": "check whether the test and build commands in my AGENTS.md still work",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-spend-cap",
+      "prompt": "stop the session when it loops or spends more than ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    },
+    {
+      "id": "near-miss-tests-pass",
+      "prompt": "did the agent really run the tests before it said they pass",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-write-agents-md",
+      "prompt": "write an AGENTS.md for this repo",
+      "should_trigger": false,
+      "assert": "No skill: the repo's AGENTS.md template covers writing one."
+    }
+  ]
+}
