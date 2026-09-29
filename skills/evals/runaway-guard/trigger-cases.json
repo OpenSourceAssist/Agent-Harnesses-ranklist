@@ -1,0 +1,96 @@
+{
+  "skill": "runaway-guard",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask to stop a live session that loops, keeps failing, or overspends, or ask about the guard's counts; near misses belong to sibling skills.",
+  "cases": [
+    {
+      "id": "spend-cap-dollars",
+      "prompt": "stop my Claude Code session if it spends more than $10",
+      "should_trigger": true,
+      "assert": "Explains the three trip wires, asks for the cap and scope, and shows the install.py dry run with --cap 10 before writing anything."
+    },
+    {
+      "id": "interactive-spending-cap",
+      "prompt": "set a spending cap for interactive Claude Code sessions",
+      "should_trigger": true,
+      "assert": "Runs install.py without --write first and installs only after a clear yes."
+    },
+    {
+      "id": "looping-command",
+      "prompt": "my agent keeps looping on the same command, stop it automatically",
+      "should_trigger": true,
+      "assert": "Describes the loop wire (the same call a third time with nothing changed) and offers the install."
+    },
+    {
+      "id": "circuit-breaker-failures",
+      "prompt": "add a circuit breaker that halts the agent after five failed tool calls in a row",
+      "should_trigger": true,
+      "assert": "Describes the failure-streak wire: Claude Code asks after 5 failures in a row; Codex blocks and tells the agent to ask."
+    },
+    {
+      "id": "budget-outside-print-mode",
+      "prompt": "--max-budget-usd only works in print mode, I want a budget limit for interactive sessions",
+      "should_trigger": true,
+      "assert": "Offers the spend wire as the interactive cap and shows the dry run."
+    },
+    {
+      "id": "session-spend-so-far",
+      "prompt": "how much has this session spent so far against the cap",
+      "should_trigger": true,
+      "assert": "Runs status.py and leads with its headline."
+    },
+    {
+      "id": "codex-overnight-limit",
+      "prompt": "put a dollar limit on Codex so it cannot run up a bill overnight",
+      "should_trigger": true,
+      "assert": "Runs install.py --harness codex as a dry run and relays that Codex needs the hook trusted in /hooks."
+    },
+    {
+      "id": "why-blocked-reset",
+      "prompt": "why did the runaway guard block my tool call and how do I reset it",
+      "should_trigger": true,
+      "assert": "Names the trip wire; for a loop runs status.py and reads the latest events; after a spend stop gives the status.py and reset commands for the user's own terminal, since the guard blocks tool calls."
+    },
+    {
+      "id": "near-miss-deny-rules",
+      "prompt": "test whether my deny rules block git push --force",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester."
+    },
+    {
+      "id": "near-miss-past-spend",
+      "prompt": "where did my tokens and money go last month",
+      "should_trigger": false,
+      "assert": "Belongs to session-waste-report: past spend, not a live cap."
+    },
+    {
+      "id": "near-miss-regression",
+      "prompt": "did my agent get worse after the last Claude Code update",
+      "should_trigger": false,
+      "assert": "Belongs to regression-finder."
+    },
+    {
+      "id": "near-miss-rule-to-hook",
+      "prompt": "turn the never use npm rule in my CLAUDE.md into a hook",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    },
+    {
+      "id": "near-miss-sandbox",
+      "prompt": "what can my coding agent read and write on this machine",
+      "should_trigger": false,
+      "assert": "Belongs to sandbox-check."
+    },
+    {
+      "id": "near-miss-test-claims",
+      "prompt": "did the agent really run the tests before it said they passed",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-compare-harnesses",
+      "prompt": "compare Codex and Claude Code on my past bugs with cost per fix",
+      "should_trigger": false,
+      "assert": "Belongs to harness-test-drive."
+    }
+  ]
+}
