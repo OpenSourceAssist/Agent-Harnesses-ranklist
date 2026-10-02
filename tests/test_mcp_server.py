@@ -267,3 +267,9 @@ def test_templates_and_playbooks_tools(server):
     assert "available" in json.loads(server.get_template("nope"))
     assert json.loads(server.list_playbooks())["playbooks"]
     assert server.get_playbook("build-your-own-agent-harness").startswith("# Build your own agent harness")
+
+
+def test_ranked_skips_archived_projects(server):
+    d = json.loads((ROOT / "harnesses.json").read_text())
+    names = [p["name"] for _, p, _ in server._ranked(d, "drag and drop no-code flow builder")]
+    assert "Flowise" not in names

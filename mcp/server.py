@@ -100,6 +100,8 @@ def _ranked(d: dict, use_case: str, max_rank: int = 4, min_a: int = 0,
     lang = language.strip().lower()
     scored = []
     for p in d["projects"]:
+        if p.get("archived"):
+            continue
         if p["tier_rank"] > max_rank:
             continue
         if min_a and p.get("autonomy_rank", 0) < min_a:

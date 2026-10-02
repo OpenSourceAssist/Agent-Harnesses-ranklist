@@ -1437,7 +1437,7 @@ def render_use_cases() -> list:
     for intent, ids, cat_title in USE_CASES:
         picks: list = []
         for gid in ids:
-            if is_graveyard(gid):
+            if not is_recommendable(gid):
                 continue
             p = find_project(gid)
             picks.append(f"[{p.display_name}](https://github.com/{p.github_id})")
@@ -1523,6 +1523,12 @@ def is_graveyard(github_id: str) -> bool:
     return archived or github_id in INTEGRITY_FLAGGED
 
 
+def is_recommendable(github_id: str) -> bool:
+    """True if a repo may be a use-case pick. Stricter than is_graveyard: a repo
+    kept in the tables via KEEP_DESPITE_ARCHIVED is still never recommended."""
+    return github_id not in ARCHIVED and not is_graveyard(github_id)
+
+
 def graveyard_since(github_id: str) -> str:
     """Date a repo entered the Graveyard: archival date or integrity-flag date."""
     if github_id in ARCHIVED:
@@ -1602,7 +1608,7 @@ def build_faq() -> list:
         faq.append(item)
 
     for intent, ids, cat_title in USE_CASES:
-        live_ids = [g for g in ids if not is_graveyard(g)]
+        live_ids = [g for g in ids if is_recommendable(g)]
         picks = ", ".join(find_project(g).display_name for g in live_ids[:3])
         add("use-case", f"What is the best agent harness if {intent}?",
             f"Top picks: {picks}. See the “{cat_title}” category for the full ranked list.")
@@ -1774,6 +1780,7 @@ def generate_readme() -> str:
         "- ⚖️ **Simplicity ↔ capability** — adoption surface, 4 tiers: **super simple** (a format, one concept) → **mostly simple** (thin layer) → **slightly complex** (real SDK) → **complex** (product suite).",
         "- ★ **Headless-ready** — designed for unattended runs, batches, and fleets (the top of the autonomy scale: step-gated → checkpoint-gated → bounded → headless).",
         "- ✱ **Durable** — persisted execution state survives restarts mid-task (the top of the recovery scale: none → retry → resumable → durable).",
+        "- <sup>archived upstream</sup> — the maintainers archived the repo, so it gets no new fixes. Kept in the table for reference, never in the use-case picks.",
         "- ✅ **Open source** — ✅ standard OSS license · ⚠️ source-available/restricted · ❓ no or unclear license.",
         "- 🏷️ **Tags** — capability chips auto-derived from descriptions; full cross-reference in [TAGS.md](TAGS.md).",
         "- 🎯 **Examples** — one concrete \"show me it in action\" link per project, not a docs root.",
@@ -1801,6 +1808,8 @@ def generate_readme() -> str:
             chips = tag_chips_md(p.tags)
             autonomy, recovery = axes_for(p.github_id)
             marks = ("&#8202;★" if autonomy == "headless" else "") + ("&#8202;✱" if recovery == "durable" else "")
+            if p.github_id in ARCHIVED:
+                marks += f" <sup>archived upstream {ARCHIVED[p.github_id]}</sup>"
             anchor = f'<a name="{project_slug(p.github_id)}"></a>'
             row = f"| {i} | {anchor}[**{p.display_name}**](https://github.com/{p.github_id}){marks} | {stars_cell} | {p.description}{chips} | {p.oss} | {p.axis} | {examples_cell} |"
             body.append(row)
@@ -2176,6 +2185,7 @@ def generate_harnesses_json() -> str:
                 "tags": p.tags,
                 "example": {"label": example_label_for(p.github_id), "url": examples_for(p.github_id)},
                 "deep_dive": deep_dives.get(p.github_id),
+                "archived": ARCHIVED.get(p.github_id),
             })
     doc = {
         "meta": {
@@ -2201,7 +2211,7 @@ def generate_harnesses_json() -> str:
         },
         "categories": [{"id": c, "title": t, "subtitle": s} for c, t, s in CATEGORIES],
         "use_cases": [
-            {"intent": intent, "picks": [g for g in ids if not is_graveyard(g)], "category_title": cat}
+            {"intent": intent, "picks": [g for g in ids if is_recommendable(g)], "category_title": cat}
             for intent, ids, cat in USE_CASES
         ],
         "faq": build_faq(),
@@ -2240,7 +2250,7 @@ def generate_llms_txt() -> str:
         "",
     ]
     for intent, ids, _ in USE_CASES:
-        live_ids = [g for g in ids if not is_graveyard(g)]
+        live_ids = [g for g in ids if is_recommendable(g)]
         picks = ", ".join(f"{find_project(g).display_name} (https://github.com/{g})" for g in live_ids)
         lines.append(f"- {intent}: {picks}")
     lines.append("")

@@ -16,7 +16,7 @@ Tiers, least to most adoption surface: super simple → mostly simple → slight
 - I want to plug hundreds to thousands of tools without context bloat: MCP-Zero (https://github.com/xfey/MCP-Zero), ToolGen (https://github.com/Reason-Wang/ToolGen), ToolRAG (https://github.com/antl3x/ToolRAG), langgraph-bigtool (https://github.com/langchain-ai/langgraph-bigtool)
 - I want multi-agent orchestration: openai-agents-python (https://github.com/openai/openai-agents-python), crewAI (https://github.com/crewAIInc/crewAI), autogen (https://github.com/microsoft/autogen), Microsoft Agent Framework (https://github.com/microsoft/agent-framework), PraisonAI (https://github.com/MervinPraison/PraisonAI), agent-squad (https://github.com/2FastLabs/agent-squad)
 - I want a general LLM app framework: langgraph (https://github.com/langchain-ai/langgraph), langchain (https://github.com/langchain-ai/langchain), llama-index (https://github.com/run-llama/llama_index), pydantic-ai (https://github.com/pydantic/pydantic-ai), agno (https://github.com/agno-agi/agno)
-- I want low-code / visual workflows: langflow (https://github.com/langflow-ai/langflow), Flowise (https://github.com/FlowiseAI/Flowise), Dify (https://github.com/langgenius/dify), n8n (https://github.com/n8n-io/n8n)
+- I want low-code / visual workflows: langflow (https://github.com/langflow-ai/langflow), Dify (https://github.com/langgenius/dify), n8n (https://github.com/n8n-io/n8n)
 - I want browser-using agents: browser-use (https://github.com/browser-use/browser-use), Stagehand (https://github.com/browserbase/stagehand), WebVoyager (https://github.com/MinorJerry/WebVoyager), puppeteer-real-browser-mcp (https://github.com/withLinda/puppeteer-real-browser-mcp-server)
 - I want sandboxed code execution for agent-generated code: E2B (https://github.com/e2b-dev/E2B), Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox), Daytona (https://github.com/daytonaio/daytona), smolagents (https://github.com/huggingface/smolagents), OpenHands (https://github.com/OpenHands/OpenHands)
 - I want to evaluate or benchmark agents: SWE-bench (https://github.com/SWE-bench/SWE-bench), Terminal-Bench (https://github.com/harbor-framework/terminal-bench), AgencyBench (https://github.com/GAIR-NLP/AgencyBench), inspect_ai (https://github.com/UKGovernmentBEIS/inspect_ai), WebArena (https://github.com/web-arena-x/webarena), VitaBench (https://github.com/meituan-longcat/vitabench)
@@ -80,7 +80,7 @@ Top picks: openai-agents-python, crewAI, autogen. See the “Multi-agent and orc
 Top picks: langgraph, langchain, llama-index. See the “Frameworks” category for the full ranked list.
 
 ### What is the best agent harness if I want low-code / visual workflows?
-Top picks: langflow, Flowise, Dify. See the “Frameworks” category for the full ranked list.
+Top picks: langflow, Dify, n8n. See the “Frameworks” category for the full ranked list.
 
 ### What is the best agent harness if I want browser-using agents?
 Top picks: browser-use, Stagehand, WebVoyager. See the “Plugins, MCPs, CLI tools” category for the full ranked list.

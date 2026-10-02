@@ -221,7 +221,6 @@
       "intent": "I want low-code / visual workflows",
       "picks": [
         "langflow-ai/langflow",
-        "FlowiseAI/Flowise",
         "langgenius/dify",
         "n8n-io/n8n"
       ],
@@ -330,7 +329,7 @@
     {
       "kind": "use-case",
       "q": "What is the best agent harness if I want low-code / visual workflows?",
-      "a": "Top picks: langflow, Flowise, Dify. See the “Frameworks” category for the full ranked list.",
+      "a": "Top picks: langflow, Dify, n8n. See the “Frameworks” category for the full ranked list.",
       "slug": "what-is-the-best-agent-harness-if-i-want-low-code-visual-workflows"
     },
     {
@@ -633,7 +632,8 @@
         "label": "Project README",
         "url": "https://github.com/headroomlabs-ai/headroom#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "awesome-cursorrules",
@@ -693,7 +693,8 @@
           "detail": "Users copy config-driven .mdc rule blueprints into .cursor/rules/ rather than importing an SDK or running a hosted service; the runtime is Cursor itself.",
           "evidence": "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "agents.md",
@@ -754,7 +755,8 @@
           "detail": "It is an open format/config spec (with a reference Next.js site) that projects adopt, not an SDK to import or a hosted runtime.",
           "evidence": "https://raw.githubusercontent.com/agentsmd/agents.md/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "context-mode",
@@ -816,7 +818,8 @@
           "detail": "Ships as a self-hosted, config/hook-driven layer installed into existing agent platforms (nothing leaves the machine); an optional hosted Insight dashboard at context-mode.com/insight is a secondary add-on.",
           "evidence": "https://raw.githubusercontent.com/mksglu/context-mode/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "langgraph-bigtool",
@@ -877,7 +880,8 @@
           "detail": "Installed via pip install langgraph-bigtool as a Python library composed into a custom LangGraph agent loop, with no opinionated hosted runtime.",
           "evidence": "https://raw.githubusercontent.com/langchain-ai/langgraph-bigtool/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "MCP-Zero",
@@ -937,7 +941,8 @@
           "detail": "Ships as an MIT-licensed Python research library (matcher/sampler/reformatter modules plus a precomputed tool-embedding dataset) meant to be imported into someone else's agent loop, not a runnable agent product or opinionated runtime.",
           "evidence": "https://github.com/xfey/MCP-Zero"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "ToolGen",
@@ -998,7 +1003,8 @@
           "detail": "Delivered as open-source research code/model weights on Hugging Face that users must integrate and deploy themselves, with no packaged runtime.",
           "evidence": "https://raw.githubusercontent.com/Reason-Wang/ToolGen/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "ToolRAG",
@@ -1059,7 +1065,8 @@
           "detail": "Distributed as the @antl3x/toolrag npm package that developers import into their own MCP/agent code, not a self-hosted runtime or managed service.",
           "evidence": "https://raw.githubusercontent.com/antl3x/ToolRAG/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "opencode",
@@ -1123,7 +1130,8 @@
           "detail": "Installs as a self-hosted, config-driven CLI/TUI coding agent (build/plan agent modes, plugin system, any-LLM-provider config) that you run yourself; OpenCode Zen is an optional hosted curated-model gateway, not a required execution backend.",
           "evidence": "https://opencode.ai/docs/"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Codex",
@@ -1185,7 +1193,8 @@
           "detail": "Primary artifact is the self-hosted Codex CLI configured via config.toml/hooks.json that you run locally; OpenAI also offers a hosted ChatGPT Codex cloud environment as a managed alternative.",
           "evidence": "https://raw.githubusercontent.com/openai/codex/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "pi",
@@ -1247,7 +1256,8 @@
           "detail": "Ships as a self-hosted coding-agent CLI/TUI configured through an extensive extension/hook system rather than a bare SDK primitive; a separate lower-level agent-loop package is also importable for tier-1 style use.",
           "evidence": "https://raw.githubusercontent.com/earendil-works/pi/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Gemini CLI",
@@ -1309,7 +1319,8 @@
           "detail": "Distributed as a self-hosted, config-driven CLI runtime (settings.json, hooks, GEMINI.md) that you run yourself against the Gemini API/Vertex AI backend, not an SDK primitive set or a fully managed execution platform.",
           "evidence": "https://raw.githubusercontent.com/google-gemini/gemini-cli/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "OpenHands",
@@ -1372,7 +1383,8 @@
           "detail": "Primary artifact is the MIT-licensed, self-hosted Agent Server/SDK you run locally, in Docker, or in your own Kubernetes/VPC deployment; OpenHands Cloud is a separate vendor-managed offering for teams that don't want to self-host.",
           "evidence": "https://docs.openhands.dev/overview/introduction"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Cline",
@@ -1433,7 +1445,8 @@
           "detail": "Primary published artifact is the self-hosted VS Code/JetBrains extension and CLI configured via .clinerules and the plugin/hook system; a lower-level programmatic SDK is also offered for tier-1 style composition.",
           "evidence": "https://raw.githubusercontent.com/cline/cline/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Open Interpreter",
@@ -1494,7 +1507,8 @@
           "detail": "A self-hosted terminal CLI (fork of Codex) with selectable model harnesses, configured via hooks/permissions/AGENTS.md and local state under ~/.openinterpreter, not an SDK primitive or managed platform.",
           "evidence": "https://raw.githubusercontent.com/openinterpreter/openinterpreter/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "goose",
@@ -1555,7 +1569,8 @@
           "detail": "Ships as a self-hosted Rust desktop app/CLI/API configured via extensions, permission.yaml, and recipe YAML files that you run yourself, not a managed hosted platform.",
           "evidence": "https://raw.githubusercontent.com/aaif-goose/goose/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "DeepSeek-Reasonix",
@@ -1586,7 +1601,8 @@
         "label": "Project README",
         "url": "https://github.com/esengine/DeepSeek-Reasonix#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "oh-my-pi",
@@ -1651,7 +1667,8 @@
           "detail": "omp is a self-hosted terminal binary (macOS/Linux/Windows) you configure with extensions, hooks, and approval policy; the optional Hindsight memory backend can point at a hosted Cloud endpoint or a self-hosted Docker server, but the core agent runs locally with no required managed control plane.",
           "evidence": "https://github.com/can1357/oh-my-pi/blob/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "crush",
@@ -1713,7 +1730,8 @@
           "detail": "Crush installs as a self-hosted terminal CLI you run and configure yourself (providers, permissions, hooks, context files); Charm's Hyper is an optional hosted model-provider subscription, not a required execution backend.",
           "evidence": "https://github.com/charmbracelet/crush/blob/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "vibe-kanban",
@@ -1771,7 +1789,8 @@
           "detail": "Primary artifact is the self-hosted local app (npx vibe-kanban, Rust/SQLite backend) that orchestrates external agents; a self-hosted \"Vibe Kanban Cloud\" instance option is also documented. The project has since announced it is sunsetting.",
           "evidence": "https://raw.githubusercontent.com/BloopAI/vibe-kanban/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "qwen-code",
@@ -1833,7 +1852,8 @@
           "detail": "Qwen Code installs as a self-hosted terminal CLI (with an optional qwen serve daemon mode for shared HTTP+SSE sessions) that you configure and run yourself against any Qwen-compatible model endpoint; there is no required hosted execution backend.",
           "evidence": "https://raw.githubusercontent.com/QwenLM/qwen-code/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Symphony",
@@ -1893,7 +1913,8 @@
           "detail": "Symphony is a self-hosted orchestrator daemon (polls an issue tracker, spawns workers as local or SSH subprocesses, optional observability HTTP API) that you configure via WORKFLOW.md and hooks; \"rich web UI or multi-tenant control plane\" is explicitly not a goal, so there is no managed backend.",
           "evidence": "https://raw.githubusercontent.com/openai/symphony/main/SPEC.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Kilo Code",
@@ -1956,7 +1977,8 @@
           "detail": "The primary published artifact is a self-hosted VS Code/JetBrains extension and CLI you configure with modes, rules, and permissions; Kilo Cloud Agents (isolated per-user Linux containers, remote execution) are an optional hosted tier layered on top, not required for the core loop.",
           "evidence": "https://kilo.ai/docs/code-with-ai/platforms/cloud-agent"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Roo Code",
@@ -2019,7 +2041,8 @@
           "detail": "The published artifact was a self-hosted VS Code/JetBrains extension configured via modes and permission settings, with an optional paid Roo Code Cloud/Roomote layer for remote agents and task sharing; note this repository was archived by the owner on 2026-05-15 and the extension itself shut down, with the team pivoting fully to the hosted Roomote cloud agent.",
           "evidence": "https://github.com/RooCodeInc/Roo-Code"
         }
-      }
+      },
+      "archived": "2026-07-03"
     },
     {
       "name": "Prime Agent",
@@ -2050,7 +2073,8 @@
         "label": "YC Paper Club talk (18:00)",
         "url": "https://www.youtube.com/watch?v=n9xKblqyQ28&t=1080s"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "jcode",
@@ -2082,7 +2106,8 @@
         "label": "Project README",
         "url": "https://github.com/1jehuang/jcode#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "eigent",
@@ -2111,7 +2136,8 @@
         "label": "Project README",
         "url": "https://github.com/eigent-ai/eigent#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "cc-haha",
@@ -2141,7 +2167,8 @@
         "label": "Project README",
         "url": "https://github.com/NanmiCoder/cc-haha#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "claw-code-agent",
@@ -2204,7 +2231,8 @@
           "detail": "Claw Code Agent is a self-hosted Python CLI/library with a bundled localhost-only FastAPI GUI; it requires only a local Python runtime and an OpenAI-compatible model endpoint (vLLM, Ollama, LiteLLM, OpenRouter), with no hosted execution backend of its own.",
           "evidence": "https://raw.githubusercontent.com/HarnessLab/claw-code-agent/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Proliferate",
@@ -2267,7 +2295,8 @@
           "detail": "The published GitHub artifact is an AGPL-3.0 self-hosted control plane (Caddy + Postgres + API, deployable via Docker Compose or AWS CloudFormation) you run yourself; Proliferate Cloud (beta) is an optional managed hosted alternative, not the primary installed artifact.",
           "evidence": "https://raw.githubusercontent.com/proliferate-ai/proliferate/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AgentBox",
@@ -2328,7 +2357,8 @@
           "detail": "AgentBox is a self-hosted CLI you run against your own local Docker or your own cloud provider credentials; it orchestrates fleet fan-out and isolation as an opinionated runtime you configure, with no AgentBox-operated managed backend.",
           "evidence": "https://github.com/madarco/agentbox"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "YYLO",
@@ -2357,7 +2387,8 @@
         "label": "Project README",
         "url": "https://github.com/yylo-dev/yylo#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "superpowers",
@@ -2419,7 +2450,8 @@
           "detail": "Superpowers installs as a self-hosted skill/plugin pack layered onto an existing harness (Claude Code marketplace plugin, Codex/OpenCode/Cursor equivalents) rather than a standalone runtime you buy into; there is no hosted execution backend.",
           "evidence": "https://raw.githubusercontent.com/obra/superpowers/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Anthropic Skills",
@@ -2477,7 +2509,8 @@
           "detail": "The repo is the reference format for a config-driven skill/plugin system (folders of instructions/scripts/resources you register with a harness) rather than an SDK you import to write your own loop or a hosted service; it has no runtime or managed backend of its own and is consumed by Claude Code, Claude.ai, or the API.",
           "evidence": "https://raw.githubusercontent.com/anthropics/skills/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "GStack",
@@ -2537,7 +2570,8 @@
           "detail": "GStack is explicitly stated to have \"no runtime of its own\": it is an MIT-licensed skill/slash-command pack (Markdown + shell scripts) layered onto an existing Claude Code install, with an optional on-demand browser daemon and optional GBrain backend; no vendor-hosted execution stack is required.",
           "evidence": "https://raw.githubusercontent.com/garrytan/gstack/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "addyosmani/agent-skills",
@@ -2566,7 +2600,8 @@
         "label": "Project README",
         "url": "https://github.com/addyosmani/agent-skills#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "awesome-claude-code",
@@ -2624,7 +2659,8 @@
           "detail": "The repo installs nothing runnable — it's a bibliography of external tools/skills you'd assemble yourself, the closest fit among the three tiers to \"no opinionated runtime.\"",
           "evidence": "https://github.com/hesreallyhim/awesome-claude-code#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "wshobson/agents",
@@ -2686,7 +2722,8 @@
           "detail": "A config-driven plugin/skill marketplace (94 plugins, 203 agents, 175 skills) you install into an existing harness rather than a library you import or a hosted service.",
           "evidence": "https://github.com/wshobson/agents#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "planning-with-files",
@@ -2714,7 +2751,8 @@
         "label": "Project README",
         "url": "https://github.com/OthmanAdi/planning-with-files#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "SWE-agent",
@@ -2776,7 +2814,8 @@
           "detail": "SWE-agent installs as a pip/source Python CLI and library governed by a single YAML config that you run yourself (optionally against Docker); no vendor-hosted platform is required for core use.",
           "evidence": "https://raw.githubusercontent.com/SWE-agent/SWE-agent/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "get-shit-done",
@@ -2837,7 +2876,8 @@
           "detail": "GSD installs as a self-hosted npm script pack (slash commands, hooks, and .planning/ state files) layered onto an existing coding-agent CLI (Claude Code, Gemini CLI, OpenCode, Codex, and others) that you configure and run yourself; there is no hosted execution backend. Note: gsd-build/get-shit-done redirects upstream to the actively maintained open-gsd/gsd-core, which this research used as the current canonical source.",
           "evidence": "https://raw.githubusercontent.com/open-gsd/gsd-core/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Claude Agent SDK",
@@ -2900,7 +2940,8 @@
           "detail": "The published artifact is the claude-agent-sdk Python/TypeScript package (query()/ClaudeSDKClient) that you import and compose into your own application/loop; Anthropic's hosted Claude Code and Managed Agents offerings are the tier-3 alternative for teams that don't want to own the runtime.",
           "evidence": "https://raw.githubusercontent.com/anthropics/claude-agent-sdk-python/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "agents-cli",
@@ -2961,7 +3002,8 @@
           "detail": "Explicitly \"a tool for coding agents, not a coding agent itself\" — a CLI/skill pack layered on whatever coding assistant you already run, built on the ADK framework; it works from a local API key with no opinionated runtime of its own (Google Cloud Agent Runtime is an optional deployment target, not a requirement).",
           "evidence": "https://github.com/google/agents-cli#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "skillhub",
@@ -3023,7 +3065,8 @@
           "detail": "Self-hosted-only enterprise registry you deploy on your own infrastructure (Docker Compose/Kubernetes, \"full data sovereignty\") with RBAC and namespaces to configure — an opinionated runtime you run yourself.",
           "evidence": "https://github.com/iflytek/skillhub#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Meta-Harness",
@@ -3049,7 +3092,8 @@
         "label": "Project README",
         "url": "https://github.com/stanford-iris-lab/meta-harness#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "RepoMaster",
@@ -3110,7 +3154,8 @@
           "detail": "Self-hosted, MIT-licensed multi-agent framework you clone, configure with API keys, and run locally (CLI or web UI) — an opinionated orchestrator, not a library you import or a managed service.",
           "evidence": "https://github.com/QuantaAlpha/RepoMaster#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AutoHarness",
@@ -3173,7 +3218,8 @@
           "detail": "Explicitly \"wrap any LLM client (2 lines, instant governance)\" — a Python library you import and compose (AutoHarness.wrap(OpenAI())), not a runtime you deploy.",
           "evidence": "https://github.com/aiming-lab/AutoHarness#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "LoopTroop",
@@ -3233,7 +3279,8 @@
           "detail": "A self-hosted local GUI orchestrator (Node.js/npm) that runs OpenCode underneath and wires council-planning, Ralph-loop execution, and worktree-shipping into one opinionated pipeline you run locally — no managed service.",
           "evidence": "https://github.com/looptroop-ai/LoopTroop#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "pmstack",
@@ -3293,7 +3340,8 @@
           "detail": "A config-driven skills/command package layered on Claude Code or Claude.ai Projects (markdown skills + slash commands you configure), billed against an existing Claude subscription rather than a separate managed service.",
           "evidence": "https://github.com/RyanAlberts/pmstack#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "OpenClaw",
@@ -3354,7 +3402,8 @@
           "detail": "OpenClaw installs as a self-hosted npm/daemon Gateway runtime you configure with workspace files, plugins, and sandbox settings; optional companion apps (Windows Hub, macOS, iOS/Android nodes) are additional surfaces, not a required hosted execution stack.",
           "evidence": "https://raw.githubusercontent.com/openclaw/openclaw/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Hermes",
@@ -3416,7 +3465,8 @@
           "detail": "The published artifact is a self-hostable, MIT-licensed agent runtime installed via curl script and configured through config.yaml/backends/skills/plugins that you run yourself (VPS, Docker, GPU box); Nous Portal's 'Hermes Cloud' is the managed hosted alternative.",
           "evidence": "https://github.com/NousResearch/hermes-agent/blob/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AnythingLLM",
@@ -3445,7 +3495,8 @@
         "label": "Project README",
         "url": "https://github.com/Mintplex-Labs/anything-llm#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "nanobot",
@@ -3476,7 +3527,8 @@
         "label": "Project README",
         "url": "https://github.com/HKUDS/nanobot#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "CowAgent",
@@ -3505,7 +3557,8 @@
         "label": "Project README",
         "url": "https://github.com/zhayujie/CowAgent#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Khoj",
@@ -3565,7 +3618,8 @@
           "detail": "\"Open-source, self-hostable. Always\" is the primary artifact the repo installs; a hosted Khoj Cloud app is offered as an optional convenience alternative rather than the required execution surface.",
           "evidence": "https://github.com/khoj-ai/khoj#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Eliza",
@@ -3627,7 +3681,8 @@
           "detail": "\"An open-source, local-first operating system\" you self-host and configure via plugins/character files is the primary artifact; \"Eliza Cloud is optional\" and \"never required — local-only is first-class,\" so the managed offering is a named alternative, not the base tier.",
           "evidence": "https://raw.githubusercontent.com/elizaOS/eliza/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Agent Zero",
@@ -3691,7 +3746,8 @@
           "detail": "Self-hosted, Docker-run framework (subordinate agents, projects, plugins/MCP/custom tools) you configure and operate yourself — no managed backend is offered or required.",
           "evidence": "https://raw.githubusercontent.com/agent0ai/agent-zero/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "OpenHarness (HKUDS)",
@@ -3752,7 +3808,8 @@
           "detail": "Self-hosted Python framework installed via `pip install openharness-ai`, running the bundled Ohmo agent on your existing Claude Code/Codex subscription — an opinionated runtime you configure and run, not a managed service.",
           "evidence": "https://github.com/HKUDS/OpenHarness#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "QM",
@@ -3782,7 +3839,8 @@
         "label": "YC Paper Club talk (45:30)",
         "url": "https://www.youtube.com/watch?v=n9xKblqyQ28&t=2730s"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "OpenJarvis",
@@ -3812,7 +3870,8 @@
         "label": "YC Paper Club talk (37:20)",
         "url": "https://www.youtube.com/watch?v=n9xKblqyQ28&t=2240s"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "AIlice",
@@ -3873,7 +3932,8 @@
           "detail": "A standalone, self-hosted autonomous agent (pip install or Docker, configured via CLI flags like `--contextWindowRatio`), not a library you import into another application.",
           "evidence": "https://github.com/myshell-ai/AIlice#readme"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Talon",
@@ -3936,7 +3996,8 @@
           "detail": "Self-hosted, config-driven TypeScript harness (pluggable model backends, memory backends, plugin system) that the user runs as a daemon/binary rather than a hosted service.",
           "evidence": "https://raw.githubusercontent.com/dylanneve1/talon/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "n8n",
@@ -3998,7 +4059,8 @@
           "detail": "Primary artifact is the self-hostable fair-code workflow engine (Sustainable Use License) that users deploy and configure with nodes/credentials; n8n Cloud is a named hosted alternative, not the repo's installed artifact.",
           "evidence": "https://raw.githubusercontent.com/n8n-io/n8n/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AutoGPT",
@@ -4060,7 +4122,8 @@
           "detail": "The repo installs the self-hostable AutoGPT Server/Frontend Platform (\"you provide the infrastructure and model API keys\"); the hosted AutoGPT Platform is offered as a named managed alternative for those who don't want to self-host.",
           "evidence": "https://raw.githubusercontent.com/Significant-Gravitas/AutoGPT/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Dify",
@@ -4122,7 +4185,8 @@
           "detail": "Repo installs the self-hostable Community Edition (Docker Compose); Dify Cloud is a named hosted alternative and Enterprise adds a separate license, but the primary published artifact is the self-run platform.",
           "evidence": "https://raw.githubusercontent.com/langgenius/dify/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "langflow",
@@ -4183,7 +4247,8 @@
           "detail": "Repo installs the open-source, self-hostable (pip/Docker) visual flow builder; DataStax Langflow is a separate fully-managed cloud version of the same OSS foundation offered as a hosted alternative.",
           "evidence": "https://docs.datastax.com/en/langflow/index.html"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "langchain",
@@ -4243,7 +4308,8 @@
           "detail": "Core LangChain is a Python/JS library of chains, tools, retrievers, and agent primitives that you compose and own the loop for; LangSmith/LangGraph Platform are separate paid deployment/observability products, not what pip install langchain gives you.",
           "evidence": "https://raw.githubusercontent.com/langchain-ai/langchain/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "browser-use",
@@ -4304,7 +4370,8 @@
           "detail": "The repo installs a self-hosted Python Agent class that already implements the ReAct-style browser loop (you configure task/llm/tools rather than write the loop); Browser Use Cloud is a named fully-hosted managed alternative.",
           "evidence": "https://raw.githubusercontent.com/browser-use/browser-use/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Flowise",
@@ -4365,7 +4432,8 @@
           "detail": "Repo installs the self-hostable, config/flow-driven LangChain UI (deployable to AWS/Azure/GCP/DO); Flowise Cloud is a named managed hosting alternative, not the primary installed artifact.",
           "evidence": "https://raw.githubusercontent.com/FlowiseAI/Flowise/HEAD/README.md"
         }
-      }
+      },
+      "archived": "2026-08-16"
     },
     {
       "name": "llama-index",
@@ -4426,7 +4494,8 @@
           "detail": "llama-index-core is a Python library of indices, retrievers, and agent primitives you import and compose to write your own RAG/agent pipeline; LlamaCloud/LlamaParse are separate managed products for parsing/indexing, not the installed artifact itself.",
           "evidence": "https://raw.githubusercontent.com/run-llama/llama_index/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "langgraph",
@@ -4487,7 +4556,8 @@
           "detail": "langgraph is a pip/npm-installed low-level graph-orchestration library (StateGraph/Pregel API) you import and run in your own process with no required runtime; LangGraph Platform is the paid managed/self-hosted deployment tier for the same graphs.",
           "evidence": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "agno",
@@ -4549,7 +4619,8 @@
           "detail": "The repo installs AgentOS, a self-hosted FastAPI runtime you deploy in your own cloud/data center with your own database; the os.agno.com Control Plane is only a browser client against your own instance, not a hosted execution backend.",
           "evidence": "https://www.agno.com/agentos"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "semantic-kernel",
@@ -4609,7 +4680,8 @@
           "detail": "Semantic Kernel is a self-hosted C#/Python/Java SDK of kernels, plugins, and filters that developers compose into their own orchestration/planning code; there is no managed hosted execution product bundled in the repo.",
           "evidence": "https://raw.githubusercontent.com/microsoft/semantic-kernel/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "mastra",
@@ -4670,7 +4742,8 @@
           "detail": "Repo installs the self-hostable TypeScript agent/workflow runtime (deployable as a standalone server or embedded in Next.js/Node); Mastra Cloud/Studio are separate hosted tooling layered on top, not required to run the framework.",
           "evidence": "https://raw.githubusercontent.com/mastra-ai/mastra/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Haystack",
@@ -4700,7 +4773,8 @@
         "label": "Project README",
         "url": "https://github.com/deepset-ai/haystack#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Stagehand",
@@ -4729,7 +4803,8 @@
         "label": "Act/extract/observe quickstart",
         "url": "https://github.com/browserbase/stagehand#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "letta",
@@ -4790,7 +4865,8 @@
           "detail": "The published artifact is an open-source, self-hostable stateful-agent server you deploy via Docker and configure through the ADE (memory blocks, tools, personas); Letta's 'Constellation' is the managed hosted agent-cloud alternative.",
           "evidence": "https://docs.letta.com/guides/selfhosting"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Google ADK",
@@ -4852,7 +4928,8 @@
           "detail": "Primary artifact is the open-source, code-first Python/multi-language agent framework (Agent/Runner/workflow-agent classes) you self-host via `adk run`/`adk web`; Vertex AI Agent Engine exists as a separate fully-managed deployment target for the same agents.",
           "evidence": "https://raw.githubusercontent.com/google/adk-python/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "rasa",
@@ -4913,7 +4990,8 @@
           "detail": "The OSS repo (now in maintenance mode) installs a self-hosted dialogue-management framework; forward-looking CALM development lives in Rasa Pro, a separate license tier, with the Rasa Platform as a named hosted/managed option for scaling.",
           "evidence": "https://raw.githubusercontent.com/RasaHQ/rasa/HEAD/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "botpress",
@@ -4974,7 +5052,8 @@
           "detail": "Botpress v12/self-hosted has been officially sunset ('no longer available for purchase, download, or new deployments'); the current botpress/botpress repo is CLI/SDK tooling for building integrations and bots that run on the managed Botpress Cloud platform.",
           "evidence": "https://botpress.com/docs/studio/guides/advanced/v12"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "R2R",
@@ -5037,7 +5116,8 @@
           "detail": "Primary published artifact is the self-hosted, Docker/pip-installed RAG framework configured via r2r.toml rather than a hand-rolled loop; SciPhi Cloud exists as a separate managed serverless deployment of the same system with a free tier and enterprise plans.",
           "evidence": "https://raw.githubusercontent.com/SciPhi-AI/R2R/main/py/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "agent-squad",
@@ -5097,7 +5177,8 @@
           "detail": "Open-source (Apache 2.0), self-hosted orchestration framework (Python/TypeScript/Swift) you run yourself on Lambda, containers, or on-device, configuring classifiers/agents/storage rather than a hosted control plane.",
           "evidence": "https://raw.githubusercontent.com/2FastLabs/agent-squad/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AgentVerse",
@@ -5158,7 +5239,8 @@
           "detail": "Self-hosted, config.yaml-driven framework for building task-solving or simulation multi-agent environments (describer/order/selector/updater/visibility rules) rather than raw API orchestration; no managed hosted offering beyond a HuggingFace Spaces demo.",
           "evidence": "https://raw.githubusercontent.com/OpenBMB/AgentVerse/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "youtu-agent",
@@ -5216,7 +5298,8 @@
           "detail": "Self-hosted, YAML-config-driven agent framework (Environment/ContextManager/Benchmark components) deployable from source or Docker; Tencent Cloud's Agent Development Platform (ADP) is a separate enterprise offering named alongside it.",
           "evidence": "https://raw.githubusercontent.com/TencentCloudADP/youtu-agent/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Bee Agent Framework",
@@ -5279,7 +5362,8 @@
           "detail": "Self-hosted, pip/npm-installed agent SDK (Python + TypeScript) you configure and run; the companion Agent Stack (formerly BeeAI Platform) is itself open, self-hostable deployment infrastructure rather than a managed cloud service.",
           "evidence": "https://raw.githubusercontent.com/i-am-bee/beeai-framework/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AgentStack",
@@ -5337,7 +5421,8 @@
           "detail": "A CLI scaffolder ('create-next-app for agents') that generates a self-hosted project pre-wired with a chosen framework (CrewAI/LangGraph/OpenAI Swarms/LlamaIndex), a standardized agents.yaml/tasks.yaml config layer, and built-in tools -- you configure rather than hand-write the agent loop; no managed hosting offering found.",
           "evidence": "https://docs.agentstack.sh/introduction"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AgentSilex",
@@ -5397,7 +5482,8 @@
           "detail": "Explicitly positioned as '~300 lines of readable code. Full control, no magic' -- a transparent, hackable primitive set on top of LiteLLM that you read and compose yourself rather than an opinionated runtime; self-hosted, PyPI-installed, no managed offering.",
           "evidence": "https://raw.githubusercontent.com/howl-anderson/agentsilex/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "SuperAgentX",
@@ -5458,7 +5544,8 @@
           "detail": "Self-hosted, policy-driven agent framework (MIT) with a 'Unified Control Plane' for tools/MCPs/models/policies you configure and run via WebSocket/REST/console interfaces, rather than a hosted managed platform.",
           "evidence": "https://github.com/superagentxai/superagentx"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "MetaGPT",
@@ -5519,7 +5606,8 @@
           "detail": "Self-hosted, pip-installed, role-based SOP framework (PM/Architect/Engineer roles configured via ~/.metagpt/config2.yaml) you run yourself; MGX (mgx.dev), 'the world's first AI agent development team,' is a separate managed cloud product built on the same ideas.",
           "evidence": "https://raw.githubusercontent.com/FoundationAgents/MetaGPT/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "autogen",
@@ -5580,7 +5668,8 @@
           "detail": "Self-hosted, pip-installed multi-agent conversation framework (group chats, code execution, human-in-the-loop) you configure and run locally; the README itself states AutoGen is 'now in maintenance mode' with Microsoft Agent Framework recommended for new projects, and AutoGen Studio is a local no-code GUI, not a managed cloud service.",
           "evidence": "https://raw.githubusercontent.com/microsoft/autogen/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "crewAI",
@@ -5640,7 +5729,8 @@
           "detail": "The pip-installed crewai package is a self-hosted Python agent framework (agents, tasks, Flows) you configure and run yourself, with CrewAI AMP/Enterprise at app.crewai.com as the optional hosted control plane.",
           "evidence": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "OpenManus",
@@ -5701,7 +5791,8 @@
           "detail": "Self-hosted, MIT-licensed, config.toml-driven agent framework (conda/uv local install) positioned as an open alternative to invite-only Manus; only a HuggingFace Spaces demo exists, no managed hosted offering.",
           "evidence": "https://raw.githubusercontent.com/FoundationAgents/OpenManus/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "ChatDev",
@@ -5761,7 +5852,8 @@
           "detail": "Ships as a self-hostable, YAML-configured multi-agent workflow runtime (DAG of model/python/tooling/human nodes) you run yourself via Docker Compose; an older hosted SaaS at chatdev.modelbest.cn is referenced as historical, not the primary artifact.",
           "evidence": "https://github.com/OpenBMB/ChatDev/blob/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "openai-agents-python",
@@ -5821,7 +5913,8 @@
           "detail": "Installed via pip as an SDK where you write and own the Runner loop, agents, and tool wiring; OpenAIConversationsSession and hosted sandbox providers exist as optional managed backends but aren't required to run it.",
           "evidence": "https://raw.githubusercontent.com/openai/openai-agents-python/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Microsoft Agent Framework",
@@ -5883,7 +5976,8 @@
           "detail": "Ships as a self-hostable, multi-language (Python/.NET/Go) opinionated runtime with graph-based workflows, middleware, and checkpointing that you run yourself; optional 'Foundry Hosted Agents' cloud deployment is named as an alternative, not the primary artifact.",
           "evidence": "https://raw.githubusercontent.com/microsoft/agent-framework/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "hive",
@@ -5944,7 +6038,8 @@
           "detail": "Apache-2.0 self-hosted graph-based agent runtime you deploy on your own infrastructure per the Self-Hosting Guide, with no managed hosted alternative advertised as the primary offering.",
           "evidence": "https://raw.githubusercontent.com/aden-hive/hive/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "omnigent",
@@ -5974,7 +6069,8 @@
         "label": "Project README",
         "url": "https://github.com/omnigent-ai/omnigent#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "PraisonAI",
@@ -6035,7 +6131,8 @@
           "detail": "Self-hosted, pip/npm-installed opinionated agent runtime with YAML-configured agents, built-in sessions/memory backends, and a CLI — you run the process yourself; third-party integrations (Langfuse, Tavily) are optional add-ons, not a required managed control plane.",
           "evidence": "https://raw.githubusercontent.com/MervinPraison/PraisonAI/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AG2",
@@ -6064,7 +6161,8 @@
         "label": "Project README",
         "url": "https://github.com/ag2ai/ag2#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "AgentRL",
@@ -6125,7 +6223,8 @@
           "detail": "Installed as pip packages (trainer/controller/worker) that you wire together yourself — a Ray-based RL training harness and set of primitives for rollout/actor/reference workers, not an opinionated turnkey runtime or hosted service.",
           "evidence": "https://raw.githubusercontent.com/THUDM/AgentRL/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "MCP Servers",
@@ -6155,7 +6254,8 @@
         "label": "Server catalog",
         "url": "https://github.com/modelcontextprotocol/servers#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Context7",
@@ -6185,7 +6285,8 @@
         "label": "Docs",
         "url": "https://context7.com"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "chrome-devtools-mcp",
@@ -6215,7 +6316,8 @@
         "label": "Project README",
         "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "aider",
@@ -6245,7 +6347,8 @@
         "label": "Repo map source",
         "url": "https://github.com/Aider-AI/aider/blob/main/aider/repomap.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Playwright MCP",
@@ -6276,7 +6379,8 @@
         "label": "Setup & config",
         "url": "https://github.com/microsoft/playwright-mcp#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "continue",
@@ -6305,7 +6409,8 @@
         "label": "VS Code extension demos",
         "url": "https://github.com/continuedev/continue/blob/main/extensions/vscode/README.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "github-mcp-server",
@@ -6333,7 +6438,8 @@
         "label": "Remote server toolsets",
         "url": "https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MCP Python SDK",
@@ -6362,7 +6468,8 @@
         "label": "Website fetcher server",
         "url": "https://github.com/modelcontextprotocol/python-sdk/blob/main/examples/servers/simple-tool/mcp_simple_tool/server.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MCP TypeScript SDK",
@@ -6391,7 +6498,8 @@
         "label": "Streamable HTTP server",
         "url": "https://github.com/modelcontextprotocol/typescript-sdk/blob/main/examples/server/src/simpleStreamableHttp.ts"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MCP Inspector",
@@ -6420,7 +6528,8 @@
         "label": "Inspector UI walkthrough",
         "url": "https://github.com/modelcontextprotocol/inspector/blob/main/README.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MCP Registry",
@@ -6448,7 +6557,8 @@
         "label": "Registry seed entries",
         "url": "https://github.com/modelcontextprotocol/registry/blob/main/data/seed.json"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Agent Governance Toolkit",
@@ -6477,7 +6587,8 @@
         "label": "Project README",
         "url": "https://github.com/microsoft/agent-governance-toolkit#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "mcp-context-forge",
@@ -6506,7 +6617,8 @@
         "label": "Project README",
         "url": "https://github.com/IBM/mcp-context-forge#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "cocoindex-code",
@@ -6535,7 +6647,8 @@
         "label": "Project README",
         "url": "https://github.com/cocoindex-io/cocoindex-code#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "agent-vault",
@@ -6561,7 +6674,8 @@
         "label": "Project README",
         "url": "https://github.com/Infisical/agent-vault#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Docker MCP Gateway",
@@ -6591,7 +6705,8 @@
         "label": "Gateway usage walkthrough",
         "url": "https://github.com/docker/mcp-gateway/blob/main/docs/mcp-gateway.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "puppeteer-real-browser-mcp",
@@ -6621,7 +6736,8 @@
         "label": "11 anti-detection tools",
         "url": "https://github.com/withLinda/puppeteer-real-browser-mcp-server/blob/main/README.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Better-OpenCodeMCP",
@@ -6650,7 +6766,8 @@
         "label": "opencode delegate tool",
         "url": "https://github.com/ajhcs/Better-OpenCodeMCP/blob/main/src/tools/opencode.tool.ts"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "agentlog",
@@ -6680,7 +6797,8 @@
         "label": "Sample decisions.jsonl",
         "url": "https://github.com/RyanAlberts/agentlog/blob/main/example-log/decisions.jsonl"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "claude-mem",
@@ -6740,7 +6858,8 @@
           "detail": "Installs as a self-hosted local service (Bun-managed worker, SQLite + Chroma storage, hook scripts) via a single npx command that you run on your own machine; optional cmem.ai cloud backup exists as a sync convenience, not the primary artifact.",
           "evidence": "https://raw.githubusercontent.com/thedotmack/claude-mem/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Mem0",
@@ -6801,7 +6920,8 @@
           "detail": "The mem0ai/mem0 pip and npm packages are a Memory() client library you import into your own app with no opinionated runtime process; Mem0 Platform at app.mem0.ai is the fully managed hosted alternative.",
           "evidence": "https://raw.githubusercontent.com/mem0ai/mem0/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Graphiti (Zep)",
@@ -6832,7 +6952,8 @@
         "label": "Temporal graph quickstart",
         "url": "https://github.com/getzep/graphiti#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "cognee",
@@ -6895,7 +7016,8 @@
           "detail": "Primary artifact is the self-hosted, pip-installable knowledge-graph memory engine you run yourself (Docker/CLI, Postgres+pgvector option); Cognee Cloud is named as an alternative fully-managed option, not the repo's core deliverable.",
           "evidence": "https://raw.githubusercontent.com/topoteretes/cognee/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "beads",
@@ -6955,7 +7077,8 @@
           "detail": "Self-hosted CLI tool (Homebrew/npm/script install) that runs its own Dolt-backed database and multi-agent workflow conventions locally; no hosted/SaaS version is offered — you install and run it yourself.",
           "evidence": "https://raw.githubusercontent.com/gastownhall/beads/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Agent Lightning",
@@ -6985,7 +7108,8 @@
         "label": "APO room-booking example",
         "url": "https://github.com/microsoft/agent-lightning/blob/main/examples/apo/README.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "SWE-bench",
@@ -7015,7 +7139,8 @@
         "label": "SWE-bench Verified leaderboard",
         "url": "https://www.swebench.com/verified.html"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "AgentBench",
@@ -7047,7 +7172,8 @@
         "label": "AgentBench ICLR'24 paper",
         "url": "https://arxiv.org/abs/2308.03688"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "inspect_ai",
@@ -7077,7 +7203,8 @@
         "label": "Inspect tutorial example",
         "url": "https://inspect.aisi.org.uk/tutorial.html"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "WebArena",
@@ -7105,7 +7232,8 @@
         "label": "WebArena leaderboard",
         "url": "https://docs.google.com/spreadsheets/d/1M801lEpBbKSNwP-vDBkC_pF7LdyGU1f_ufZb_NWNBZQ/edit"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "WebVoyager",
@@ -7134,7 +7262,8 @@
         "label": "643 web tasks dataset",
         "url": "https://github.com/MinorJerry/WebVoyager/blob/main/data/WebVoyager_data.jsonl"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "agent-qa",
@@ -7166,7 +7295,8 @@
         "label": "Natural-language QA harness",
         "url": "https://github.com/vostride/agent-qa#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "ClawBench",
@@ -7197,7 +7327,8 @@
         "label": "ClawBench live leaderboard",
         "url": "https://claw-bench.com/leaderboard"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "swe-smith",
@@ -7226,7 +7357,8 @@
         "label": "SWE-smith trajectories",
         "url": "https://huggingface.co/datasets/SWE-bench/SWE-smith-trajectories"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Terminal-Bench",
@@ -7256,7 +7388,8 @@
         "label": "Terminal-Bench leaderboard",
         "url": "https://www.tbench.ai/leaderboard"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "SWE-Gym",
@@ -7286,7 +7419,8 @@
         "label": "SWE-Gym ICML 2025 paper",
         "url": "https://arxiv.org/abs/2412.21139"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "ARC-AGI-2",
@@ -7312,7 +7446,8 @@
         "label": "ARC Prize leaderboard",
         "url": "https://arcprize.org/leaderboard"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "inspect_evals",
@@ -7341,7 +7476,8 @@
         "label": "inspect SWE-bench eval",
         "url": "https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/swe_bench/README.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "arc-agi-benchmarking",
@@ -7371,7 +7507,8 @@
         "label": "o3 prompt example",
         "url": "https://github.com/arcprize/arc-agi-benchmarking/blob/main/docs/examples/prompt_example_o3.md"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "VitaBench",
@@ -7397,7 +7534,8 @@
         "label": "VitaBench paper",
         "url": "https://arxiv.org/abs/2509.26490"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "AgencyBench",
@@ -7427,7 +7565,8 @@
         "label": "AgencyBench leaderboard",
         "url": "https://github.com/GAIR-NLP/AgencyBench#leaderboard"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "letta-evals",
@@ -7456,7 +7595,8 @@
         "label": "LoCoMo memory benchmark",
         "url": "https://github.com/letta-ai/letta-leaderboard/blob/main/leaderboard/locomo/locomo_benchmark.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "SUPER",
@@ -7485,7 +7625,8 @@
         "label": "SUPER EMNLP paper",
         "url": "https://arxiv.org/abs/2409.07440"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "TRAIL",
@@ -7511,7 +7652,8 @@
         "label": "TRAIL dataset card",
         "url": "https://huggingface.co/datasets/PatronusAI/TRAIL"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Langfuse",
@@ -7540,7 +7682,8 @@
         "label": "Docs",
         "url": "https://langfuse.com/docs"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MLflow",
@@ -7569,7 +7712,8 @@
         "label": "Docs",
         "url": "https://mlflow.org"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Opik",
@@ -7598,7 +7742,8 @@
         "label": "Docs",
         "url": "https://www.comet.com/docs/opik/"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Arize Phoenix",
@@ -7627,7 +7772,8 @@
         "label": "Docs",
         "url": "https://arize.com/docs/phoenix"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "DeerFlow",
@@ -7658,7 +7804,8 @@
         "label": "Project README",
         "url": "https://github.com/bytedance/deer-flow#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "gpt-researcher",
@@ -7719,7 +7866,8 @@
           "detail": "The primary artifact is the cloned repo's opinionated self-hostable multi-agent research runtime (Docker Compose, frontend, backend server) you configure via retrievers/scrapers/env vars; a lighter pip-installed GPTResearcher library is offered as a secondary integration path.",
           "evidence": "https://docs.gptr.dev/docs/gpt-researcher/gptr/pip-package"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "AutoResearchClaw",
@@ -7747,7 +7895,8 @@
         "label": "Project README",
         "url": "https://github.com/aiming-lab/AutoResearchClaw#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "MiroThinker",
@@ -7775,7 +7924,8 @@
         "label": "Project README",
         "url": "https://github.com/MiroMindAI/MiroThinker#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "openagents",
@@ -7833,7 +7983,8 @@
           "detail": "Primary artifact is a self-hosted, Node/Bun/Effect monorepo Agent IDE plus Pylon (local account custody and execution) that runs on the operator's machine — the README states useful desktop work needs no OpenAgents account or hosted control plane, with any hosted platform layer being additive.",
           "evidence": "https://raw.githubusercontent.com/OpenAgentsInc/openagents/main/README.md"
         }
-      }
+      },
+      "archived": null
     },
     {
       "name": "Daytona",
@@ -7861,7 +8012,8 @@
         "label": "Charts in sandbox",
         "url": "https://github.com/daytonaio/daytona/tree/main/examples/python/charts"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "LiteLLM",
@@ -7890,7 +8042,8 @@
         "label": "Anthropic Agent SDK gateway",
         "url": "https://github.com/BerriAI/litellm/blob/main/cookbook/anthropic_agent_sdk/main.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Composio",
@@ -7921,7 +8074,8 @@
         "label": "HackerNews agent quickstart",
         "url": "https://github.com/ComposioHQ/composio#quick-start"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "deepagents",
@@ -7952,7 +8106,8 @@
         "label": "Deep research agent",
         "url": "https://github.com/langchain-ai/deepagents/tree/main/examples/deep_research"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "smolagents",
@@ -7981,7 +8136,8 @@
         "label": "RAG code agent",
         "url": "https://github.com/huggingface/smolagents/blob/main/examples/rag.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "vercel/ai",
@@ -8010,7 +8166,8 @@
         "label": "Next.js agent example",
         "url": "https://github.com/vercel/ai/tree/main/examples/next-agent"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "pydantic-ai",
@@ -8041,7 +8198,8 @@
         "label": "Bank support agent",
         "url": "https://github.com/pydantic/pydantic-ai/blob/main/examples/pydantic_ai_examples/bank_support.py"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "E2B",
@@ -8070,7 +8228,8 @@
         "label": "Claude Code in sandbox",
         "url": "https://github.com/e2b-dev/e2b-cookbook/tree/main/examples/anthropic-claude-code-in-sandbox-python"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "strands-agents",
@@ -8101,7 +8260,8 @@
         "label": "First agent tutorial",
         "url": "https://github.com/strands-agents/samples/tree/main/python/01-learn/01-first-agent"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Steel",
@@ -8131,7 +8291,8 @@
         "label": "Sessions API docs",
         "url": "https://docs.steel.dev"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Cloudflare Agents",
@@ -8160,7 +8321,8 @@
         "label": "SDK playground app",
         "url": "https://github.com/cloudflare/agents/tree/main/examples/playground"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Agent Sandbox",
@@ -8190,7 +8352,8 @@
         "label": "Sandbox resource quickstart",
         "url": "https://github.com/kubernetes-sigs/agent-sandbox#readme"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "openai-agents-js",
@@ -8220,7 +8383,8 @@
         "label": "Financial research agent",
         "url": "https://github.com/openai/openai-agents-js/tree/main/examples/financial-research-agent"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "open-harness",
@@ -8250,7 +8414,8 @@
         "label": "Terminal CLI agent",
         "url": "https://github.com/MaxGfeller/open-harness/tree/main/examples/cli"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     },
     {
       "name": "Community-curated agent lists",
@@ -8276,7 +8441,8 @@
         "label": "Frameworks section",
         "url": "https://github.com/brandonhimpfen/awesome-ai-agents#frameworks"
       },
-      "deep_dive": null
+      "deep_dive": null,
+      "archived": null
     }
   ],
   "graveyard": [

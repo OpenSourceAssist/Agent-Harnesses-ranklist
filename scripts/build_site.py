@@ -202,7 +202,7 @@ def render_index() -> str:
         f'<li><strong>{esc(intent)}</strong> — '
         + ", ".join(
             f'<a href="{u("h/"+g.project_slug(gid))}">{esc(g.find_project(gid).display_name)}</a>'
-            for gid in [i for i in ids if not g.is_graveyard(i)][:5]
+            for gid in [i for i in ids if g.is_recommendable(i)][:5]
         )
         + "</li>"
         for intent, ids, _ in g.USE_CASES
