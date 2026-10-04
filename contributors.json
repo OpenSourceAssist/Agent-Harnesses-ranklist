@@ -306,6 +306,11 @@
         "kind": "issue",
         "number": 94,
         "title": "Add project: deja"
+      },
+      {
+        "kind": "issue",
+        "number": 122,
+        "title": "Add project: deja-vu"
       }
     ]
   },
@@ -435,7 +440,7 @@
       {
         "kind": "issue",
         "number": 119,
-        "title": "Add project: Agent Harness"
+        "title": "Add project: Model Citizen"
       }
     ]
   },
@@ -456,6 +461,56 @@
         "kind": "issue",
         "number": 121,
         "title": "Add project: Jev Social"
+      }
+    ]
+  },
+  {
+    "login": "LivXue",
+    "contributions": [
+      {
+        "kind": "pr",
+        "number": 123,
+        "title": "Add Raven"
+      }
+    ]
+  },
+  {
+    "login": "rushar-labs",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 124,
+        "title": "Add project: House Party Protocol"
+      }
+    ]
+  },
+  {
+    "login": "BobbyZhouZijian",
+    "contributions": [
+      {
+        "kind": "pr",
+        "number": 125,
+        "title": "Add Reef to Observability and eval-ops"
+      }
+    ]
+  },
+  {
+    "login": "demeyer1",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 126,
+        "title": "Add project: AutoBot"
+      }
+    ]
+  },
+  {
+    "login": "xqliu",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 128,
+        "title": "Add project: Orbi"
       }
     ]
   }

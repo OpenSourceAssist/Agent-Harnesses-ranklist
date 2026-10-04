@@ -681,9 +681,6 @@ projects:
   - name: Agent Sandbox
     github_id: kubernetes-sigs/agent-sandbox
     category: "libraries-sdks"
-  - name: Daytona
-    github_id: daytonaio/daytona
-    category: "libraries-sdks"
   - name: Community-curated agent lists
     github_id: brandonhimpfen/awesome-ai-agents
     category: "libraries-sdks"

@@ -6,7 +6,7 @@ Why the pick matters: these tools edit your files and run commands on your machi
 
 | | [opencode](https://github.com/anomalyco/opencode) | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | [Codex](https://github.com/openai/codex) | [goose](https://github.com/aaif-goose/goose) | [crush](https://github.com/charmbracelet/crush) |
 |---|---|---|---|---|---|
-| ⭐ Stars | 210k | 107k | 127k | 54.7k | 28.3k |
+| ⭐ Stars | 212k | 107k | 128k | 54.9k | 28.5k |
 | Steward | Anomaly (company, formerly SST) | Google (first-party) | OpenAI (first-party) | Linux Foundation AAIF (Agentic AI Foundation) | Charm |
 | License | MIT | Apache-2.0 | Apache-2.0 | Apache-2.0 | ⚠️ FSL-1.1-MIT (Functional Source License; each release converts to MIT after two years) |
 | Core language | TypeScript | TypeScript | Rust | Rust | Go |

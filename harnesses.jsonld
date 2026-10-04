@@ -11,7 +11,7 @@
     "name": "Ryan Alberts",
     "url": "https://github.com/RyanAlberts"
   },
-  "dateModified": "2026-09-27",
+  "dateModified": "2026-10-04",
   "keywords": [
     "agent harness",
     "AI agents",
@@ -29,7 +29,7 @@
   ],
   "mainEntity": {
     "@type": "ItemList",
-    "numberOfItems": 167,
+    "numberOfItems": 166,
     "itemListElement": [
       {
         "@type": "ListItem",
@@ -60,11 +60,11 @@
         "position": 3,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "agents.md",
-          "url": "https://github.com/agentsmd/agents.md",
-          "description": "Open format for repo-scoped agent briefings; nested AGENTS.md files scope instructions per directory, so agents get a map of what exists and load only what's relevant. Read by 20+ tools including Codex, Cursor, and Copilot.",
+          "name": "context-mode",
+          "url": "https://github.com/mksglu/context-mode",
+          "description": "Context-window optimization layer that sandboxes tool output before it reaches the model (claimed 98% reduction) and persists session memory across 17 agent platforms via MCP and hooks—progressive disclosure applied to tool results, not just instructions.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "ide, typescript"
+          "keywords": "mcp, memory, sandbox"
         }
       },
       {
@@ -72,11 +72,11 @@
         "position": 4,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "context-mode",
-          "url": "https://github.com/mksglu/context-mode",
-          "description": "Context-window optimization layer that sandboxes tool output before it reaches the model (claimed 98% reduction) and persists session memory across 17 agent platforms via MCP and hooks—progressive disclosure applied to tool results, not just instructions.",
+          "name": "agents.md",
+          "url": "https://github.com/agentsmd/agents.md",
+          "description": "Open format for repo-scoped agent briefings; nested AGENTS.md files scope instructions per directory, so agents get a map of what exists and load only what's relevant. Read by 20+ tools including Codex, Cursor, and Copilot.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "mcp, memory, sandbox"
+          "keywords": "ide, typescript"
         }
       },
       {
@@ -264,11 +264,11 @@
         "position": 20,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "vibe-kanban",
-          "url": "https://github.com/BloopAI/vibe-kanban",
-          "description": "Kanban-style fleet manager for running Claude Code, Codex, or any coding agent across many tasks at once. The **harness** contribution is the task-queue/review layer on top of whichever agent executes; not an agent loop itself.",
+          "name": "qwen-code",
+          "url": "https://github.com/QwenLM/qwen-code",
+          "description": "Alibaba's official terminal coding agent, forked from Gemini CLI's agent loop and retuned for Qwen models. The **harness** is the same sandboxed tool-call loop as its upstream; the terminal is the shell.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": ""
+          "keywords": "sandbox, cli, typescript"
         }
       },
       {
@@ -276,11 +276,11 @@
         "position": 21,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "qwen-code",
-          "url": "https://github.com/QwenLM/qwen-code",
-          "description": "Alibaba's official terminal coding agent, forked from Gemini CLI's agent loop and retuned for Qwen models. The **harness** is the same sandboxed tool-call loop as its upstream; the terminal is the shell.",
+          "name": "vibe-kanban",
+          "url": "https://github.com/BloopAI/vibe-kanban",
+          "description": "Kanban-style fleet manager for running Claude Code, Codex, or any coding agent across many tasks at once. The **harness** contribution is the task-queue/review layer on top of whichever agent executes; not an agent loop itself.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "sandbox, cli, typescript"
+          "keywords": ""
         }
       },
       {
@@ -1596,18 +1596,6 @@
         "position": 131,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "agent-qa",
-          "url": "https://github.com/vostride/agent-qa",
-          "description": "Self-improving QA **harness** for web and mobile apps: natural-language tests, memory-backed self-healing, dashboard/CLI, MCP and skills support, plus sandboxed hooks for production regression checks.",
-          "applicationCategory": "DeveloperApplication",
-          "keywords": "mcp, memory, sandbox, cli, typescript"
-        }
-      },
-      {
-        "@type": "ListItem",
-        "position": 132,
-        "item": {
-          "@type": "SoftwareApplication",
           "name": "ClawBench",
           "url": "https://github.com/TIGER-AI-Lab/ClawBench",
           "description": "Open web-agent evaluation **harness**: runs selectable agents in isolated Docker containers across 153 live-site tasks (plus 130 in V2), intercepts irreversible requests, and records video, screenshots, HTTP traffic, actions, and agent messages for replayable scoring.",
@@ -1617,19 +1605,19 @@
       },
       {
         "@type": "ListItem",
-        "position": 133,
+        "position": 132,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "swe-smith",
-          "url": "https://github.com/SWE-bench/SWE-smith",
-          "description": "Data generation for SWE agents; 50k+ instances across 128 repos; used for SWE-agent-LM training.",
+          "name": "agent-qa",
+          "url": "https://github.com/vostride/agent-qa",
+          "description": "Self-improving QA **harness** for web and mobile apps: natural-language tests, memory-backed self-healing, dashboard/CLI, MCP and skills support, plus sandboxed hooks for production regression checks.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "training, python"
+          "keywords": "mcp, memory, sandbox, cli, typescript"
         }
       },
       {
         "@type": "ListItem",
-        "position": 134,
+        "position": 133,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Terminal-Bench",
@@ -1637,6 +1625,18 @@
           "description": "The terminal-task benchmark coding agents now cite next to SWE-bench: hard, containerized terminal tasks scored end to end. Terminal-Bench 2.0 runs on the harbor evaluation framework; the 1.0 tasks live on in the org's terminal-bench-1 repo.",
           "applicationCategory": "DeveloperApplication",
           "keywords": "evals, cli, python"
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 134,
+        "item": {
+          "@type": "SoftwareApplication",
+          "name": "swe-smith",
+          "url": "https://github.com/SWE-bench/SWE-smith",
+          "description": "Data generation for SWE agents; 50k+ instances across 128 repos; used for SWE-agent-LM training.",
+          "applicationCategory": "DeveloperApplication",
+          "keywords": "training, python"
         }
       },
       {
@@ -1860,18 +1860,6 @@
         "position": 153,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Daytona",
-          "url": "https://github.com/daytonaio/daytona",
-          "description": "Elastic dev environments for AI-generated code: workspaces, Git, previews—infra harness between \"the model wrote a patch\" and \"it ran in a real machine.\" ⚠️ Public repo unmaintained since June 2026: core development moved to a private codebase (final open release v0.190.0, AGPL-3.0).",
-          "applicationCategory": "DeveloperApplication",
-          "keywords": "sandbox"
-        }
-      },
-      {
-        "@type": "ListItem",
-        "position": 154,
-        "item": {
-          "@type": "SoftwareApplication",
           "name": "LiteLLM",
           "url": "https://github.com/BerriAI/litellm",
           "description": "One interface to 100+ LLMs; routing, caching, budgets. Not an agent framework—the pipe every agent framework uses.",
@@ -1881,7 +1869,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 155,
+        "position": 154,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Composio",
@@ -1893,7 +1881,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 156,
+        "position": 155,
         "item": {
           "@type": "SoftwareApplication",
           "name": "deepagents",
@@ -1905,7 +1893,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 157,
+        "position": 156,
         "item": {
           "@type": "SoftwareApplication",
           "name": "smolagents",
@@ -1917,7 +1905,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 158,
+        "position": 157,
         "item": {
           "@type": "SoftwareApplication",
           "name": "vercel/ai",
@@ -1929,7 +1917,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 159,
+        "position": 158,
         "item": {
           "@type": "SoftwareApplication",
           "name": "pydantic-ai",
@@ -1941,7 +1929,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 160,
+        "position": 159,
         "item": {
           "@type": "SoftwareApplication",
           "name": "E2B",
@@ -1953,7 +1941,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 161,
+        "position": 160,
         "item": {
           "@type": "SoftwareApplication",
           "name": "strands-agents",
@@ -1965,7 +1953,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 162,
+        "position": 161,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Steel",
@@ -1977,7 +1965,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 163,
+        "position": 162,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Cloudflare Agents",
@@ -1989,7 +1977,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 164,
+        "position": 163,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Agent Sandbox",
@@ -2001,7 +1989,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 165,
+        "position": 164,
         "item": {
           "@type": "SoftwareApplication",
           "name": "openai-agents-js",
@@ -2013,7 +2001,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 166,
+        "position": 165,
         "item": {
           "@type": "SoftwareApplication",
           "name": "open-harness",
@@ -2025,7 +2013,7 @@
       },
       {
         "@type": "ListItem",
-        "position": 167,
+        "position": 166,
         "item": {
           "@type": "SoftwareApplication",
           "name": "Community-curated agent lists",
