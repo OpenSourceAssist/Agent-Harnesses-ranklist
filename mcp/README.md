@@ -49,6 +49,8 @@ claude mcp add agent-harnesses -- uv run https://raw.githubusercontent.com/RyanA
 | `list_templates()` | Copy-paste setup files (an AGENTS.md every coding agent reads, safe Claude Code settings, a minimal Python harness, …) with the files each contains. |
 | `get_template(slug)` | A template's README plus the full content and target path of every file, so your agent can write them into your project and adapt them. |
 | `list_playbooks()` / `get_playbook(slug)` | Step-by-step setup guides (build your own harness, one AGENTS.md for every agent, …). |
+| `list_skills()` | Agent skills that check your own setup (what your agent can reach, whether its "tests pass" claims hold, where your tokens go, which guardrails leak, …), each with its install command. |
+| `get_skill(name, target)` | Every file of one skill with the path to write it to, under `.claude/skills/` or `.agents/skills/`, so your agent can install it for you. |
 | `list_categories()` | The 10 categories, use-case intents, and the complexity/autonomy/recovery scales. |
 
 Example: *"recommend('an always-on personal assistant that lives in my chat apps', open_source_only=True)"* → one top pick with the reason, two alternatives, anything to avoid for this need, and the guide to read next.

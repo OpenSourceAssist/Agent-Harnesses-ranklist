@@ -15,6 +15,7 @@ on:
       - comparisons/**
       - templates/**
       - playbooks/**
+      - skills/**
       - assets/**
       - scripts/build_site.py
       - scripts/generate.py

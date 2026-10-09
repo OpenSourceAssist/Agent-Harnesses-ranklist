@@ -1428,6 +1428,47 @@ def render_templates_and_playbooks() -> list:
     return lines
 
 
+def render_skills() -> list:
+    """README section listing skills/, grouped by SKILL_GROUPS and generated
+    from skills_index() so a new skill needs no README edit."""
+    skills = skills_index()
+    if not skills:
+        return []
+    lines = [
+        "## Skills",
+        "",
+        "_A skill is a folder your agent loads when a task calls for it. Each one below runs a script on your own setup and hands back a result you can check: what your agent can reach, which of its claims had no proof, where your tokens went. They run on your machine, and anything that changes a file or spends money waits for your yes._",
+        "",
+    ]
+    groups = [title for title, _ in SKILL_GROUPS] + ["More skills"]
+    for group in groups:
+        members = [s for s in skills if s["group"] == group]
+        if not members:
+            continue
+        lines += [f"**{group}**", ""]
+        for s in members:
+            lines.append(f"- [**{s['title']}**](skills/{s['name']}/): {s['summary']}")
+        lines.append("")
+    lines += [
+        "Install one skill in any agent:",
+        "",
+        "```sh",
+        "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/<name>",
+        "```",
+        "",
+        "Or all of them in Claude Code:",
+        "",
+        "```sh",
+        "/plugin marketplace add RyanAlberts/best-of-Agent-Harnesses",
+        "/plugin install harness-skills@agent-harnesses",
+        "```",
+        "",
+        "[How the skills are built and tested](skills/README.md).",
+        "",
+    ]
+    return lines
+
+
 def render_use_cases() -> list:
     lines = [
         "## Pick by use case",
@@ -1655,6 +1696,7 @@ def build_faq() -> list:
 
 def generate_readme() -> str:
     total = count_projects()
+    n_skills = len(skills_index())
     header = [
         "<!-- markdownlint-disable -->",
         "<h1 align=\"center\">",
@@ -1668,6 +1710,7 @@ def generate_readme() -> str:
         "",
         "<p align=\"center\">",
         f"    <a href=\"#contents\" title=\"Project Count\"><img src=\"https://img.shields.io/badge/projects-{total}-blue.svg?color=5ac4bf\"></a>",
+        f"    <a href=\"#skills\" title=\"Installable agent skills\"><img src=\"https://img.shields.io/badge/skills-{n_skills}-5ac4bf.svg\"></a>",
         "    <a href=\"#for-agents\" title=\"Agents can query this list — MCP server, llms.txt & JSON\"><img src=\"https://img.shields.io/badge/agents-query%20this%20list-5ac4bf.svg\"></a>",
         "    <a href=\"#contribution\" title=\"Contributions welcome\"><img src=\"https://img.shields.io/badge/contributions-welcome-green.svg\"></a>",
         "    <a href=\"https://github.com/RyanAlberts/best-of-Agent-Harnesses/commits/main\" title=\"Updates\"><img src=\"https://img.shields.io/github/last-commit/RyanAlberts/best-of-Agent-Harnesses?color=green&label=updated\"></a>",
@@ -1679,6 +1722,10 @@ def generate_readme() -> str:
         "",
         "<p align=\"center\">",
         "    🧰 <strong><a href=\"#templates-and-playbooks\">Templates and Playbooks</a></strong>: copy-paste setup files and step-by-step guides for the harnesses in this list.",
+        "</p>",
+        "",
+        "<p align=\"center\">",
+        f"    🧩 <strong><a href=\"#skills\">Skills</a></strong>: {n_skills} installable skills that check your own agent setup, including what it can reach, what it claims, and what it spends.",
         "</p>",
         "",
         "<p align=\"center\">",
@@ -1734,6 +1781,7 @@ def generate_readme() -> str:
         "",
     ]
     header += render_templates_and_playbooks()
+    header += render_skills()
     header += render_use_cases()
     header += [
         "## For agents",
@@ -1742,7 +1790,7 @@ def generate_readme() -> str:
         "",
         "- [**harnesses.json**](harnesses.json) — every project with category, complexity tier, capability tags, stars, license signal, and a concrete example link, plus the full use-case index.",
         "- [**llms.txt**](llms.txt) — the entire list in one agent-readable file. Point any agent at the [raw URL](https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/llms.txt).",
-        "- [**MCP server**](mcp/) — `recommend` (one opinionated pick + alternatives + what to *avoid*, e.g. repos flagged for star manipulation), `compare`/`compare_for` (2–4 harnesses side by side — by id or by task — who leads on which axis incl. researched sandboxing/memory/hooks/prompt-optimization ratings, graveyard warnings, the matching decision guide), `pick_harness` (ranked, with complexity/autonomy/recovery filters), `pick_infrastructure` (picks at any level of the infra stack plus a live GitHub/Hacker News discovery pass, so answers aren't limited to this list), `search_harnesses`, `get_harness`, `list_categories`, plus `list_comparisons`/`get_comparison` for the decision guides and `list_templates`/`get_template`/`list_playbooks`/`get_playbook` so your agent can install a template for you. Published to PyPI and the [official MCP registry](https://registry.modelcontextprotocol.io) as `io.github.RyanAlberts/agent-harnesses`. One-line install (needs [uv](https://docs.astral.sh/uv/)):",
+        "- [**MCP server**](mcp/) — `recommend` (one opinionated pick + alternatives + what to *avoid*, e.g. repos flagged for star manipulation), `compare`/`compare_for` (2–4 harnesses side by side — by id or by task — who leads on which axis incl. researched sandboxing/memory/hooks/prompt-optimization ratings, graveyard warnings, the matching decision guide), `pick_harness` (ranked, with complexity/autonomy/recovery filters), `pick_infrastructure` (picks at any level of the infra stack plus a live GitHub/Hacker News discovery pass, so answers aren't limited to this list), `search_harnesses`, `get_harness`, `list_categories`, plus `list_comparisons`/`get_comparison` for the decision guides and `list_templates`/`get_template`/`list_playbooks`/`get_playbook`/`list_skills`/`get_skill` so your agent can install a template or a skill for you. Published to PyPI and the [official MCP registry](https://registry.modelcontextprotocol.io) as `io.github.RyanAlberts/agent-harnesses`. One-line install (needs [uv](https://docs.astral.sh/uv/)):",
         "",
         "```sh",
         "claude mcp add agent-harnesses -- uvx agent-harnesses-mcp",
@@ -1765,6 +1813,7 @@ def generate_readme() -> str:
         "- [The landscape at a glance](#the-landscape-at-a-glance)",
         "- [How to Pick a Harness](#how-to-pick-a-harness)",
         "- [Templates and Playbooks](#templates-and-playbooks)",
+        "- [Skills](#skills)",
         "- [Pick by use case](#pick-by-use-case)",
         "- [For agents: harnesses.json, llms.txt, MCP server, agent templates](#for-agents)",
         "- [FAQ](#faq)",
@@ -1909,6 +1958,8 @@ def generate_readme() -> str:
         "## License",
         "",
         "[![CC BY-SA 4.0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-sa.svg)](https://creativecommons.org/licenses/by-sa/4.0/)",
+        "",
+        "The skills in [skills/](skills/) are MIT-licensed, so you can copy them into any project.",
         "",
     ]
     return "\n".join(body)
@@ -2073,6 +2124,57 @@ def templates_index() -> list:
     return out
 
 
+# README grouping for skills/, in reading order. A skill missing here still
+# ships; it lands in a trailing "More skills" group.
+SKILL_GROUPS = [
+    ("Pick a harness", ["harness-test-drive"]),
+    ("Set it up", ["agents-md-checker", "tool-design-checker"]),
+    ("Keep it safe", ["sandbox-check", "guardrail-tester", "runaway-guard"]),
+    ("Check its work", ["claim-check", "rules-to-guards"]),
+    ("See what it costs and what changed", ["session-waste-report", "regression-finder"]),
+]
+
+SKILL_CACHE_PARTS = {"__pycache__", ".pytest_cache", ".DS_Store"}
+
+
+def skill_files(d: Path) -> list:
+    """Files a user installs from skills/<name>/, including SKILL.md and README.md."""
+    return sorted(f.relative_to(d).as_posix() for f in d.rglob("*")
+                  if f.is_file() and not SKILL_CACHE_PARTS.intersection(f.parts)
+                  and f.suffix != ".pyc")
+
+
+def skills_index() -> list:
+    """Index of skills/<name>/. Name, description, license, and version come
+    from skills/registry.json, which skills/evals/tools/registry_lint.py keeps
+    equal to each SKILL.md's frontmatter; title and summary come from the
+    skill's README like a template's."""
+    import json
+    registry = REPO_ROOT / "skills" / "registry.json"
+    if not registry.exists():
+        return []
+    group_of = {name: title for title, names in SKILL_GROUPS for name in names}
+    out = []
+    for row in json.loads(registry.read_text())["skills"]:
+        d = REPO_ROOT / "skills" / row["name"]
+        if not (d / "README.md").exists():
+            continue
+        entry = _guide_entry(d / "README.md", row["name"])
+        entry.update({
+            "name": row["name"],
+            "description": row["description"],
+            "license": row["license"],
+            "version": (row.get("metadata") or {}).get("version", ""),
+            "group": group_of.get(row["name"], "More skills"),
+            "install": row["install"],
+            "skill_md_raw_url": f"{RAW_BASE}/skills/{row['name']}/SKILL.md",
+            "files": [{"path": f, "raw_url": f"{RAW_BASE}/skills/{row['name']}/{f}"}
+                      for f in skill_files(d)],
+        })
+        out.append(entry)
+    return out
+
+
 DEEP_DIVE_VOCAB = {
     "tooling_sandboxing": ["none", "basic", "strong"],
     "context_memory": ["none", "basic", "strong"],
@@ -2219,6 +2321,7 @@ def generate_harnesses_json() -> str:
         "comparisons": comparisons_index(),
         "templates": templates_index(),
         "playbooks": playbooks_index(),
+        "skills": skills_index(),
         "projects": projects,
         "graveyard": [
             {
@@ -2267,6 +2370,11 @@ def generate_llms_txt() -> str:
     lines += ["## Playbooks (step by step)", ""]
     for pb in playbooks_index():
         lines.append(f"- {pb['title']}: {SITE_URL}playbooks/{pb['slug']}/ — {pb['summary']}")
+    lines.append("")
+    lines += ["## Skills (install into your agent)", ""]
+    for s in skills_index():
+        lines.append(f"- [{s['title']}]({SITE_URL}skills/{s['name']}/): {s['summary']} "
+                     f"SKILL.md: {s['skill_md_raw_url']} Install: {s['install']}")
     lines.append("")
     lines += ["## FAQ", ""]
     for item in build_faq():

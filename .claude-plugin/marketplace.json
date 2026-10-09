@@ -1,0 +1,47 @@
+{
+  "name": "agent-harnesses",
+  "description": "Skills from best-of-Agent-Harnesses that check your own agent setup: what it can reach, what it claims, what it spends.",
+  "owner": {
+    "name": "Ryan Alberts",
+    "url": "https://github.com/RyanAlberts"
+  },
+  "plugins": [
+    {
+      "name": "harness-skills",
+      "description": "Ten skills that test your agent harness on your own machine: sandbox reach, guardrails, 'tests pass' claims, rules the agent breaks, token waste, regressions after updates, MCP tool design, and a test drive of coding agents on your past bugs.",
+      "version": "1.0.0",
+      "source": "./skills",
+      "strict": false,
+      "skills": [
+        "./agents-md-checker",
+        "./claim-check",
+        "./guardrail-tester",
+        "./harness-test-drive",
+        "./regression-finder",
+        "./rules-to-guards",
+        "./runaway-guard",
+        "./sandbox-check",
+        "./session-waste-report",
+        "./tool-design-checker"
+      ],
+      "author": {
+        "name": "Ryan Alberts",
+        "url": "https://github.com/RyanAlberts"
+      },
+      "homepage": "https://ryanalberts.github.io/best-of-Agent-Harnesses/#skills",
+      "repository": "https://github.com/RyanAlberts/best-of-Agent-Harnesses",
+      "license": "MIT",
+      "keywords": [
+        "agent-harness",
+        "claude-code",
+        "codex",
+        "security",
+        "guardrails",
+        "evals",
+        "cost",
+        "mcp"
+      ],
+      "category": "development"
+    }
+  ]
+}

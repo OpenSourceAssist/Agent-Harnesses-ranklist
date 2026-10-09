@@ -99,14 +99,35 @@ def verify() -> "list[str]":
         if not any(line.lstrip().startswith("#") for line in text.splitlines()):
             violations.append(f"comparisons/{f.name} has no markdown heading")
 
-    # 2c. Playbooks and template READMEs meet the same floor as guides.
-    for f in sorted((REPO_ROOT / "playbooks").glob("*.md")) + sorted((REPO_ROOT / "templates").glob("*/README.md")):
+    # 2c. Playbooks, template READMEs, and skill READMEs meet the same floor as guides.
+    skills_dir = REPO_ROOT / "skills"
+    skill_names = sorted(p.parent.name for p in skills_dir.glob("*/SKILL.md"))
+    skill_readmes = [skills_dir / n / "README.md" for n in skill_names if (skills_dir / n / "README.md").exists()]
+    for f in (sorted((REPO_ROOT / "playbooks").glob("*.md")) + sorted((REPO_ROOT / "templates").glob("*/README.md"))
+              + skill_readmes):
         rel = f.relative_to(REPO_ROOT).as_posix()
         text = f.read_text(encoding="utf-8")
         if len(text.encode("utf-8")) < COMPARISON_MIN_BYTES:
             violations.append(f"{rel} is under {COMPARISON_MIN_BYTES} bytes")
         if not text.startswith("# "):
             violations.append(f"{rel} must start with a '# ' title")
+
+    # 2d. Every skill has a README, sits in skills/registry.json (and the
+    # registry lists no missing skill), and ships evals.
+    registry = skills_dir / "registry.json"
+    listed = ([row["name"] for row in json.loads(registry.read_text(encoding="utf-8"))["skills"]]
+              if registry.exists() else [])
+    for name in skill_names:
+        if not (skills_dir / name / "README.md").exists():
+            violations.append(f"skills/{name} has no README.md")
+        if name not in listed:
+            violations.append(f"skills/{name} is missing from skills/registry.json "
+                              "(run python3 skills/evals/tools/registry_lint.py --write)")
+        evals = skills_dir / "evals" / name
+        if not (evals / "trigger-cases.json").exists() or not list(evals.glob("test_*.py")):
+            violations.append(f"skills/evals/{name} needs trigger-cases.json and a test_*.py")
+    for name in sorted(set(listed) - set(skill_names)):
+        violations.append(f"skills/registry.json lists {name}, but skills/{name}/SKILL.md does not exist")
 
     # 3. No mass data loss vs the previous commit.
     previous = _previous_totals()

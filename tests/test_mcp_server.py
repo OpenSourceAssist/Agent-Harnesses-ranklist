@@ -273,3 +273,21 @@ def test_ranked_skips_archived_projects(server):
     d = json.loads((ROOT / "harnesses.json").read_text())
     names = [p["name"] for _, p, _ in server._ranked(d, "drag and drop no-code flow builder")]
     assert "Flowise" not in names
+
+
+def test_skills_tools(server):
+    import generate
+    server._data = DATA  # a harnesses.json from before skills existed
+    assert json.loads(server.list_skills())["skills"] == []
+    skills = generate.skills_index()
+    server._data = dict(DATA, skills=skills)
+    listed = json.loads(server.list_skills())["skills"]
+    assert listed and [s["name"] for s in listed] == [s["name"] for s in skills]
+    name = listed[0]["name"]
+    got = json.loads(server.get_skill(name))
+    skill_md = next(f["content"] for f in got["files"] if f["path"] == f".claude/skills/{name}/SKILL.md")
+    assert skill_md.startswith(f"---\nname: {name}\n")
+    agents = json.loads(server.get_skill(name, target="agents"))
+    assert all(f["path"].startswith(f".agents/skills/{name}/") for f in agents["files"])
+    assert "available" in json.loads(server.get_skill("nope"))
+    assert "available" in json.loads(server.get_skill(name, target="nope"))

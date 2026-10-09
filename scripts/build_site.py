@@ -84,6 +84,7 @@ def site_links(md: str) -> str:
     md = re.sub(r"\]\(\.\./comparisons/([\w-]+)\.md(#[^)]*)?\)", lambda m: f"]({u('compare/' + m.group(1))}{m.group(2) or ''})", md)
     md = re.sub(r"\]\(\.\./playbooks/([\w-]+)\.md(#[^)]*)?\)", lambda m: f"]({u('playbooks/' + m.group(1))}{m.group(2) or ''})", md)
     md = re.sub(r"\]\(\.\./templates/([\w-]+)/?(?:README\.md)?(#[^)]*)?\)", lambda m: f"]({u('templates/' + m.group(1))}{m.group(2) or ''})", md)
+    md = re.sub(r"\]\(\.\./skills/([\w-]+)/?(?:README\.md|SKILL\.md)?(#[^)]*)?\)", lambda m: f"]({u('skills/' + m.group(1))}{m.group(2) or ''})", md)
     md = re.sub(r"\]\(\.\./([^)#]+?)/?(#[^)]*)?\)", lambda m: f"]({GITHUB_REPO}/tree/main/{m.group(1)}{m.group(2) or ''})", md)
     md = re.sub(r"\]\(([\w-]+)\.md(#[^)]*)?\)", lambda m: f"](../{m.group(1)}/{m.group(2) or ''})", md)
     return md
@@ -110,6 +111,7 @@ def page(title: str, description: str, canonical_path: str, body: str,
         f'<a href="{u()}#compare">Compare</a>'
         f'<a href="{u()}#templates">Templates</a>'
         f'<a href="{u()}#playbooks">Playbooks</a>'
+        f'<a href="{u()}#skills">Skills</a>'
         f'<a href="{u()}#agents">For agents</a>'
         f'<a href="https://github.com/RyanAlberts/best-of-Agent-Harnesses" title="Star this list on GitHub">'
         f'<img src="https://img.shields.io/github/stars/RyanAlberts/best-of-Agent-Harnesses?style=social&label=Star" '
@@ -219,6 +221,10 @@ def render_index() -> str:
         f'<li><a href="{u("playbooks/"+pb["slug"])}">{esc(pb["title"])}</a> — {esc(pb["summary"][:140])}</li>'
         for pb in g.playbooks_index()
     )
+    skills = "".join(
+        f'<li><a href="{u("skills/"+s["name"])}">{esc(s["title"])}</a>: {esc(s["summary"][:140])}</li>'
+        for s in g.skills_index()
+    )
     cat_cards = "".join(
         f'<a class="card" href="{u("c/"+cid)}"><strong>{esc(t)}</strong>'
         f'<span>{len(g.live_projects(cid))} projects</span></a>'
@@ -265,6 +271,8 @@ def render_index() -> str:
 
 <section id="playbooks"><h2>Playbooks</h2><p>Step-by-step guides, one task each.</p><ul>{playbooks}</ul></section>
 
+<section id="skills"><h2>Skills</h2><p>Folders you install into your agent. Each one runs a script on your own setup and hands back a result you can check.</p><ul>{skills}</ul></section>
+
 <section id="faq-teaser"><h2>FAQ</h2><ul>{faq_teaser}</ul><p><a href="{u("faq")}">All questions →</a></p></section>
 
 <section id="agents"><h2>For agents</h2>
@@ -276,6 +284,7 @@ def render_index() -> str:
     <li><a href="{u()}harnesses.jsonld">harnesses.jsonld</a> — schema.org Dataset + ItemList.</li>
     <li><a href="{u()}feed.json">feed.json</a> — JSON Feed of refreshes.</li>
     <li><strong>MCP server</strong>: <code>uvx agent-harnesses-mcp</code> — pick_harness, search_harnesses, get_harness, comparisons.</li>
+    <li><strong>Skills</strong>: <code>npx skills add RyanAlberts/best-of-Agent-Harnesses</code> lists every skill; the MCP server's list_skills and get_skill return them too.</li>
   </ul>
 </section>
 <script src="{u()}filter.js"></script>
@@ -496,6 +505,64 @@ def render_template(t: dict) -> str:
                 jsonld=[code, crumbs])
 
 
+LICENSE_URLS = {"MIT": "https://opensource.org/licenses/MIT",
+                "Apache-2.0": "https://www.apache.org/licenses/LICENSE-2.0"}
+
+
+def _file_text(path: Path) -> str:
+    try:
+        return path.read_text()
+    except UnicodeDecodeError:
+        return "(binary file: use the raw link)"
+
+
+def render_skill(s: dict) -> str:
+    d = ROOT / "skills" / s["name"]
+    readme = (d / "README.md").read_text()
+    # SKILL.md first: it is the part the agent reads. README.md is the article.
+    shown = sorted((f for f in s["files"] if f["path"] != "README.md"), key=lambda f: f["path"] != "SKILL.md")
+    for f in shown:  # links to the skill's own files become anchors to the file blocks below
+        readme = readme.replace(f"]({f['path']})", f"](#file-{f['path']})")
+    readme = re.sub(r"\]\(\.\./([\w-]+)/?\)", r"](../../skills/\1/)", readme)  # sibling skills
+    src = site_links(readme.replace("](../../", "](../"))
+    html_body = markdown.markdown(src, extensions=["tables", "fenced_code", "toc"])
+    install = (f'<p><button class="copy btn" data-target="install">Copy</button></p>'
+               f'<pre class="install"><code id="install">{esc(s["install"])}</code></pre>')
+    blocks = []
+    for i, f in enumerate(shown):
+        block = (f'<section class="tfile" id="file-{esc(f["path"])}"><h2><code>{esc(f["path"])}</code></h2>'
+                 f'<p><button class="copy btn" data-target="src-{i}">Copy</button>'
+                 f'<a class="btn" href="{esc(f["raw_url"])}">Raw file</a></p>'
+                 f'<pre><code id="src-{i}">{esc(_file_text(d / f["path"]))}</code></pre></section>')
+        if f["path"] != "SKILL.md":
+            block = f'<details><summary><code>{esc(f["path"])}</code></summary>{block}</details>'
+        blocks.append(block)
+    files_intro = ("<h2>Files in this skill</h2><p>SKILL.md is the part your agent reads. The scripts do the "
+                   "checking, and the references hold the detail the agent opens only when it needs it.</p>")
+    body = (f'<nav class="crumbs"><a href="{u()}">Home</a> › <a href="{u()}#skills">Skills</a> › {esc(s["title"])}</nav>\n'
+            f'{install}\n<article class="prose">{html_body}</article>\n{files_intro}\n{"".join(blocks)}\n{COPY_JS}')
+    published, modified = source_dates(f"skills/{s['name']}")
+    page_url = abs_url("skills/" + s["name"])
+    code = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": s["title"],
+        "description": s["summary"],
+        "url": page_url,
+        "codeRepository": f"{GITHUB_REPO}/tree/main/skills/{s['name']}",
+        "programmingLanguage": "Python",
+        "version": s["version"],
+        "datePublished": published,
+        "dateModified": modified,
+        "author": AUTHOR,
+        "license": LICENSE_URLS.get(s["license"], s["license"]),
+        "isPartOf": {"@type": "Dataset", "name": "Best of Agent Harnesses", "url": abs_url()},
+    }
+    crumbs = breadcrumb_ld([("Home", abs_url()), ("Skills", abs_url() + "#skills"), (s["title"], page_url)])
+    return page(f"{s['title']} | Best of Agent Harnesses", s["summary"], f"skills/{s['name']}", body,
+                jsonld=[code, crumbs])
+
+
 def render_faq() -> str:
     faq = g.build_faq()
     blocks = "".join(
@@ -592,7 +659,7 @@ def build() -> dict:
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
-    written = {"projects": 0, "categories": 0, "comparisons": 0, "playbooks": 0, "templates": 0, "other": 0}
+    written = {"projects": 0, "categories": 0, "comparisons": 0, "playbooks": 0, "templates": 0, "skills": 0, "other": 0}
     urls = [(abs_url(), g.STARS_CAPTURED)]
 
     (OUT / "index.html").write_text(render_index())
@@ -649,6 +716,13 @@ def build() -> dict:
         urls.append((abs_url("templates/" + t["slug"]), source_dates(f"templates/{t['slug']}")[1]))
         written["templates"] += 1
 
+    for s in g.skills_index():
+        d = OUT / "skills" / s["name"]
+        d.mkdir(parents=True)
+        (d / "index.html").write_text(render_skill(s))
+        urls.append((abs_url("skills/" + s["name"]), source_dates(f"skills/{s['name']}")[1]))
+        written["skills"] += 1
+
     # Copy machine-readable surfaces + assets so the site serves them directly.
     for f in ["harnesses.json", "harnesses.jsonld", "llms.txt", "feed.json"]:
         src = ROOT / f
@@ -659,10 +733,12 @@ def build() -> dict:
     guides = "\n\n---\n\n".join((ROOT / "comparisons" / f"{c['slug']}.md").read_text() for c in g.comparisons_index())
     playbooks = "\n\n---\n\n".join((ROOT / "playbooks" / f"{pb['slug']}.md").read_text() for pb in g.playbooks_index())
     templates = "\n\n---\n\n".join((ROOT / "templates" / t["slug"] / "README.md").read_text() for t in g.templates_index())
+    skills = "\n\n---\n\n".join((ROOT / "skills" / s["name"] / "SKILL.md").read_text() for s in g.skills_index())
     (OUT / "llms-full.txt").write_text(
         (ROOT / "llms.txt").read_text() + "\n\n---\n\n# Decision guides, full text\n\n" + guides
         + "\n\n---\n\n# Playbooks, full text\n\n" + playbooks
-        + "\n\n---\n\n# Templates\n\n" + templates + "\n")
+        + "\n\n---\n\n# Templates\n\n" + templates
+        + "\n\n---\n\n# Skills, full text of each SKILL.md\n\n" + skills + "\n")
     written["other"] += 1
 
     # sitemap.xml + robots.txt
@@ -684,5 +760,5 @@ if __name__ == "__main__":
     print(f"Site built to {OUT}")
     print(f"  {stats['projects']} project pages, {stats['categories']} category pages, "
           f"{stats['comparisons']} comparison pages, {stats['playbooks']} playbook pages, "
-          f"{stats['templates']} template pages")
+          f"{stats['templates']} template pages, {stats['skills']} skill pages")
     print(f"  {stats['urls']} URLs in sitemap.xml")

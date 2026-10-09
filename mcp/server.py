@@ -9,7 +9,8 @@ Serves the curated list (harnesses.json) as tools so agents can recommend
 agent harnesses: recommend, compare, compare_for, pick_harness,
 pick_infrastructure (curated picks plus live GitHub/Hacker News discovery),
 search_harnesses, get_harness, list_categories, plus the decision guides,
-templates (files to copy), and playbooks (step-by-step setup guides).
+templates (files to copy), playbooks (step-by-step setup guides), and skills
+(folders an agent installs to check its own setup).
 
 Run directly from GitHub (no clone needed):
     uv run https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/mcp/server.py
@@ -688,6 +689,42 @@ def get_playbook(slug: str) -> str:
             return _fetch_text(local, pb["raw_url"])
     return json.dumps({"error": f"unknown slug: {slug}",
                        "available": [pb["slug"] for pb in data().get("playbooks", [])]})
+
+
+@mcp.tool()
+def list_skills() -> str:
+    """Agent skills that check a user's own harness setup (what the agent can
+    reach, whether its 'tests pass' claims hold, where tokens go, which
+    guardrails leak, ...): name, title, summary, description (when to use
+    it), install command, and file list for each. Fetch one with
+    get_skill(name)."""
+    skills = [{k: s[k] for k in ("name", "title", "summary", "description", "group", "version",
+                                 "license", "install", "url")} | {"files": [f["path"] for f in s["files"]]}
+              for s in data().get("skills", [])]
+    return json.dumps({"skills": skills}, indent=2, ensure_ascii=False)
+
+
+@mcp.tool()
+def get_skill(name: str, target: str = "claude-code") -> str:
+    """One skill by name (see list_skills): every file's content, each with the
+    path to write it to. target picks the skills folder: "claude-code" writes
+    to .claude/skills/<name>/, "agents" writes to .agents/skills/<name>/ (read
+    by Codex, Gemini CLI, Cursor, and OpenCode). Write the files, then tell the
+    user the skill is installed and how to ask for it."""
+    base = {"claude-code": ".claude/skills", "agents": ".agents/skills"}.get(target)
+    if base is None:
+        return json.dumps({"error": f"unknown target: {target}", "available": ["claude-code", "agents"]})
+    root = Path(__file__).resolve().parent.parent / "skills" / name
+    for s in data().get("skills", []):
+        if s["name"] == name:
+            return json.dumps({
+                "name": name, "title": s["title"], "install": s["install"],
+                "files": [{"path": f"{base}/{name}/{f['path']}",
+                           "content": _fetch_text(root / f["path"], f["raw_url"])}
+                          for f in s["files"]],
+            }, indent=2, ensure_ascii=False)
+    return json.dumps({"error": f"unknown skill: {name}",
+                       "available": [s["name"] for s in data().get("skills", [])]})
 
 
 @mcp.tool()
