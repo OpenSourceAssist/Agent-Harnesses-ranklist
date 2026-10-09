@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "agents-md-checker",
+      "path": "skills/agents-md-checker",
+      "description": "Checks which instruction files (AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, Copilot instructions) each coding agent loads from a repo, what gets cut or skipped, and whether the commands those files document still work. Use when the user asks whether Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Copilot, or Aider reads their AGENTS.md or CLAUDE.md; why an agent ignores or truncates part of a context file; whether the build, test, or lint commands and paths in AGENTS.md are stale; or wants to audit context files across agents. Reads local files and makes no network calls; runs documented test, lint, and build commands only with --run after the user agrees.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/agents-md-checker",
+      "evals_dir": "skills/evals/agents-md-checker"
+    },
+    {
+      "name": "claim-check",
+      "path": "skills/claim-check",
+      "description": "Claim checker that audits a coding agent's statements that tests pass or a build is clean against its own session transcripts: whether a matching run happened before the claim, whether it passed, and whether code changed after it. Use when the user asks whether the agent really ran the tests, how often it said tests passed without proof, or whether \"all tests pass\" was true; wants to catch false or stale success claims; asks whether the agent deleted, skipped, or xfailed failing tests or loosened assertions in the current diff; or wants a Stop hook that sends the agent back to rerun tests before finishing. Runs locally: reads Claude Code, Codex, Gemini CLI, and OpenCode transcripts and the git diff; sends nothing.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/claim-check",
+      "evals_dir": "skills/evals/claim-check"
+    },
+    {
+      "name": "guardrail-tester",
+      "path": "skills/guardrail-tester",
+      "description": "Guardrail tester that checks whether the permission rules and PreToolUse hooks already set up in Claude Code, Codex, Gemini CLI, OpenCode, or Cursor stop a battery of dangerous commands, including wrapped, reordered, and full-path forms that slip past prefix rules, and measures prompt friction on the latest tool calls. Use when the user asks whether deny rules or hooks block force pushes, rm -rf, secret reads, or downloads piped into a shell; wants to test or audit guardrails, or find a bypass in permission settings or exec policy; asks how many prompts or blocks the rules cause; or just installed a guard hook and wants proof it holds. Local only, no network; executes the user's own hook commands only with their yes.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/guardrail-tester",
+      "evals_dir": "skills/evals/guardrail-tester"
+    },
+    {
+      "name": "harness-test-drive",
+      "path": "skills/harness-test-drive",
+      "description": "Test-drives coding agents (Claude Code, Codex, Gemini CLI) on tasks mined from the user's own git history: each agent gets a past commit message in a fresh copy of the repo, and the repo's own tests score how many tasks it completes, dollars per task, minutes, and change size. Use when the user asks which coding agent or harness works best on their codebase; wants to compare or benchmark agents on their own repository instead of trusting leaderboards such as SWE-bench; wants to trial one agent against another before switching; or asks what each agent costs per fixed bug. Spends money: the harness CLIs call their model providers, so a dollar cap is required. The scripts make no network calls.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/harness-test-drive",
+      "evals_dir": "skills/evals/harness-test-drive"
+    },
+    {
+      "name": "regression-finder",
+      "path": "skills/regression-finder",
+      "description": "Regression check for coding agents: shows how the agent behaved before and after each harness update, model switch, or week in the user's own Claude Code or Codex history, and finds the point where it changed. Use when the user says the agent's quality dropped or it got worse, dumber, lazier, or degraded since an update or since they upgraded; asks whether a new Claude Code or Codex version or model made it worse than the old one; wants to know which release, version, or week it regressed in; or wants numbers to report a regression, such as reads before edits, interruptions, and corrections per version. Runs locally and reads transcripts only; nothing goes over the network.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/regression-finder",
+      "evals_dir": "skills/evals/regression-finder"
+    },
+    {
+      "name": "rules-to-guards",
+      "path": "skills/rules-to-guards",
+      "description": "Rule enforcer that finds which written rules in AGENTS.md, CLAUDE.md, and GEMINI.md a coding agent keeps breaking, counts every violation in recent Claude Code, Codex, Gemini CLI, and OpenCode sessions, and turns each broken rule into a hook that blocks it, tested by replaying the past violations. Use when the user says the agent keeps breaking or disobeying a rule (such as \"use pnpm, never npm\"); asks how often agents violate their rules; wants a rule enforced by a hook instead of repeated in text; or wants to convert rules into hooks or permission rules. Runs locally: reads AGENTS.md-style rules and session transcripts, and changes settings only with --write after the user agrees.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/rules-to-guards",
+      "evals_dir": "skills/evals/rules-to-guards"
+    },
+    {
+      "name": "runaway-guard",
+      "path": "skills/runaway-guard",
+      "description": "Runaway guard: a hook that stops a live Claude Code or Codex session when the agent loops on the same tool call, keeps failing, or exceeds a dollar cap. Use when the user wants a spending cap, budget limit, or cost ceiling for interactive agent sessions (the built-in --max-budget-usd works only in print mode); wants to halt an agent that repeats the same command, is stuck in a loop, or runs up a bill unattended overnight; wants a circuit breaker for several failed tool calls in a row; or asks how much the current session has spent against its cap, why a call was blocked, or how to raise or reset the cap. Runs locally: reads the session transcripts before each tool call and sends nothing.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/runaway-guard",
+      "evals_dir": "skills/evals/runaway-guard"
+    },
+    {
+      "name": "sandbox-check",
+      "path": "skills/sandbox-check",
+      "description": "Sandbox audit that probes, from inside a live coding-agent session, what the agent can really reach: secret files it can open, secret-like environment variables, files that git, the shell, the editor, or the harness later run (git hooks, shell startup files, harness settings), writes outside the project, the Docker socket, the SSH agent, and passwordless sudo. Use when the user asks what the agent can access or write on this machine, whether the sandbox actually works, how big the blast radius is if the agent gets prompt-injected, whether SSH keys, cloud credentials, or .env files are exposed, or whether it could escape through Docker or sudo. Runs locally and edits no existing file: it creates and deletes one empty test file per folder it checks, and only the optional --network flag makes DNS lookups and TCP connections.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/sandbox-check",
+      "evals_dir": "skills/evals/sandbox-check"
+    },
+    {
+      "name": "session-waste-report",
+      "path": "skills/session-waste-report",
+      "description": "Waste report for coding-agent sessions in Claude Code, Codex, Gemini CLI, and OpenCode: finds where tokens, money, and time were wasted, and the fix for each kind of waste. Use when the user asks where tokens or money went or why the bill is so high; about habits that burn tokens, such as re-reading a file that has not changed, huge tool outputs, polling, or cache misses from pauses; about the subagent share of cost; or for failure patterns across sessions: tool errors, permission denials, interrupts, corrections, and repeated calls. Runs locally and reads transcripts only; nothing goes over the network.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/session-waste-report",
+      "evals_dir": "skills/evals/session-waste-report"
+    },
+    {
+      "name": "tool-design-checker",
+      "path": "skills/tool-design-checker",
+      "description": "Grades MCP tool definitions the way a model reads them: a clear purpose, described parameters, safe annotations such as readOnlyHint, and the token size of every tool. Use when an author wants to lint, grade, or review an MCP server's tools, tool descriptions, or input schemas before release; when a user asks which MCP servers are installed, or how many tools and tokens they add to the context window in Claude Code, Codex, Cursor, Gemini CLI, or OpenCode; when tools overlap or collide across servers and the model picks the wrong one; or when checking an OpenAI or Anthropic function list. Runs locally; starts servers only with --launch and contacts remote servers only with --remote.",
+      "license": "MIT",
+      "metadata": {
+        "author": "Ryan Alberts",
+        "version": "1.0.0",
+        "source": "https://github.com/RyanAlberts/best-of-Agent-Harnesses"
+      },
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/tool-design-checker",
+      "evals_dir": "skills/evals/tool-design-checker"
+    }
+  ]
+}

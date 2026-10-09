@@ -10,6 +10,7 @@
 
 <p align="center">
     <a href="#contents" title="Project Count"><img src="https://img.shields.io/badge/projects-166-blue.svg?color=5ac4bf"></a>
+    <a href="#skills" title="Installable agent skills"><img src="https://img.shields.io/badge/skills-10-5ac4bf.svg"></a>
     <a href="#for-agents" title="Agents can query this list — MCP server, llms.txt & JSON"><img src="https://img.shields.io/badge/agents-query%20this%20list-5ac4bf.svg"></a>
     <a href="#contribution" title="Contributions welcome"><img src="https://img.shields.io/badge/contributions-welcome-green.svg"></a>
     <a href="https://github.com/RyanAlberts/best-of-Agent-Harnesses/commits/main" title="Updates"><img src="https://img.shields.io/github/last-commit/RyanAlberts/best-of-Agent-Harnesses?color=green&label=updated"></a>
@@ -21,6 +22,10 @@
 
 <p align="center">
     🧰 <strong><a href="#templates-and-playbooks">Templates and Playbooks</a></strong>: copy-paste setup files and step-by-step guides for the harnesses in this list.
+</p>
+
+<p align="center">
+    🧩 <strong><a href="#skills">Skills</a></strong>: 10 installable skills that check your own agent setup, including what it can reach, what it claims, and what it spends.
 </p>
 
 <p align="center">
@@ -89,6 +94,50 @@ _The list tells you which harness to use. These tell you how to set it up. **Tem
 - [**Build your own agent harness**](playbooks/build-your-own-agent-harness.md): Build a working coding agent in about an hour: a loop, three tools, permissions, a context file, a budget, and crash recovery, in one Python file you fully understand. You finish with the minimal harness template running on your own repo.
 - [**Write one AGENTS.md for every coding agent**](playbooks/one-agents-md-for-every-coding-agent.md): Write one briefing file that Codex, Claude Code, Cursor, OpenCode, Copilot, Gemini CLI, and Aider all read, test that each tool actually loaded it, and keep it short enough to help instead of hurt. You finish with the AGENTS.md template filled in for your repo.
 
+## Skills
+
+_A skill is a folder your agent loads when a task calls for it. Each one below runs a script on your own setup and hands back a result you can check: what your agent can reach, which of its claims had no proof, where your tokens went. They run on your machine, and anything that changes a file or spends money waits for your yes._
+
+**Pick a harness**
+
+- [**Test-drive coding agents on tasks from your own repo**](skills/harness-test-drive/): Runs Claude Code, Codex, and Gemini CLI on tasks taken from your own git history, scores each one with your repository's tests, and reports how many tasks each passed, the dollars per pass, the minutes, and the size of each change.
+
+**Set it up**
+
+- [**Check which instruction files your coding agents load**](skills/agents-md-checker/): See which instruction files Claude Code, Codex, Gemini CLI, OpenCode, Cursor, GitHub Copilot, and Aider load from your repo, what each one cuts or skips, and whether the commands in those files still work.
+- [**Grade your MCP tools the way a model reads them**](skills/tool-design-checker/): Point it at an MCP server or a saved tool list to grade each tool's purpose, parameters, annotations, and token size, or let it find the MCP servers configured across your coding agents and count what they load into every session.
+
+**Keep it safe**
+
+- [**Test your agent's guardrails against dangerous commands**](skills/guardrail-tester/): Checks whether the permission rules and hooks you already have in Claude Code, Codex, Gemini CLI, OpenCode, or Cursor stop about 90 dangerous commands, shows each one that gets through with a tested fix, and counts how often your rules interrupt real work.
+- [**Stop a runaway agent session**](skills/runaway-guard/): A hook for Claude Code and Codex that stops a live session when the agent repeats the same call, keeps failing, or spends past a dollar cap you set.
+- [**Check what your coding agent can reach**](skills/sandbox-check/): A one-minute probe that runs through your agent's own shell and shows which secret files, trust files, Docker, and sudo access it really has, then compares that with what your sandbox settings claim.
+
+**Check its work**
+
+- [**Check your agent's 'tests pass' claims**](skills/claim-check/): Find out how often your coding agent said tests passed without a passing run to back it up, and whether the current change quietly weakened your tests. It reads your local session logs and sends nothing anywhere.
+- [**Turn the rules your agent breaks into hooks**](skills/rules-to-guards/): Finds the rules in AGENTS.md, CLAUDE.md, and GEMINI.md that your coding agent breaks, counts every break in your recent sessions, and turns each broken rule into a hook (a check your agent runs before each tool call) that blocks it, tested against those real breaks.
+
+**See what it costs and what changed**
+
+- [**Find the update where your coding agent started working differently**](skills/regression-finder/): Splits your own Claude Code or Codex sessions by version, model, or week, measures how the agent works in each, and places the change at the update, or within the span of versions, where the numbers moved, along with anything else that changed then.
+- [**See where your coding agent wastes tokens and money**](skills/session-waste-report/): A report on your own Claude Code, Codex, Gemini CLI, and OpenCode sessions that shows which habits cost the most, such as re-read files, huge tool outputs, polling, and breaks that expire the prompt cache (the provider's cheap copy of the conversation), and which failures repeat, each with a fix.
+
+Install one skill in any agent:
+
+```sh
+npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/<name>
+```
+
+Or all of them in Claude Code:
+
+```sh
+/plugin marketplace add RyanAlberts/best-of-Agent-Harnesses
+/plugin install harness-skills@agent-harnesses
+```
+
+[How the skills are built and tested](skills/README.md).
+
 ## Pick by use case
 
 _Reader's index: pick by what you want to do, not by category. Tag chips (e.g. <sup>`mcp` · `memory`</sup>) next to each row let you cross-filter by capability — see [TAGS.md](TAGS.md) for the full cross-reference._
@@ -114,7 +163,7 @@ This list is also published in machine-readable form, so coding agents and resea
 
 - [**harnesses.json**](harnesses.json) — every project with category, complexity tier, capability tags, stars, license signal, and a concrete example link, plus the full use-case index.
 - [**llms.txt**](llms.txt) — the entire list in one agent-readable file. Point any agent at the [raw URL](https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/llms.txt).
-- [**MCP server**](mcp/) — `recommend` (one opinionated pick + alternatives + what to *avoid*, e.g. repos flagged for star manipulation), `compare`/`compare_for` (2–4 harnesses side by side — by id or by task — who leads on which axis incl. researched sandboxing/memory/hooks/prompt-optimization ratings, graveyard warnings, the matching decision guide), `pick_harness` (ranked, with complexity/autonomy/recovery filters), `pick_infrastructure` (picks at any level of the infra stack plus a live GitHub/Hacker News discovery pass, so answers aren't limited to this list), `search_harnesses`, `get_harness`, `list_categories`, plus `list_comparisons`/`get_comparison` for the decision guides and `list_templates`/`get_template`/`list_playbooks`/`get_playbook` so your agent can install a template for you. Published to PyPI and the [official MCP registry](https://registry.modelcontextprotocol.io) as `io.github.RyanAlberts/agent-harnesses`. One-line install (needs [uv](https://docs.astral.sh/uv/)):
+- [**MCP server**](mcp/) — `recommend` (one opinionated pick + alternatives + what to *avoid*, e.g. repos flagged for star manipulation), `compare`/`compare_for` (2–4 harnesses side by side — by id or by task — who leads on which axis incl. researched sandboxing/memory/hooks/prompt-optimization ratings, graveyard warnings, the matching decision guide), `pick_harness` (ranked, with complexity/autonomy/recovery filters), `pick_infrastructure` (picks at any level of the infra stack plus a live GitHub/Hacker News discovery pass, so answers aren't limited to this list), `search_harnesses`, `get_harness`, `list_categories`, plus `list_comparisons`/`get_comparison` for the decision guides and `list_templates`/`get_template`/`list_playbooks`/`get_playbook`/`list_skills`/`get_skill` so your agent can install a template or a skill for you. Published to PyPI and the [official MCP registry](https://registry.modelcontextprotocol.io) as `io.github.RyanAlberts/agent-harnesses`. One-line install (needs [uv](https://docs.astral.sh/uv/)):
 
 ```sh
 claude mcp add agent-harnesses -- uvx agent-harnesses-mcp
@@ -137,6 +186,7 @@ curl -fsSL https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses
 - [The landscape at a glance](#the-landscape-at-a-glance)
 - [How to Pick a Harness](#how-to-pick-a-harness)
 - [Templates and Playbooks](#templates-and-playbooks)
+- [Skills](#skills)
 - [Pick by use case](#pick-by-use-case)
 - [For agents: harnesses.json, llms.txt, MCP server, agent templates](#for-agents)
 - [FAQ](#faq)
@@ -563,3 +613,5 @@ If your project is in this list, you're welcome to show it in your README:
 ## License
 
 [![CC BY-SA 4.0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-sa.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+
+The skills in [skills/](skills/) are MIT-licensed, so you can copy them into any project.

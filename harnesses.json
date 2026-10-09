@@ -603,6 +603,536 @@
       "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/playbooks/one-agents-md-for-every-coding-agent.md"
     }
   ],
+  "skills": [
+    {
+      "slug": "agents-md-checker",
+      "title": "Check which instruction files your coding agents load",
+      "summary": "See which instruction files Claude Code, Codex, Gemini CLI, OpenCode, Cursor, GitHub Copilot, and Aider load from your repo, what each one cuts or skips, and whether the commands in those files still work.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/agents-md-checker/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/README.md",
+      "name": "agents-md-checker",
+      "description": "Checks which instruction files (AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, Copilot instructions) each coding agent loads from a repo, what gets cut or skipped, and whether the commands those files document still work. Use when the user asks whether Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Copilot, or Aider reads their AGENTS.md or CLAUDE.md; why an agent ignores or truncates part of a context file; whether the build, test, or lint commands and paths in AGENTS.md are stale; or wants to audit context files across agents. Reads local files and makes no network calls; runs documented test, lint, and build commands only with --run after the user agrees.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Set it up",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/agents-md-checker",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/SKILL.md"
+        },
+        {
+          "path": "references/command-checks.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/references/command-checks.md"
+        },
+        {
+          "path": "references/fixes.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/references/fixes.md"
+        },
+        {
+          "path": "references/load-rules.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/references/load-rules.md"
+        },
+        {
+          "path": "scripts/check.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/scripts/check.py"
+        },
+        {
+          "path": "scripts/commands.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/scripts/commands.py"
+        },
+        {
+          "path": "scripts/load_map.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/scripts/load_map.py"
+        }
+      ]
+    },
+    {
+      "slug": "claim-check",
+      "title": "Check your agent's 'tests pass' claims",
+      "summary": "Find out how often your coding agent said tests passed without a passing run to back it up, and whether the current change quietly weakened your tests. It reads your local session logs and sends nothing anywhere.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/claim-check/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/README.md",
+      "name": "claim-check",
+      "description": "Claim checker that audits a coding agent's statements that tests pass or a build is clean against its own session transcripts: whether a matching run happened before the claim, whether it passed, and whether code changed after it. Use when the user asks whether the agent really ran the tests, how often it said tests passed without proof, or whether \"all tests pass\" was true; wants to catch false or stale success claims; asks whether the agent deleted, skipped, or xfailed failing tests or loosened assertions in the current diff; or wants a Stop hook that sends the agent back to rerun tests before finishing. Runs locally: reads Claude Code, Codex, Gemini CLI, and OpenCode transcripts and the git diff; sends nothing.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Check its work",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/claim-check",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/SKILL.md"
+        },
+        {
+          "path": "references/claim-patterns.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/references/claim-patterns.md"
+        },
+        {
+          "path": "references/weakened-tests.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/references/weakened-tests.md"
+        },
+        {
+          "path": "scripts/claims.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/claims.py"
+        },
+        {
+          "path": "scripts/evidence.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/evidence.py"
+        },
+        {
+          "path": "scripts/install.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/install.py"
+        },
+        {
+          "path": "scripts/stop_hook.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/stop_hook.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/transcripts.py"
+        },
+        {
+          "path": "scripts/weakened.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/weakened.py"
+        }
+      ]
+    },
+    {
+      "slug": "guardrail-tester",
+      "title": "Test your agent's guardrails against dangerous commands",
+      "summary": "Checks whether the permission rules and hooks you already have in Claude Code, Codex, Gemini CLI, OpenCode, or Cursor stop about 90 dangerous commands, shows each one that gets through with a tested fix, and counts how often your rules interrupt real work.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/guardrail-tester/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/README.md",
+      "name": "guardrail-tester",
+      "description": "Guardrail tester that checks whether the permission rules and PreToolUse hooks already set up in Claude Code, Codex, Gemini CLI, OpenCode, or Cursor stop a battery of dangerous commands, including wrapped, reordered, and full-path forms that slip past prefix rules, and measures prompt friction on the latest tool calls. Use when the user asks whether deny rules or hooks block force pushes, rm -rf, secret reads, or downloads piped into a shell; wants to test or audit guardrails, or find a bypass in permission settings or exec policy; asks how many prompts or blocks the rules cause; or just installed a guard hook and wants proof it holds. Local only, no network; executes the user's own hook commands only with their yes.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Keep it safe",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/guardrail-tester",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/SKILL.md"
+        },
+        {
+          "path": "references/bypass-forms.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/references/bypass-forms.md"
+        },
+        {
+          "path": "references/harness-rules.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/references/harness-rules.md"
+        },
+        {
+          "path": "scripts/battery.json",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/battery.json"
+        },
+        {
+          "path": "scripts/claude_rules.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/claude_rules.py"
+        },
+        {
+          "path": "scripts/harness_rules.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/harness_rules.py"
+        },
+        {
+          "path": "scripts/hook_runner.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/hook_runner.py"
+        },
+        {
+          "path": "scripts/shell_split.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/shell_split.py"
+        },
+        {
+          "path": "scripts/test_guards.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/test_guards.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/transcripts.py"
+        }
+      ]
+    },
+    {
+      "slug": "harness-test-drive",
+      "title": "Test-drive coding agents on tasks from your own repo",
+      "summary": "Runs Claude Code, Codex, and Gemini CLI on tasks taken from your own git history, scores each one with your repository's tests, and reports how many tasks each passed, the dollars per pass, the minutes, and the size of each change.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/harness-test-drive/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/README.md",
+      "name": "harness-test-drive",
+      "description": "Test-drives coding agents (Claude Code, Codex, Gemini CLI) on tasks mined from the user's own git history: each agent gets a past commit message in a fresh copy of the repo, and the repo's own tests score how many tasks it completes, dollars per task, minutes, and change size. Use when the user asks which coding agent or harness works best on their codebase; wants to compare or benchmark agents on their own repository instead of trusting leaderboards such as SWE-bench; wants to trial one agent against another before switching; or asks what each agent costs per fixed bug. Spends money: the harness CLIs call their model providers, so a dollar cap is required. The scripts make no network calls.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Pick a harness",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/harness-test-drive",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/SKILL.md"
+        },
+        {
+          "path": "references/harness-commands.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/references/harness-commands.md"
+        },
+        {
+          "path": "references/method.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/references/method.md"
+        },
+        {
+          "path": "scripts/common.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/common.py"
+        },
+        {
+          "path": "scripts/drive.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/drive.py"
+        },
+        {
+          "path": "scripts/harnesses.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/harnesses.py"
+        },
+        {
+          "path": "scripts/mine_tasks.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/mine_tasks.py"
+        },
+        {
+          "path": "scripts/pricing.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/pricing.py"
+        }
+      ]
+    },
+    {
+      "slug": "regression-finder",
+      "title": "Find the update where your coding agent started working differently",
+      "summary": "Splits your own Claude Code or Codex sessions by version, model, or week, measures how the agent works in each, and places the change at the update, or within the span of versions, where the numbers moved, along with anything else that changed then.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/regression-finder/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/README.md",
+      "name": "regression-finder",
+      "description": "Regression check for coding agents: shows how the agent behaved before and after each harness update, model switch, or week in the user's own Claude Code or Codex history, and finds the point where it changed. Use when the user says the agent's quality dropped or it got worse, dumber, lazier, or degraded since an update or since they upgraded; asks whether a new Claude Code or Codex version or model made it worse than the old one; wants to know which release, version, or week it regressed in; or wants numbers to report a regression, such as reads before edits, interruptions, and corrections per version. Runs locally and reads transcripts only; nothing goes over the network.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "See what it costs and what changed",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/regression-finder",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/SKILL.md"
+        },
+        {
+          "path": "references/metrics.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/references/metrics.md"
+        },
+        {
+          "path": "references/statistics.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/references/statistics.md"
+        },
+        {
+          "path": "scripts/pricing.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/scripts/pricing.py"
+        },
+        {
+          "path": "scripts/regress.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/scripts/regress.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/scripts/transcripts.py"
+        }
+      ]
+    },
+    {
+      "slug": "rules-to-guards",
+      "title": "Turn the rules your agent breaks into hooks",
+      "summary": "Finds the rules in AGENTS.md, CLAUDE.md, and GEMINI.md that your coding agent breaks, counts every break in your recent sessions, and turns each broken rule into a hook (a check your agent runs before each tool call) that blocks it, tested against those real breaks.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/rules-to-guards/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/README.md",
+      "name": "rules-to-guards",
+      "description": "Rule enforcer that finds which written rules in AGENTS.md, CLAUDE.md, and GEMINI.md a coding agent keeps breaking, counts every violation in recent Claude Code, Codex, Gemini CLI, and OpenCode sessions, and turns each broken rule into a hook that blocks it, tested by replaying the past violations. Use when the user says the agent keeps breaking or disobeying a rule (such as \"use pnpm, never npm\"); asks how often agents violate their rules; wants a rule enforced by a hook instead of repeated in text; or wants to convert rules into hooks or permission rules. Runs locally: reads AGENTS.md-style rules and session transcripts, and changes settings only with --write after the user agrees.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Check its work",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/rules-to-guards",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/SKILL.md"
+        },
+        {
+          "path": "references/checkable-rules.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/references/checkable-rules.md"
+        },
+        {
+          "path": "references/hook-formats.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/references/hook-formats.md"
+        },
+        {
+          "path": "scripts/rules.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/scripts/rules.py"
+        },
+        {
+          "path": "scripts/rules_guard.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/scripts/rules_guard.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/scripts/transcripts.py"
+        }
+      ]
+    },
+    {
+      "slug": "runaway-guard",
+      "title": "Stop a runaway agent session",
+      "summary": "A hook for Claude Code and Codex that stops a live session when the agent repeats the same call, keeps failing, or spends past a dollar cap you set.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/runaway-guard/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/README.md",
+      "name": "runaway-guard",
+      "description": "Runaway guard: a hook that stops a live Claude Code or Codex session when the agent loops on the same tool call, keeps failing, or exceeds a dollar cap. Use when the user wants a spending cap, budget limit, or cost ceiling for interactive agent sessions (the built-in --max-budget-usd works only in print mode); wants to halt an agent that repeats the same command, is stuck in a loop, or runs up a bill unattended overnight; wants a circuit breaker for several failed tool calls in a row; or asks how much the current session has spent against its cap, why a call was blocked, or how to raise or reset the cap. Runs locally: reads the session transcripts before each tool call and sends nothing.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Keep it safe",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/runaway-guard",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/SKILL.md"
+        },
+        {
+          "path": "references/harness-hooks.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/references/harness-hooks.md"
+        },
+        {
+          "path": "references/how-it-decides.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/references/how-it-decides.md"
+        },
+        {
+          "path": "scripts/guard.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/guard.py"
+        },
+        {
+          "path": "scripts/install.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/install.py"
+        },
+        {
+          "path": "scripts/pricing.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/pricing.py"
+        },
+        {
+          "path": "scripts/status.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/status.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/transcripts.py"
+        }
+      ]
+    },
+    {
+      "slug": "sandbox-check",
+      "title": "Check what your coding agent can reach",
+      "summary": "A one-minute probe that runs through your agent's own shell and shows which secret files, trust files, Docker, and sudo access it really has, then compares that with what your sandbox settings claim.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/sandbox-check/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/README.md",
+      "name": "sandbox-check",
+      "description": "Sandbox audit that probes, from inside a live coding-agent session, what the agent can really reach: secret files it can open, secret-like environment variables, files that git, the shell, the editor, or the harness later run (git hooks, shell startup files, harness settings), writes outside the project, the Docker socket, the SSH agent, and passwordless sudo. Use when the user asks what the agent can access or write on this machine, whether the sandbox actually works, how big the blast radius is if the agent gets prompt-injected, whether SSH keys, cloud credentials, or .env files are exposed, or whether it could escape through Docker or sudo. Runs locally and edits no existing file: it creates and deletes one empty test file per folder it checks, and only the optional --network flag makes DNS lookups and TCP connections.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Keep it safe",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/sandbox-check",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/SKILL.md"
+        },
+        {
+          "path": "references/fixes.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/references/fixes.md"
+        },
+        {
+          "path": "references/trust-handoff.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/references/trust-handoff.md"
+        },
+        {
+          "path": "scripts/probe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/scripts/probe.py"
+        },
+        {
+          "path": "scripts/targets.json",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/scripts/targets.json"
+        }
+      ]
+    },
+    {
+      "slug": "session-waste-report",
+      "title": "See where your coding agent wastes tokens and money",
+      "summary": "A report on your own Claude Code, Codex, Gemini CLI, and OpenCode sessions that shows which habits cost the most, such as re-read files, huge tool outputs, polling, and breaks that expire the prompt cache (the provider's cheap copy of the conversation), and which failures repeat, each with a fix.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/session-waste-report/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/README.md",
+      "name": "session-waste-report",
+      "description": "Waste report for coding-agent sessions in Claude Code, Codex, Gemini CLI, and OpenCode: finds where tokens, money, and time were wasted, and the fix for each kind of waste. Use when the user asks where tokens or money went or why the bill is so high; about habits that burn tokens, such as re-reading a file that has not changed, huge tool outputs, polling, or cache misses from pauses; about the subagent share of cost; or for failure patterns across sessions: tool errors, permission denials, interrupts, corrections, and repeated calls. Runs locally and reads transcripts only; nothing goes over the network.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "See what it costs and what changed",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/session-waste-report",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/SKILL.md"
+        },
+        {
+          "path": "references/fixes.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/references/fixes.md"
+        },
+        {
+          "path": "references/how-it-counts.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/references/how-it-counts.md"
+        },
+        {
+          "path": "scripts/pricing.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/pricing.py"
+        },
+        {
+          "path": "scripts/transcripts.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/transcripts.py"
+        },
+        {
+          "path": "scripts/waste.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/waste.py"
+        }
+      ]
+    },
+    {
+      "slug": "tool-design-checker",
+      "title": "Grade your MCP tools the way a model reads them",
+      "summary": "Point it at an MCP server or a saved tool list to grade each tool's purpose, parameters, annotations, and token size, or let it find the MCP servers configured across your coding agents and count what they load into every session.",
+      "url": "https://github.com/RyanAlberts/best-of-Agent-Harnesses/blob/main/skills/tool-design-checker/README.md",
+      "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/README.md",
+      "name": "tool-design-checker",
+      "description": "Grades MCP tool definitions the way a model reads them: a clear purpose, described parameters, safe annotations such as readOnlyHint, and the token size of every tool. Use when an author wants to lint, grade, or review an MCP server's tools, tool descriptions, or input schemas before release; when a user asks which MCP servers are installed, or how many tools and tokens they add to the context window in Claude Code, Codex, Cursor, Gemini CLI, or OpenCode; when tools overlap or collide across servers and the model picks the wrong one; or when checking an OpenAI or Anthropic function list. Runs locally; starts servers only with --launch and contacts remote servers only with --remote.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "group": "Set it up",
+      "install": "npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/skills/tool-design-checker",
+      "skill_md_raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/SKILL.md",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/LICENSE.txt"
+        },
+        {
+          "path": "README.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/README.md"
+        },
+        {
+          "path": "SKILL.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/SKILL.md"
+        },
+        {
+          "path": "references/mcp-configs.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/references/mcp-configs.md"
+        },
+        {
+          "path": "references/smells.md",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/references/smells.md"
+        },
+        {
+          "path": "scripts/mcp_client.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/mcp_client.py"
+        },
+        {
+          "path": "scripts/mcp_configs.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/mcp_configs.py"
+        },
+        {
+          "path": "scripts/mcp_http.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/mcp_http.py"
+        },
+        {
+          "path": "scripts/tools_check.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/tools_check.py"
+        }
+      ]
+    }
+  ],
   "projects": [
     {
       "name": "Headroom",
