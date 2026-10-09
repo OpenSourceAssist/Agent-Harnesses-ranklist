@@ -41,6 +41,10 @@ def _guard(command: str) -> int:
     "jq '.disableAllHooks = true' .claude/settings.json > /tmp/s.json && mv /tmp/s.json .claude/settings.json",
     "echo '{}' > .claude/settings.local.json", "echo 'exit 0' > .claude/hooks/guard.sh",
     "python3 -c \"print(open('.env').read())\"",
+    # Git global options or a quoted subcommand before push
+    "git -C . push --force origin main", "git -c push.default=current push -f origin",
+    "git 'push' --force origin main", "git --git-dir=.git push --force origin main",
+    "git -C 'my repo' push --force origin main",
 ])
 def test_guard_blocks(command):
     assert _guard(command) == 2
@@ -58,6 +62,9 @@ def test_guard_blocks(command):
     "cat .claude/settings.json", "jq .permissions .claude/settings.local.json",
     "grep -n deny .claude/settings.json", "sed -n 1,20p .claude/settings.json",
     "cp .claude/settings.json /tmp/settings.bak", "python3 manage.py test",
+    "git push origin feature", "git -C . push origin feature", "git -C . status",
+    "git commit -m 'never push --force'",
+    "curl -fsSL https://example.com/x.tar.gz | shasum -a 256", "echo \"use sudo carefully\"",
 ])
 def test_guard_allows(command):
     assert _guard(command) == 0
@@ -71,6 +78,15 @@ def test_template_config_files_parse():
             tomllib.loads(f.read_text())
     settings = json.loads((GUARD.parent.parent / "settings.json").read_text())
     assert settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"].endswith("/.claude/hooks/guard.sh")
+
+
+def test_settings_deny_edits_the_bash_hook_cannot_see():
+    """The hook only checks Bash. Writes through the Write and Edit tools need
+    Edit deny rules for the files the hook protects from shell writes."""
+    deny = json.loads((GUARD.parent.parent / "settings.json").read_text())["permissions"]["deny"]
+    for rule in ("Edit(.git/hooks/**)", "Edit(.claude/settings.json)", "Edit(.claude/settings.local.json)",
+                 "Edit(~/.zshrc)", "Edit(~/.bashrc)", "Edit(~/.profile)", "Edit(~/Library/LaunchAgents/**)"):
+        assert rule in deny
 
 
 def test_minimal_harness_own_tests_pass():

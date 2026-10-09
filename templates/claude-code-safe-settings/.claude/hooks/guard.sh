@@ -17,7 +17,9 @@ block() {
 }
 
 # Destructive git
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+push[^;&|]*(--force|[[:space:]]-f([[:space:]]|$)|--mirror|--delete|[[:space:]]:[^[:space:]]|[[:space:]]["'"'"']?[+][^[:space:]])' && block "force-push or remote delete"
+# git, then global options such as -C <dir> or -c <key=value>, then a subcommand that may be quoted.
+git_cmd='git([[:space:]]+-[^[:space:];&|]+([[:space:]]+("[^"]*"|'"'"'[^'"'"']*'"'"'|[^-[:space:];&|"'"'"'][^[:space:];&|]*))?)*[[:space:]]+["'"'"']?'
+printf '%s' "$cmd" | grep -Eq "$git_cmd"'push["'"'"']?([[:space:]][^;&|]*)?(--force|[[:space:]]-f([[:space:]]|$)|--mirror|--delete|[[:space:]]:[^[:space:]]|[[:space:]]["'"'"']?[+][^[:space:]])' && block "force-push or remote delete"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+reset[[:space:]]+--hard' && block "git reset --hard discards work"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+clean[[:space:]]+-[a-zA-Z]*f' && block "git clean deletes untracked files"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+(checkout|restore)[[:space:]]+(--[[:space:]]+)?\.([[:space:]]|$)' && block "discarding all local changes"
@@ -27,7 +29,8 @@ printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+branch[[:space:]]+-D' && block "fo
 # rm: -r and -f in one flag (-rf, -fr) or split (-r -f, -R --force), in any order.
 printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])rm[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])|(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*f|--force)|(-[a-zA-Z]*f[a-zA-Z]*|--force)[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*[rR]|--recursive))' && block "recursive forced delete"
 printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])find[[:space:]]([^;&|]*[[:space:]])?(-delete([^[:alnum:]_-]|$)|-(exec|execdir|ok|okdir)[[:space:]]+([^[:space:];&|]*/)?rm[[:space:]])' && block "find that deletes files"
-printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])([^[:space:];&|]*/)?sudo[[:space:]]' && block "sudo"
+# sudo only where a command starts: after a separator, a find -exec, or wrappers such as env, nohup, or xargs.
+printf '%s' "$cmd" | grep -Eq '(^|[;&|({!`]|[[:space:]]-(exec|execdir|ok|okdir))[[:space:]]*(([[:alpha:]_][[:alnum:]_]*=[^[:space:]]*|env|command|builtin|exec|nohup|time|nice|timeout|stdbuf|xargs|then|do|else|elif|-[^[:space:];&|]*|[0-9][^[:space:];&|]*)[[:space:]]+)*([^[:space:];&|]*/)?sudo[[:space:]]' && block "sudo"
 
 # Secrets: Read() deny rules cover cat, head, tail, sed, and tee, but not every
 # reader, and not a script that opens the file itself.
@@ -38,7 +41,7 @@ printf '%s' "$scan" | grep -Eq '(^|[^[:alnum:]_.-])(python[0-9.]*|node|ruby|perl
 printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])(printenv|env)([[:space:]]*$|[[:space:]]*[;&|])' && block "dumping environment variables"
 
 # Remote code
-printf '%s' "$cmd" | grep -Eq '(curl|wget)[^;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z)?sh' && block "piping a download into a shell"
+printf '%s' "$cmd" | grep -Eq '(curl|wget)[^;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z)?sh([^[:alnum:]_.-]|$)' && block "piping a download into a shell"
 printf '%s' "$cmd" | grep -Eq 'base64[[:space:]][^;&|]*-(d|D|-decode)[^;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da)?sh([[:space:]]|$)' && block "piping decoded text into a shell"
 printf '%s' "$cmd" | grep -Eq '(curl|wget)[[:space:]][^|]*(;|&&|\|\|)[[:space:]]*(sudo[[:space:]]+)?(((ba|z|da)?sh|source|\.)[[:space:]]+[^-[:space:]]|chmod[[:space:]][^;&|]*[+]x)' && block "downloading a file and then running it"
 
