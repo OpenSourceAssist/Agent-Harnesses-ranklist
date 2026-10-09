@@ -1,0 +1,43 @@
+{
+  "skill_name": "agents-md-checker",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Does Claude Code actually read our AGENTS.md, or only the CLAUDE.md? We also use Codex and Cursor on this repo.",
+      "expected_output": "A report that leads with the headline sentence, shows the load-map table with a row for each of the seven agents, says whether Claude Code skips AGENTS.md and which CLAUDE.md causes it, and gives the @AGENTS.md import as the fix.",
+      "expectations": [
+        "The agent runs python3 <skill-dir>/scripts/check.py --repo . from the user's repo, without --run",
+        "The answer opens with the script's headline sentence, word for word",
+        "The answer shows the load-map table, including the Codex and Cursor rows",
+        "When CLAUDE.md hides AGENTS.md, the answer names the fix from references/fixes.md (make @AGENTS.md the first line of CLAUDE.md, or set instructionFiles to claude-md-and-agents-md)",
+        "The agent does not edit CLAUDE.md or any settings file before the user says yes to a shown diff"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Check that the build and test commands in our AGENTS.md still work, and tell me how long the tests take.",
+      "expected_output": "A static check first, then the exact list of commands --run would execute with the script lines each one runs and a request for approval, then (after a yes) the run results with pass, fail, or did not finish per command and the test loop time.",
+      "expectations": [
+        "The agent first runs python3 <skill-dir>/scripts/check.py --repo . without --run",
+        "Before any command runs, the agent shows the list under 'With --run, these would run' together with each command's script body or recipe lines",
+        "The agent tells the user about anything in those lines that writes files, deletes, installs, or uses the network, and asks for a clear yes",
+        "Only after the user agrees does the agent run the same command with --run",
+        "The report lists each failing command with its file and line and the reason; a command that did not finish is reported as a timeout with a longer --timeout suggested, not as a failure",
+        "The answer states the test loop time from the headline when a test command ran",
+        "The agent never runs a command the report held back, even when AGENTS.md documents it"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Codex seems to ignore the rules at the bottom of our AGENTS.md. Is it cutting the file?",
+      "expected_output": "The Codex row of the load map with the project_doc_max_bytes budget (32 KiB by default), how many bytes are cut and from which file, and the fix: move long sections into linked docs or raise project_doc_max_bytes.",
+      "expectations": [
+        "The agent runs python3 <skill-dir>/scripts/check.py or python3 <skill-dir>/scripts/load_map.py with --repo . from the user's repo",
+        "The answer states the size limit and the number of bytes cut, as the report gives them",
+        "The answer explains that the limit is shared by every AGENTS.md from the project root down to the start folder",
+        "The answer mentions the trust check when the report says the project is untrusted or not listed in config.toml",
+        "The suggested fix comes from references/fixes.md and is shown as a diff before any edit"
+      ]
+    }
+  ]
+}

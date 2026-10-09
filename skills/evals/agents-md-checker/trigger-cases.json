@@ -1,0 +1,90 @@
+{
+  "skill": "agents-md-checker",
+  "purpose": "Trigger-behavior spec for lexical routing: questions about which instruction files each coding agent loads, what gets cut or ignored, and whether the documented commands still work.",
+  "cases": [
+    {
+      "id": "claude-reads-agents-md",
+      "prompt": "does claude code actually read my AGENTS.md or only CLAUDE.md?",
+      "should_trigger": true,
+      "assert": "Runs scripts/check.py without --run and reports whether Claude Code loads AGENTS.md, naming the CLAUDE.md that hides it."
+    },
+    {
+      "id": "which-files-each-agent-loads",
+      "prompt": "which instruction files does each coding agent load in this repo",
+      "should_trigger": true,
+      "assert": "Shows the load map table with one row per agent and the files each loads at start."
+    },
+    {
+      "id": "documented-commands-still-work",
+      "prompt": "check that the build and test commands in our AGENTS.md still work",
+      "should_trigger": true,
+      "assert": "Runs the static command checks, lists the commands --run would execute, and asks before running them."
+    },
+    {
+      "id": "codex-truncates-agents-md",
+      "prompt": "is codex truncating my AGENTS.md? it ignores the rules at the bottom",
+      "should_trigger": true,
+      "assert": "Reports the Codex 32 KiB project_doc_max_bytes budget, the bytes cut, and the fix."
+    },
+    {
+      "id": "gemini-ignores-agents-md",
+      "prompt": "gemini cli never loads my AGENTS.md, why?",
+      "should_trigger": true,
+      "assert": "Explains that Gemini CLI reads GEMINI.md unless context.fileName says otherwise, and gives the settings fix."
+    },
+    {
+      "id": "stale-context-files",
+      "prompt": "audit my CLAUDE.md and AGENTS.md for stale commands and broken paths",
+      "should_trigger": true,
+      "assert": "Reports failing commands, contradictions, and dead paths with file and line."
+    },
+    {
+      "id": "cursor-copilot-rules-loaded",
+      "prompt": "are my cursor rules and copilot instructions files actually loaded by the agent?",
+      "should_trigger": true,
+      "assert": "Shows the Cursor and GitHub Copilot rows, including rule types and skipped .md rule files."
+    },
+    {
+      "id": "near-miss-rules-to-hooks",
+      "prompt": "turn the rules in my CLAUDE.md into hooks that block violations",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards, which turns rules into enforced hooks."
+    },
+    {
+      "id": "near-miss-rules-broken-most",
+      "prompt": "which rules does my agent break most often in its sessions",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards, which counts rule violations in session transcripts."
+    },
+    {
+      "id": "near-miss-write-agents-md",
+      "prompt": "write a new AGENTS.md for this project from scratch",
+      "should_trigger": false,
+      "assert": "Writing a new file is not a check; use the agents-md template instead."
+    },
+    {
+      "id": "near-miss-mcp-token-load",
+      "prompt": "how many tokens do my MCP servers add to every session",
+      "should_trigger": false,
+      "assert": "Belongs to tool-design-checker."
+    },
+    {
+      "id": "near-miss-secret-files",
+      "prompt": "what secret files and credentials can my agent open on this machine",
+      "should_trigger": false,
+      "assert": "Belongs to sandbox-check."
+    },
+    {
+      "id": "near-miss-permission-rules",
+      "prompt": "test whether my permission deny rules block git push --force",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester."
+    },
+    {
+      "id": "near-miss-test-claims",
+      "prompt": "my agent keeps saying the tests passed, was that true",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check, which checks test claims against the session transcript."
+    }
+  ]
+}
