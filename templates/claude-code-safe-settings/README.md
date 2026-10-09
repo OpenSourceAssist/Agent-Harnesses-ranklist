@@ -11,16 +11,20 @@ Project settings that stop Claude Code from force-pushing, wiping work, reading 
 
 ## Why both
 
-Permission rules match the start of a command, and Claude Code's own docs warn that [argument patterns are fragile](https://code.claude.com/docs/en/permissions). A `Read(.env)` deny rule also does not stop `cat .env` in the shell. The hook covers those gaps by reading the whole command line. Hooks cannot loosen the rules: a deny rule still wins even if the hook allows the call ([docs](https://code.claude.com/docs/en/permissions)). Each layer only adds limits.
+Permission rules match the start of a command, and Claude Code's own docs warn that [argument patterns are fragile](https://code.claude.com/docs/en/permissions). Read and Edit deny rules do reach into the shell: they apply to file commands Claude Code recognizes, such as `cat`, `head`, `tail`, `sed`, and `tee`, and to redirections such as `> file` and `< file`. So `Read(.env)` already stops `cat .env`. The same page names what deny rules miss: a command that reads files without naming them, such as `grep -r pattern .`, and a script that opens files itself, such as a Python or Node program ([docs](https://code.claude.com/docs/en/permissions)).
+
+Those gaps are the hook's job. It reads the whole command line, so it catches chained commands, flags in any order, and one-line scripts that name a secret file, such as `python3 -c "print(open('.env').read())"`. It cannot look inside a script file or know which files a recursive `grep` will open (see [Limits](#limits)). Hooks cannot loosen the rules: a deny rule still wins even if the hook allows the call ([docs](https://code.claude.com/docs/en/permissions)). Each layer only adds limits.
 
 What the hook blocks:
 
-- `git push --force`, `-f`, `--mirror`, `--delete`, and `git push origin :branch`
+- `git push --force`, `-f`, `--mirror`, `--delete`, `git push origin :branch`, and a `+` before the branch, as in `git push origin +main`
 - `git reset --hard`, `git clean -f`, `git checkout .`, `git restore .`, `git branch -D`
-- `rm -rf` in any flag order, and `sudo`
-- Reading `.env`, `.pem`, SSH keys, or AWS credentials through `cat`, `grep`, `head`, `base64`, and similar (`.env.example` is allowed)
+- `rm -rf` in any flag order, split flags such as `rm -r -f`, and `find` with `-delete` or `-exec rm`
+- `sudo`, also by full path such as `/usr/bin/sudo`
+- Reading `.env`, `.pem`, SSH keys, or AWS credentials through `cat`, `grep`, `head`, `base64`, and similar, or through a one-line Python, Node, Ruby, or Perl script (`.env.example` is allowed)
 - `env` and `printenv` with no arguments
-- `curl ... | sh` and `wget ... | bash`
+- `curl ... | sh`, `wget ... | bash`, `base64 -d ... | sh`, and a download followed by `sh file` or `chmod +x`
+- Writing to git hooks, shell startup files (`~/.zshrc`, `~/.bashrc`, `~/.profile`, and the like), `~/Library/LaunchAgents`, or Claude Code's own settings and hooks in `.claude/`, through `>`, `tee`, `cp`, `mv`, `sed -i`, and similar. Reading these files is allowed.
 
 ## Install
 

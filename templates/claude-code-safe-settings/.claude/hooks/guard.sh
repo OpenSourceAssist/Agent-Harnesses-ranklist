@@ -17,23 +17,37 @@ block() {
 }
 
 # Destructive git
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+push[^;&|]*(--force|[[:space:]]-f([[:space:]]|$)|--mirror|--delete|[[:space:]]:[^[:space:]])' && block "force-push or remote delete"
+printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+push[^;&|]*(--force|[[:space:]]-f([[:space:]]|$)|--mirror|--delete|[[:space:]]:[^[:space:]]|[[:space:]]["'"'"']?[+][^[:space:]])' && block "force-push or remote delete"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+reset[[:space:]]+--hard' && block "git reset --hard discards work"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+clean[[:space:]]+-[a-zA-Z]*f' && block "git clean deletes untracked files"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+(checkout|restore)[[:space:]]+(--[[:space:]]+)?\.([[:space:]]|$)' && block "discarding all local changes"
 printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+branch[[:space:]]+-D' && block "force-deleting a branch"
 
 # Destructive files and privilege
-printf '%s' "$cmd" | grep -Eq 'rm[[:space:]]+(-[a-zA-Z]*[rR][a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*[rR]|--recursive[[:space:]]+--force|--force[[:space:]]+--recursive)' && block "recursive forced delete"
-printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])sudo[[:space:]]' && block "sudo"
+# rm: -r and -f in one flag (-rf, -fr) or split (-r -f, -R --force), in any order.
+printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])rm[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])|(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*f|--force)|(-[a-zA-Z]*f[a-zA-Z]*|--force)[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*[rR]|--recursive))' && block "recursive forced delete"
+printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])find[[:space:]]([^;&|]*[[:space:]])?(-delete([^[:alnum:]_-]|$)|-(exec|execdir|ok|okdir)[[:space:]]+([^[:space:];&|]*/)?rm[[:space:]])' && block "find that deletes files"
+printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])([^[:space:];&|]*/)?sudo[[:space:]]' && block "sudo"
 
-# Secrets: reading them through the shell gets around Read() deny rules.
+# Secrets: Read() deny rules cover cat, head, tail, sed, and tee, but not every
+# reader, and not a script that opens the file itself.
 # Example files (.env.example, .env.sample, .env.template) are not secrets.
 scan="$(printf '%s' "$cmd" | sed -E 's/\.env\.(example|sample|template)//g')"
 printf '%s' "$scan" | grep -Eq '(cat|less|more|head|tail|grep|awk|sed|scp|base64|xxd)[^;&|]*(\.env([.[:space:]]|$)|\.pem|id_rsa|id_ed25519|\.aws/credentials|\.ssh/)' && block "reading secrets through the shell"
+printf '%s' "$scan" | grep -Eq '(^|[^[:alnum:]_.-])(python[0-9.]*|node|ruby|perl)[[:space:]].*(\.env([^[:alnum:]_-]|$)|\.pem|id_rsa|id_ed25519|\.aws/credentials|\.ssh/)' && block "reading secrets with a one-line script"
 printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])(printenv|env)([[:space:]]*$|[[:space:]]*[;&|])' && block "dumping environment variables"
 
 # Remote code
 printf '%s' "$cmd" | grep -Eq '(curl|wget)[^;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z)?sh' && block "piping a download into a shell"
+printf '%s' "$cmd" | grep -Eq 'base64[[:space:]][^;&|]*-(d|D|-decode)[^;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da)?sh([[:space:]]|$)' && block "piping decoded text into a shell"
+printf '%s' "$cmd" | grep -Eq '(curl|wget)[[:space:]][^|]*(;|&&|\|\|)[[:space:]]*(sudo[[:space:]]+)?(((ba|z|da)?sh|source|\.)[[:space:]]+[^-[:space:]]|chmod[[:space:]][^;&|]*[+]x)' && block "downloading a file and then running it"
+
+# Files that run later or loosen these settings: git hooks, shell startup files,
+# launch agents, and Claude Code's own settings and hooks. Reading them is fine.
+protected='(\.git/hooks|Library/Launch(Agents|Daemons)|\.claude/(settings[^/[:space:]]*\.json|hooks)|\.(zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|bash_login|profile))'
+printf '%s' "$cmd" | grep -Eq '>[[:space:]]*[^[:space:];&|]*'"$protected"'([^[:alnum:]_.-]|$)' && block "redirecting into a git hook, shell startup file, launch agent, or Claude Code setting"
+printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])(tee|touch|chmod|chown|truncate|dd|mv|rm|unlink)[[:space:]][^;&|]*'"$protected"'([^[:alnum:]_.-]|$)' && block "changing a git hook, shell startup file, launch agent, or Claude Code setting"
+printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])(cp|ln|install|rsync)[[:space:]][^;&|]*[[:space:]]["'"'"']?[^[:space:];&|]*'"$protected"'(/[^[:space:];&|]*)?["'"'"']?[[:space:]]*($|[;&|)])' && block "copying into a git hook, shell startup file, launch agent, or Claude Code setting"
+printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_.-])sed[[:space:]]([^;&|]*[[:space:]])?(-[a-zA-Z]*[iI]|--in-place)[^;&|]*'"$protected"'([^[:alnum:]_.-]|$)' && block "editing a git hook, shell startup file, launch agent, or Claude Code setting"
 
 exit 0
