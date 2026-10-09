@@ -1,0 +1,78 @@
+{
+  "skill": "guardrail-tester",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives ask whether the user's own permission rules and hooks stop dangerous commands, or how often they prompt; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "deny-rules-block-force-push",
+      "prompt": "do my deny rules actually block a git force push",
+      "should_trigger": true,
+      "assert": "Runs test_guards.py with --no-hooks first and reports whether the force-push forms are blocked."
+    },
+    {
+      "id": "test-guardrails-dangerous",
+      "prompt": "test my Claude Code guardrails against dangerous commands",
+      "should_trigger": true,
+      "assert": "Leads with the headline 'Your Claude Code guardrails stop N of M dangerous commands'."
+    },
+    {
+      "id": "bypass-sh-c-full-path",
+      "prompt": "can the agent bypass my deny rules with sh -c or a full path to rm",
+      "should_trigger": true,
+      "assert": "Reports the wrapper and full-path cases as getting through and names the hook check that catches them."
+    },
+    {
+      "id": "permission-prompts-count",
+      "prompt": "how many permission prompts would my current rules cause on my recent tool calls",
+      "should_trigger": true,
+      "assert": "Runs with --replay and reports the friction numbers."
+    },
+    {
+      "id": "prove-guard-hook",
+      "prompt": "I just installed a guard hook, prove it blocks rm -rf and reading .env",
+      "should_trigger": true,
+      "assert": "Asks before running the hook, then runs the battery with hooks and reports what the hook blocks."
+    },
+    {
+      "id": "codex-exec-policy-audit",
+      "prompt": "audit my Codex exec policy rules and hooks for bypasses",
+      "should_trigger": true,
+      "assert": "Runs with --harness codex and reports misses with prefix_rule suggestions."
+    },
+    {
+      "id": "near-miss-agent-reach",
+      "prompt": "what can my agent read on this machine, like SSH keys and the Docker socket",
+      "should_trigger": false,
+      "assert": "Belongs to sandbox-check: what the agent can reach, not whether rules block commands."
+    },
+    {
+      "id": "near-miss-rule-to-hook",
+      "prompt": "turn the never use npm rule in my AGENTS.md into a hook",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    },
+    {
+      "id": "near-miss-spend-cap",
+      "prompt": "stop the session when the agent loops or spends over ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    },
+    {
+      "id": "near-miss-test-claims",
+      "prompt": "did the agent really run the tests when it said they passed",
+      "should_trigger": false,
+      "assert": "Belongs to claim-check."
+    },
+    {
+      "id": "near-miss-mcp-tokens",
+      "prompt": "how many tokens do my MCP servers load into every session",
+      "should_trigger": false,
+      "assert": "Belongs to tool-design-checker."
+    },
+    {
+      "id": "near-miss-eslint-hook",
+      "prompt": "write a pre-commit hook that runs eslint on staged files",
+      "should_trigger": false,
+      "assert": "No skill: a git pre-commit hook for linting, not agent guardrails."
+    }
+  ]
+}
