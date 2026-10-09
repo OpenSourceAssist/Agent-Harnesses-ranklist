@@ -30,6 +30,7 @@
       "Edit(.git/hooks/**)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
+      "Edit(.claude/hooks/**)",
       "Edit(~/.zshrc)",
       "Edit(~/.bashrc)",
       "Edit(~/.profile)",

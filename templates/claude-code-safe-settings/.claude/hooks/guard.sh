@@ -20,10 +20,10 @@ block() {
 # git, then global options such as -C <dir> or -c <key=value>, then a subcommand that may be quoted.
 git_cmd='git([[:space:]]+-[^[:space:];&|]+([[:space:]]+("[^"]*"|'"'"'[^'"'"']*'"'"'|[^-[:space:];&|"'"'"'][^[:space:];&|]*))?)*[[:space:]]+["'"'"']?'
 printf '%s' "$cmd" | grep -Eq "$git_cmd"'push["'"'"']?([[:space:]][^;&|]*)?(--force|[[:space:]]-f([[:space:]]|$)|--mirror|--delete|[[:space:]]:[^[:space:]]|[[:space:]]["'"'"']?[+][^[:space:]])' && block "force-push or remote delete"
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+reset[[:space:]]+--hard' && block "git reset --hard discards work"
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+clean[[:space:]]+-[a-zA-Z]*f' && block "git clean deletes untracked files"
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+(checkout|restore)[[:space:]]+(--[[:space:]]+)?\.([[:space:]]|$)' && block "discarding all local changes"
-printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+branch[[:space:]]+-D' && block "force-deleting a branch"
+printf '%s' "$cmd" | grep -Eq "$git_cmd"'reset["'"'"']?[[:space:]]+--hard' && block "git reset --hard discards work"
+printf '%s' "$cmd" | grep -Eq "$git_cmd"'clean["'"'"']?[[:space:]]+-[a-zA-Z]*f' && block "git clean deletes untracked files"
+printf '%s' "$cmd" | grep -Eq "$git_cmd"'(checkout|restore)["'"'"']?([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?[[:space:]]+(--[[:space:]]+)?\.([[:space:]]|$)' && block "discarding all local changes"
+printf '%s' "$cmd" | grep -Eq "$git_cmd"'branch["'"'"']?[[:space:]]+-D' && block "force-deleting a branch"
 
 # Destructive files and privilege
 # rm: -r and -f in one flag (-rf, -fr) or split (-r -f, -R --force), in any order.

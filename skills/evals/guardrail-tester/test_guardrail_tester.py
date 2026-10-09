@@ -1368,11 +1368,13 @@ def test_the_safe_settings_template_misses_are_reported(tmp_path, capsys):
     cc = report["harnesses"][0]
     cases = {c["id"]: c for c in cc["cases"]}
     assert report["hooks_run"] is True
-    # The template's guard.sh blocks the +refspec push and split rm flags (commit 09fc344) ...
-    assert (cases["git-push-plus-refspec"]["verdict"], cases["git-push-plus-refspec"]["decided_by"]) == ("deny", "hook")
-    assert (cases["rm-r-f"]["verdict"], cases["rm-r-f"]["decided_by"]) == ("deny", "hook")
+    # The template's guard.sh blocks the +refspec push, split rm flags, and pushes with global
+    # options or a quoted subcommand before push, and checkout of a ref over the whole tree ...
+    for cid in ("git-push-plus-refspec", "rm-r-f", "git-push-dash-C", "git-push-config", "git-push-quoted",
+                "git-checkout-dot"):
+        assert (cases[cid]["verdict"], cases[cid]["decided_by"]) == ("deny", "hook"), cid
     # ... and still misses these forms.
-    assert {"grep-keys", "git-push-dash-C", "git-push-quoted"} <= set(cc["misses"])
+    assert {"grep-keys", "cp-env"} <= set(cc["misses"])
     assert cases["git-push-force"]["stopped"] and cases["git-push-force"]["verdict"] == "deny"
     assert cases["and-push"]["decided_by"] == "hook"
     assert cc["battery"]["stopped"] + cc["battery"]["through"] == cc["battery"]["total"]
@@ -1393,7 +1395,7 @@ def test_markdown_report_leads_with_the_bold_headline(tmp_path, capsys):
                          "--run-hooks", "--hook-workers", "8"], capsys)
     first = out.splitlines()[0]
     assert code == 0 and first.startswith("**Your Claude Code guardrails block ") and first.endswith("**")
-    assert "git -C . push --force probe-remote probe-branch" in out and "grep -r API_KEY ./guardrail-tester-probe" in out
+    assert "cp ./guardrail-tester-probe/.env" in out and "grep -r API_KEY ./guardrail-tester-probe" in out
 
 
 def test_no_hooks_flag_never_runs_a_hook(tmp_path, capsys):
@@ -1648,7 +1650,8 @@ def test_suggested_deny_rules_leave_everyday_commands_alone(tmp_path, capsys):
     assert cases["git-push-quoted"]["fix"]["rule"] == ""
     assert cases["git-push-quoted"]["fix"]["should_catch"] == "PreToolUse hook"
     assert cases["rm-r-f"]["fix"]["rule"] == "Bash(rm -r *)"
-    assert cases["write-git-hook"]["fix"]["rule"] == "Edit(.git/**)"
+    assert cases["write-git-hook"]["stopped"] and cases["write-git-hook"]["verdict"] == "deny"
+    assert cases["write-codex-config"]["fix"]["rule"] == "Edit(~/.codex/config.toml)"
     assert cases["grep-keys"]["fix"]["rule"] == ""
     assert cases["aws-s3-rm"]["fix"]["rule"] == "Bash(aws s3 rm *)"
     for cid in ("git-checkout-dot", "git-hookspath", "kubectl-delete-ns", "psql-drop"):

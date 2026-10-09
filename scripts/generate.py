@@ -1458,7 +1458,7 @@ def render_skills() -> list:
         "",
         "Or all of them in Claude Code:",
         "",
-        "```sh",
+        "```",
         "/plugin marketplace add RyanAlberts/best-of-Agent-Harnesses",
         "/plugin install harness-skills@agent-harnesses",
         "```",

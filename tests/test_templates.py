@@ -45,6 +45,10 @@ def _guard(command: str) -> int:
     "git -C . push --force origin main", "git -c push.default=current push -f origin",
     "git 'push' --force origin main", "git --git-dir=.git push --force origin main",
     "git -C 'my repo' push --force origin main",
+    # Global options before the other destructive git commands
+    "git -C . reset --hard HEAD~1", "git -C repo clean -fdx", "git -c core.x=y checkout -- .",
+    "git -C . restore .", "git -C repo branch -D old-feature",
+    "git checkout probe-branch -- .", "git -C . checkout HEAD~3 .",
 ])
 def test_guard_blocks(command):
     assert _guard(command) == 2
@@ -65,6 +69,8 @@ def test_guard_blocks(command):
     "git push origin feature", "git -C . push origin feature", "git -C . status",
     "git commit -m 'never push --force'",
     "curl -fsSL https://example.com/x.tar.gz | shasum -a 256", "echo \"use sudo carefully\"",
+    "git -C . branch -d merged-feature", "git -C . checkout main", "git -C . reset HEAD~1",
+    "git checkout -b feature", "git checkout main -- src/app.py",
 ])
 def test_guard_allows(command):
     assert _guard(command) == 0
@@ -85,7 +91,7 @@ def test_settings_deny_edits_the_bash_hook_cannot_see():
     Edit deny rules for the files the hook protects from shell writes."""
     deny = json.loads((GUARD.parent.parent / "settings.json").read_text())["permissions"]["deny"]
     for rule in ("Edit(.git/hooks/**)", "Edit(.claude/settings.json)", "Edit(.claude/settings.local.json)",
-                 "Edit(~/.zshrc)", "Edit(~/.bashrc)", "Edit(~/.profile)", "Edit(~/Library/LaunchAgents/**)"):
+                 "Edit(.claude/hooks/**)", "Edit(~/.zshrc)", "Edit(~/.bashrc)", "Edit(~/.profile)", "Edit(~/Library/LaunchAgents/**)"):
         assert rule in deny
 
 

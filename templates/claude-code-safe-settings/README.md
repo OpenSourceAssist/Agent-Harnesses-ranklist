@@ -15,7 +15,7 @@ Permission rules match the start of a command, and Claude Code's own docs warn t
 
 Those gaps are the hook's job. It reads the whole command line, so it catches chained commands, flags in any order, and one-line scripts that name a secret file, such as `python3 -c "print(open('.env').read())"`. It cannot look inside a script file or know which files a recursive `grep` will open (see [Limits](#limits)). Hooks cannot loosen the rules: a deny rule still wins even if the hook allows the call ([docs](https://code.claude.com/docs/en/permissions)). Each layer only adds limits.
 
-The hook has a gap of its own: it checks shell commands only, so it never sees a file that Claude writes with the Write or Edit tool. The `Edit` deny rules in `settings.json` cover that path for git hooks (`.git/hooks/**`), `.claude/settings.json`, `.claude/settings.local.json`, `~/.zshrc`, `~/.bashrc`, `~/.profile`, and `~/Library/LaunchAgents/**`.
+The hook has a gap of its own: it checks shell commands only, so it never sees a file that Claude writes with the Write or Edit tool. The `Edit` deny rules in `settings.json` cover that path for git hooks (`.git/hooks/**`), `.claude/settings.json`, `.claude/settings.local.json`, the hook itself (`.claude/hooks/**`), `~/.zshrc`, `~/.bashrc`, `~/.profile`, and `~/Library/LaunchAgents/**`.
 
 What the hook blocks:
 

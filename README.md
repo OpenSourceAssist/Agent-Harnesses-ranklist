@@ -131,7 +131,7 @@ npx skills add https://github.com/RyanAlberts/best-of-Agent-Harnesses/tree/main/
 
 Or all of them in Claude Code:
 
-```sh
+```
 /plugin marketplace add RyanAlberts/best-of-Agent-Harnesses
 /plugin install harness-skills@agent-harnesses
 ```

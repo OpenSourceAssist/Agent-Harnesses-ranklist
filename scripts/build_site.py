@@ -460,8 +460,12 @@ def render_playbook(pb: dict) -> str:
 COPY_JS = """<script>
 document.querySelectorAll('button.copy').forEach(function(b){
  b.addEventListener('click',function(){
-  navigator.clipboard.writeText(document.getElementById(b.dataset.target).textContent).then(function(){
-   b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1500)});
+  var el=document.getElementById(b.dataset.target);
+  function done(t){b.textContent=t;setTimeout(function(){b.textContent='Copy'},1500)}
+  function pick(){var r=document.createRange();r.selectNodeContents(el);
+   var s=getSelection();s.removeAllRanges();s.addRange(r);done('Selected')}
+  if(!navigator.clipboard){pick();return}
+  navigator.clipboard.writeText(el.textContent).then(function(){done('Copied')},pick);
  });
 });
 </script>"""
