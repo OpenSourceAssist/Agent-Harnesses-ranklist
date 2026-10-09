@@ -1054,3 +1054,60 @@ def test_unwritable_out_path_is_a_usage_error(tmp_path, capsys):
     w = World(tmp_path)
     assert cli(w, "--out", str(tmp_path / "no-such-folder" / "report.md")) == 2
     assert "cannot write the report" in capsys.readouterr().err
+
+
+# --- third review: the shared text cleaner (safe.py) -------------------------------
+
+HOSTILE = "<img src=x onerror=alert(1)>"
+
+
+def test_safe_text_is_the_shared_cleaner_and_masks_secrets():
+    key = "sk" + "_live_" + "a" * 24
+    assert probe.safe_text(key) == "[REDACTED]"
+    assert probe.safe_text("pass\u200bword=hunter2pass") == "password=[REDACTED]"
+    assert probe.code("a`b") == "`a'b`"
+    with open(os.path.join(os.path.dirname(probe.__file__), "safe.py"), encoding="utf-8") as fh:
+        assert fh.readline().startswith("# Copied from skills/evals/shared/safe.py")
+
+
+def test_unparsable_dropin_name_stays_inside_inline_code(tmp_path):
+    w = World(tmp_path)
+    w.file("etc/claude-code/managed-settings.d/%s.json" % HOSTILE, "{not json", base=w.sysroot)
+    text = probe.render_markdown(w.run(platform_name="linux"))
+    [note] = [line for line in text.splitlines() if "was skipped" in line]
+    assert note == ("- Claude Code settings file `/etc/claude-code/managed-settings.d/%s.json` was skipped: "
+                    "it could not be parsed." % HOSTILE)
+
+
+def outside_code(line):
+    """The parts of a Markdown line that are not inside an inline code span."""
+    return "".join(line.split("`")[0::2])
+
+
+def test_every_name_from_the_file_system_or_settings_is_inside_inline_code(tmp_path):
+    w = World(tmp_path)
+    main_git = w.home / "code" / HOSTILE / ".git"  # trust-file targets, also named in a gap
+    (main_git / "worktrees" / "wt").mkdir(parents=True)
+    (main_git / "worktrees" / "wt" / "commondir").write_text("../..\n")
+    (main_git / "hooks").mkdir()
+    (w.home / "code" / "wt").mkdir()
+    (w.home / "code" / "wt" / ".git").write_text("gitdir: ../%s/.git/worktrees/wt\n" % HOSTILE)
+    w.project = w.home / "code" / "wt"
+    w.file(".env." + HOSTILE, base=w.project)  # a secret-file target
+    claude_settings(w, {"sandbox": {"enabled": True}})
+    w.file("etc/claude-code/managed-settings.d/%s.json" % HOSTILE, "[1]", base=w.sysroot)
+    w.env.update({"CLAUDECODE": "1", HOSTILE + "_TOKEN": "x"})
+    result = w.run(probes=FakeProbes(user=HOSTILE), platform_name="linux")
+    text = probe.render_markdown(result)
+    lines = [line for line in text.splitlines() if HOSTILE in line]
+    assert len(lines) >= 5  # table rows, the gap, the variable list, the user, the settings note
+    assert [line for line in lines if "<img" in outside_code(line)] == []
+    markdown = pytest.importorskip("markdown")
+    assert "<img" not in markdown.markdown(text, extensions=["tables"])
+
+
+def test_platform_name_in_the_where_line_is_inside_inline_code(tmp_path, monkeypatch):
+    monkeypatch.setattr(probe.platform, "system", lambda: HOSTILE)
+    text = probe.render_markdown(World(tmp_path).run(platform_name="linux"))
+    [line] = [line for line in text.splitlines() if line.startswith("Where it runs:")]
+    assert HOSTILE in line and "<img" not in outside_code(line)

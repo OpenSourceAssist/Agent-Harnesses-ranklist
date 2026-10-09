@@ -1953,7 +1953,10 @@ def test_approvals_from_project_settings_are_named(tmp_path):
 
 def test_safe_text_drops_invisible_and_blank_glyph_characters():
     hidden = "aㅤbᅟcᅠd⠀e͏f️g\U000e0041h͸i​j"
-    assert mcp_client.safe_text(hidden) == "a b c d e f g h i j"
+    # The shared redact() removes the characters that draw nothing (fillers, joiners, variation
+    # selectors, tags, zero-width spaces), so a key split by one still masks; the braille blank
+    # and the unassigned code point still become spaces.
+    assert mcp_client.safe_text(hidden) == "abcd efgh ij"
 
 
 # 8. Config files that are not regular files, or are huge

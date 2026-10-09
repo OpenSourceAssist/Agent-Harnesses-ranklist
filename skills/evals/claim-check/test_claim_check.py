@@ -544,6 +544,40 @@ def test_path_matters_counts_temporary_files_inside_the_working_folder():
     assert E.path_matters("/tmp/proj/README.md", cwd="/tmp/proj") is False
 
 
+@pytest.mark.parametrize("path,matters", [
+    # Source, scripts, and tests in editor and agent folders can change a result.
+    (".claude/tests/test_check.py", True),
+    (".vscode/tests/test_check.py", True),
+    (".claude/hooks/check.py", True),
+    (".claude/hooks/guard.sh", True),
+    (".claude/tests/fixtures/case.json", True),
+    # Data files in test and fixture folders can change a result.
+    ("tests/fixtures/answer.txt", True),
+    ("pkg/testdata/golden.txt", True),
+    ("src/__snapshots__/view.png", True),
+    ("spec/fixtures/report.pdf", True),
+    # Plans, notes, settings, and state files that agents and editors keep in their own folders cannot.
+    (".claude/settings.json", False),
+    (".claude/settings.local.json", False),
+    (".claude/plans/x.md", False),
+    (".claude/agents/reviewer.md", False),
+    (".superpowers/plan.json", False),
+    (".superpowers/sdd/run-1/state.yaml", False),
+    (".cursor/rules/style.mdc", False),
+    (".codex/config.toml", False),
+    (".vscode/launch.json", False),
+    (".idea/modules.xml", False),
+    (".gemini/notes.txt", False),
+    # Version control folders are skipped whole; prose and logs in test folders do not count.
+    (".git/hooks/pre-commit", False),
+    (".hg/hgrc", False),
+    ("tests/README.md", False),
+    ("tests/run.log", False),
+])
+def test_path_matters_inside_the_working_folder(path, matters):
+    assert E.path_matters("/work/app/" + path, cwd="/work/app") is matters
+
+
 # ---------------------------------------------------------------------------
 # Transcript builders. The record helpers are copied from
 # skills/evals/shared/test_transcripts.py (facts file Q1 shapes).
@@ -847,11 +881,31 @@ def test_a_documentation_change_after_the_run_keeps_the_claim_backed(tmp_path):
     assert labels(s) == ["backed"]
 
 
-@pytest.mark.parametrize("path", ["/work/app/.github/tests/test_check.py", "/work/app/.cargo/config.toml"])
+@pytest.mark.parametrize("path", ["/work/app/.github/tests/test_check.py", "/work/app/.cargo/config.toml",
+                                  "/work/app/.claude/hooks/check.py", "/work/app/.vscode/tests/test_check.py",
+                                  "/work/app/tests/fixtures/answer.txt"])
 def test_a_change_in_a_hidden_folder_with_tests_or_build_settings_makes_the_claim_stale(tmp_path, path):
     s = cc_load(tmp_path, CC().bash(*PASS).edit(path).say("All 5 tests pass."))
     [claim] = E.label_claims(s)
     assert claim["label"] == "stale" and claim["changed"] == [path]
+
+
+def test_changes_to_test_code_in_agent_folders_and_to_fixtures_make_the_claim_stale(tmp_path):
+    paths = ["/work/app/.claude/tests/test_check.py", "/work/app/.vscode/tests/test_check.py",
+             "/work/app/.claude/hooks/check.py", "/work/app/tests/fixtures/answer.txt"]
+    builder = CC().bash(*PASS)
+    for path in paths:
+        builder.edit(path)
+    [claim] = E.label_claims(cc_load(tmp_path, builder.say("All 5 tests pass.")))
+    assert claim["label"] == "stale" and claim["changed"] == paths
+
+
+def test_agent_plans_and_settings_written_after_the_run_keep_the_claim_backed(tmp_path):
+    builder = CC().bash(*PASS)
+    for path in ("/work/app/.claude/settings.json", "/work/app/.claude/plans/x.md",
+                 "/work/app/.superpowers/plan.json", "/work/app/.vscode/settings.json"):
+        builder.edit(path)
+    assert labels(cc_load(tmp_path, builder.say("All 5 tests pass."))) == ["backed"]
 
 
 @pytest.mark.parametrize("path", ["/work/app/.git/info/exclude", "/work/app/.pytest_cache/v/cache/lastfailed"])

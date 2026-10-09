@@ -1732,12 +1732,16 @@ def test_paths_after_cd_resolve_against_the_new_folder(command):
 
 @pytest.mark.parametrize("command", [
     "cd src && echo x > out.txt",
-    "cd /tmp && echo x > dist/app.js",
     "cd src && cd .. && echo x > ../dist/app.js",
     "pushd src && popd && echo x > ../dist/app.js",
 ])
 def test_paths_after_cd_that_miss_the_protected_folder_are_allowed(command):
     assert hits([DIST_SHELL], shell(command)) is None
+
+
+def test_a_path_after_cd_away_still_counts_from_the_starting_folder():
+    # An accepted false alarm: the hook cannot tell whether the cd ran, so it fails closed.
+    assert hits([DIST_SHELL], shell("cd /tmp && echo x > dist/app.js")) is not None
 
 
 def test_cd_into_a_protected_folder_counts_like_naming_it():
@@ -1779,6 +1783,134 @@ def test_a_cd_in_a_pipeline_does_not_change_the_folder(command, blocked):
 def test_a_partly_quoted_heredoc_delimiter_ends_at_the_unquoted_word(delimiter):
     assert hits([rule()], shell("cat <<%s\nx\nEOF\nnpm publish" % delimiter))["match"] == "npm publish"
     assert hits([rule()], shell("cat <<%s\n$(npm publish)\nEOF\nls" % delimiter)) is None
+
+
+# ---------------------------------------------------------------------------
+# Review fixes: a guard fails closed after cd, and heredocs end where the shell ends them
+# ---------------------------------------------------------------------------
+
+PUBLISH = r"\bnpm\s+publish\b"
+
+
+def check(command, pattern="dist/**", kind="protect_path"):
+    """The outside reviewer's fixture."""
+    rules = G.compile_rules([dict(id="r", kind=kind, pattern=pattern, tool="shell")])
+    return G.check(rules, dict(kind="shell", command=command, cwd="/work/app", root="/work/app"))
+
+
+@pytest.mark.parametrize("command,pattern", [
+    ("false && cd /tmp; echo x > dist/app.js", "dist/**"),
+    ("if false; then cd /tmp; fi; echo x > dist/app.js", "dist/**"),
+    ("cd /tmp & wait; echo x > dist/app.js", "dist/**"),
+    ("cd /tmp; cd -; echo x > dist/app.js", "dist/**"),
+    ("pushd src; pushd; echo x > dist/app.js", "./dist/**"),
+    ("pushd src; (pushd /tmp); popd; echo x > dist/app.js", "./dist/**"),
+])
+def test_a_path_counts_from_the_starting_folder_whatever_cd_did(command, pattern):
+    assert check(command, pattern) == {"rule": "r", "match": "dist/app.js"}
+
+
+@pytest.mark.parametrize("command", [
+    "cd src && echo x > ../dist/app.js",
+    "cd /tmp && echo x > dist/app.js",
+])
+def test_a_path_counts_from_the_folder_cd_went_to_as_well(command):
+    assert check(command) is not None
+
+
+@pytest.mark.parametrize("delimiter,word", [
+    ("EOF!", "EOF!"), ("'EOF'!", "EOF!"), ("E\\!OF", "E!OF"), ("{EOF}", "{EOF}"), ("EOF$", "EOF$"),
+    ("EOF#1", "EOF#1"), ("\"END:1\"", "END:1"), ("@@", "@@"),
+])
+def test_a_heredoc_delimiter_with_punctuation_ends_the_body(delimiter, word):
+    assert check("cat <<%s\nhello\n%s\nnpm publish" % (delimiter, word), PUBLISH, "forbid_command") is not None
+    assert check("cat <<%s\nnpm publish\n%s\nls" % (delimiter, word), PUBLISH, "forbid_command") is None
+
+
+@pytest.mark.parametrize("command", [
+    "cat <<EOF;echo hi\nx\nEOF\nnpm publish",
+    "cat <<EOF>out.txt\nx\nEOF\nnpm publish",
+    "cat <<EOF|wc -l\nx\nEOF\nnpm publish",
+    "(cat <<EOF)\nx\nEOF\nnpm publish",
+])
+def test_a_heredoc_delimiter_stops_at_a_shell_metacharacter(command):
+    assert check(command, PUBLISH, "forbid_command") is not None
+
+
+@pytest.mark.parametrize("command", [
+    "bash <<'EOF'\nnpm publish\nEOF",
+    "bash <<EOF\nnpm publish\nEOF",
+    "sh <<\"EOF\"\ncd web && npm publish\nEOF",
+    "zsh -s <<'EOF'\nnpm publish\nEOF",
+    "dash <<'EOF'\nnpm publish\nEOF",
+    "ksh <<'EOF'\nnpm publish\nEOF",
+    "/bin/bash <<\\EOF\nnpm publish\nEOF",
+    "env FOO=1 bash <<'EOF'\nnpm publish\nEOF",
+    "command bash <<'EOF'\nnpm publish\nEOF",
+    "exec bash <<'EOF'\nnpm publish\nEOF",
+    "sudo -u deploy bash <<'EOF'\nnpm publish\nEOF",
+    "bash <<-'EOF'\n\tnpm publish\n\tEOF",
+    "<<'EOF' bash\nnpm publish\nEOF",
+    "bash <<'EOF'; echo done\nnpm publish\nEOF",
+    "echo start\nbash <<'EOF' > log.txt\nset -e\nnpm publish\nEOF\necho end",
+    "x=$(bash <<'EOF'\nnpm publish\nEOF\n)",
+])
+def test_a_heredoc_fed_to_a_shell_is_checked_as_commands(command):
+    assert check(command, PUBLISH, "forbid_command") is not None
+    assert hits([rule()], shell(command))["match"] == "npm publish"
+
+
+@pytest.mark.parametrize("command", [
+    """bash -c 'echo "$(echo "$(echo "$(echo "$(npm publish)")")")"'""",
+    """echo "$(echo "$(echo "$(echo "$(bash -c 'npm publish')")")")\"""",
+    """sh -c 'echo `echo "$(echo "$(find . -exec npm publish \\;)")"`'""",
+    """eval 'X=$(Y=$(Z=$(W=$(npm publish))))'""",
+])
+def test_substitutions_inside_sh_c_get_their_own_depth_limit(command):
+    # The hook before the cd tracking reached these; $(...) nesting and sh -c nesting each go 4 deep.
+    assert hits([rule()], shell(command))["match"] == "npm publish"
+
+
+def test_paths_in_a_heredoc_fed_to_a_shell_are_checked():
+    assert check("bash <<'EOF'\necho x > dist/app.js\nEOF") is not None
+
+
+@pytest.mark.parametrize("command", [
+    "cat <<'EOF'\nnpm publish\nEOF",
+    "tee notes.md <<'EOF'\nnpm publish\nEOF",
+    "git commit -F - <<'EOF'\nnpm publish fix\nEOF",
+])
+def test_a_heredoc_fed_to_another_command_stays_text(command):
+    assert check(command, PUBLISH, "forbid_command") is None
+
+
+@pytest.mark.parametrize("command", [
+    "cat <<EOF\n EOF\nnpm publish\nEOF",
+    "cat <<EOF\nEOF \nnpm publish\nEOF",
+    "cat <<EOF\n\tEOF\nnpm publish\nEOF",
+    "cat <<-EOF\n  EOF\nnpm publish\n\tEOF",
+])
+def test_a_heredoc_ends_only_at_the_delimiter_alone_on_its_line(command):
+    assert check(command, PUBLISH, "forbid_command") is None
+
+
+def test_a_dash_heredoc_ends_at_a_tab_indented_delimiter():
+    assert check("cat <<-EOF\n\thello\n\t\tEOF\nnpm publish", PUBLISH, "forbid_command") is not None
+
+
+LONG_PATTERN = "(?:" + "a" * 170 + "|npm publish)"
+LONG_PREVIEW = "- no-npm (forbid_command, shell): `(?:%s/npm publish)`" % ("a" * 170)
+
+
+def test_count_shows_a_long_pattern_in_full(tmp_path, capsys, _fake_home):
+    make_sessions(_fake_home)
+    assert R.main(["count", "--rules", write_rules(tmp_path, [rule(pattern=LONG_PATTERN)])]) == 0
+    assert LONG_PREVIEW in capsys.readouterr().out.splitlines()
+
+
+def test_generate_shows_a_long_pattern_in_full(tmp_path, capsys, _fake_home):
+    code, _project = gen(tmp_path, "--harness", "claude-code", rules=[rule(pattern=LONG_PATTERN)])
+    assert code == 0 and LONG_PREVIEW in capsys.readouterr().out.splitlines()
 
 
 # ---------------------------------------------------------------------------

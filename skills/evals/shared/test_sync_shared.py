@@ -12,7 +12,7 @@ TRANSCRIPT_SKILLS = ["guardrail-tester", "runaway-guard", "claim-check", "rules-
                      "session-waste-report", "regression-finder"]
 PRICING_SKILLS = ["harness-test-drive", "runaway-guard", "session-waste-report", "regression-finder"]
 # transcripts.py imports safe.py, so every skill with transcripts.py gets safe.py too.
-SAFE_SKILLS = TRANSCRIPT_SKILLS + ["harness-test-drive", "tool-design-checker", "agents-md-checker"]
+SAFE_SKILLS = TRANSCRIPT_SKILLS + ["harness-test-drive", "tool-design-checker", "agents-md-checker", "sandbox-check"]
 ALL_TEN = ["harness-test-drive", "agents-md-checker", "sandbox-check", "guardrail-tester", "runaway-guard",
            "claim-check", "rules-to-guards", "session-waste-report", "regression-finder", "tool-design-checker"]
 HEADER = ("# Copied from skills/evals/shared/%s by skills/evals/tools/sync_shared.py. "

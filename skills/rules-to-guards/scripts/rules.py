@@ -645,7 +645,7 @@ def render_count(res):
             out += ["- %s, %s, %s, %s: %s" % (rid, HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"],
                                             "stopped (%s)" % e["stopped"] if e["stopped"] else "ran", code(e["excerpt"]))
                     for rid, e in examples]
-        out += ["", "Patterns:"] + ["- %s (%s, %s): %s" % (r["id"], r["kind"], r["tool"], code(r["pattern"]))
+        out += ["", "Patterns:"] + ["- %s (%s, %s): %s" % (r["id"], r["kind"], r["tool"], code(r["pattern"], 2000))
                                     for r in res["rules"]]
     for w in res["warnings"]:
         out += ["", "Warning: " + w]
@@ -1086,7 +1086,7 @@ def render_generate(res):
         out += ["Hook script: %s (%s; Python 3.9+, standard library only, rules embedded):" % (
             code(res["hook"]["path"], 300), {"create": "new file", "update": "replaced",
                                             "unchanged": "unchanged"}[res["hook"]["action"]])]
-        out += ["- %s (%s, %s): %s%s" % (r["id"], r["kind"], r["tool"], code(r["pattern"]),
+        out += ["- %s (%s, %s): %s%s" % (r["id"], r["kind"], r["tool"], code(r["pattern"], 2000),
                                          ", kept from the hook already there" if r["kept"] else "")
                 for r in res["rules"]]
         out.append("")

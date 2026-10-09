@@ -20,7 +20,7 @@ Every skill in this folder passes four automated checks, and CI runs them on eve
 
 ## Shared code
 
-Six skills read agent session logs, four compute cost, and nine clean untrusted text the same way before it goes in a report, so the log reader (`transcripts.py`), the price table (`pricing.py`), and the text cleaner (`safe.py`) live once, in `shared/`. Each skill still installs on its own, so `tools/sync_shared.py` copies the shared files into the skills that use them, and `sync_shared.py --check` fails the build if a copy drifts from its source. To change a shared file, edit it in `shared/`, run `python3 skills/evals/tools/sync_shared.py`, and commit both.
+Six skills read agent session logs, four compute cost, and ten clean untrusted text the same way before it goes in a report, so the log reader (`transcripts.py`), the price table (`pricing.py`), and the text cleaner (`safe.py`) live once, in `shared/`. Each skill still installs on its own, so `tools/sync_shared.py` copies the shared files into the skills that use them, and `sync_shared.py --check` fails the build if a copy drifts from its source. To change a shared file, edit it in `shared/`, run `python3 skills/evals/tools/sync_shared.py`, and commit both.
 
 To show untrusted text in a Markdown report, a skill script uses `from safe import code, safe_text`: `safe_text()` gives one line with secrets masked, and `code()` puts that line inside inline code so links and HTML stay plain text. `transcripts.py` imports these functions from `safe.py`, so every skill that gets `transcripts.py` also gets `safe.py`.
 

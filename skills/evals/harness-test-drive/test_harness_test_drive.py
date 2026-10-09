@@ -221,11 +221,70 @@ def test_drive_report_shows_untrusted_text_in_code_with_secrets_masked():
     rep = drive.summarize(recs)
     text = drive.render_report(rep)
     assert_inert(text)
-    assert text.startswith("**On 1 task from your git history, Oracle passed 1 at $0.10 each; Dead could not run "
+    assert text.startswith("**On 1 task from your git history, `Oracle` passed 1 at $0.10 each; `Dead` could not run "
                            "(%s).**" % HOSTILE_SHOWN)
-    assert "| abc1234 | %s | 7 |" % HOSTILE_SHOWN in text
+    assert "| `abc1234` | %s | 7 |" % HOSTILE_SHOWN in text
     assert "hunter2pass" not in json.dumps(rep)
     assert rep["tasks"][0]["subject"] == rep["harnesses"][1]["could_not_run"] == HOSTILE_SHOWN.strip("`")
+
+
+PIXEL = "![p](https://example.invalid/pixel)"
+TAG = "<img src=x onerror=alert(1)>"
+
+
+def forged(harness, **extra):
+    """A results.jsonl line written by someone else: the label and the fix are not the skill's own."""
+    rec = dict(task="abcdefghi", harness=harness, label=PIXEL, status="error", error="start failed", hint=TAG)
+    rec.update(extra)
+    return rec
+
+
+def assert_live_markdown_free(text):
+    for line in text.splitlines():
+        rendered = outside_code(line)
+        assert "![" not in rendered and "example.invalid" not in rendered and "<img" not in rendered, line
+
+
+def test_the_report_names_a_known_harness_from_its_own_table_not_the_record():
+    text = drive.render_report(drive.summarize([forged("codex")]))
+    assert_live_markdown_free(text)
+    assert text.startswith("**No harness could run: Codex could not run (`start failed`).**")
+    assert "| Task | Change | Original fix lines | Codex |" in text
+    assert "- Codex: 1 run could not run, for example: `start failed`. Fix: `%s`." % TAG in text
+    assert PIXEL not in text
+
+
+def test_the_report_takes_a_known_harness_fix_from_its_own_table():
+    text = drive.render_report(drive.summarize([forged("claude-code", error="Not logged in")]))
+    assert_live_markdown_free(text)
+    assert "- Claude Code: 1 run could not run, for example: `Not logged in`. Fix: sign in: run claude once." in text
+    assert TAG not in text
+
+
+def test_the_report_shows_an_unknown_harness_label_and_fix_in_code():
+    rep = drive.summarize([forged("mystery")])
+    text = drive.render_report(rep)
+    assert_live_markdown_free(text)
+    assert text.startswith("**No harness could run: `%s` could not run (`start failed`).**" % PIXEL)
+    assert "| Task | Change | Original fix lines | `%s` |" % PIXEL in text
+    assert "- `%s`: 1 run could not run, for example: `start failed`. Fix: `%s`." % (PIXEL, TAG) in text
+    assert rep["harnesses"][0]["label"] == PIXEL  # JSON: masked, plain
+
+
+def test_the_per_task_table_shows_a_recorded_task_id_status_and_fix_size_in_code():
+    rec = forged("codex", task="![a](b)xx", status=TAG, gold_lines="![g](h)")
+    text = drive.render_report(drive.summarize([rec]))
+    assert_live_markdown_free(text)
+    assert "| `![a](b)` | `(empty)` | `![g](h)` | `%s` |" % TAG in text
+
+
+def test_the_per_task_table_shows_the_skills_own_statuses_as_plain_text():
+    recs = [record("t1", "codex", "passed"), record("t2", "codex", "interrupted", error="stopped by the user"),
+            record("t3", "codex", "error", error="start failed")]
+    text = drive.render_report(drive.summarize(recs))
+    assert "| `t1` | `Change t1` | 7 | passed, 1.0 min, $0.10 |" in text
+    assert "| `t2` | `Change t2` | 7 | interrupted |" in text
+    assert "| `t3` | `Change t3` | 7 | could not run |" in text
 
 
 def test_progress_lines_show_untrusted_text_in_code_and_the_prompt_stays_verbatim(calc, mined, tmp_path):
@@ -1171,13 +1230,13 @@ def test_report_headline_ranks_harnesses_by_fixes_then_cost(calc, driven):
     summary, results, agents, root = driven
     rep = drive.summarize(drive.load_results(results))
     text = drive.render_report(rep)
-    assert text.startswith("**On 2 tasks from your git history, oracle passed 2 at $0.10 each, noop passed 0, "
-                           "and broken passed 0.**")
-    oracle = [line for line in text.splitlines() if line.startswith("| oracle")][0]
+    assert text.startswith("**On 2 tasks from your git history, `oracle` passed 2 at $0.10 each, `noop` passed 0, "
+                           "and `broken` passed 0.**")
+    oracle = [line for line in text.splitlines() if line.startswith("| `oracle`")][0]
     assert "2 of 2" in oracle and "100%" in oracle and "$0.10" in oracle and "$0.20" in oracle
     mul_row = [line for line in text.splitlines() if "Add mul()" in line][0]
-    assert "| `Add mul() / the '*' operator` |" in mul_row and mul_row.count("`") == 2
-    assert mul_row.startswith("| %s |" % shas["mul"][:7])
+    assert "| `Add mul() / the '*' operator` |" in mul_row and mul_row.count("`") == 4  # the task id and the change
+    assert mul_row.startswith("| `%s` |" % shas["mul"][:7])
     assert mul_row.count("|") == 7  # task, change, original lines, and three harnesses
 
 
@@ -1202,7 +1261,7 @@ def test_report_compares_harnesses_only_on_tasks_both_finished():
             record("t3", "beta", "error", cost=None, error="the setup command failed")]
     rep = drive.summarize(recs)
     assert rep["tasks_compared"] == 1
-    assert rep["headline"] == "On 1 task from your git history, Alpha passed 1 at $0.40 each and Beta passed 0."
+    assert rep["headline"] == "On 1 task from your git history, `Alpha` passed 1 at $0.40 each and `Beta` passed 0."
     assert any("2 tasks" in note for note in rep["notes"])
 
 
@@ -1212,7 +1271,7 @@ def test_report_marks_costs_it_could_not_measure():
             record("t1", "claude", "passed", cost=0.50), record("t2", "claude", "failed", cost=0.30,
                                                                 timed_out=True)]
     rep = drive.summarize(recs)
-    assert rep["headline"] == ("On 2 tasks from your git history, Gem passed 2 (cost not measured) and Claude "
+    assert rep["headline"] == ("On 2 tasks from your git history, `Gem` passed 2 (cost not measured) and `Claude` "
                                "passed 1 at $0.80 each.")
     gem = [h for h in rep["harnesses"] if h["harness"] == "gem"][0]
     assert gem["cost_per_pass"] is None and gem["unmeasured_runs"] == 2
@@ -1276,7 +1335,7 @@ def test_cli_run_then_report_end_to_end(calc, mined, tmp_path, capsys):
     code = drive.main(["run", "--tasks", tasks, "--harness", "oracle,oracle", "--max-usd", "3", "--timeout", "60",
                        "--out", str(tmp_path / "report.md")], registry=registry)
     out = capsys.readouterr().out
-    assert code == 0 and out.startswith("**On 2 tasks from your git history, oracle passed 2 at $0.25 each.**")
+    assert code == 0 and out.startswith("**On 2 tasks from your git history, `oracle` passed 2 at $0.25 each.**")
     assert len(read_results(tmp_path / "results.jsonl")) == 2  # a harness named twice runs once
     assert (tmp_path / "report.md").read_text() == out
     assert drive.main(["report", "--results", str(tmp_path / "results.jsonl"), "--json"]) == 0
@@ -1551,7 +1610,7 @@ def test_a_harness_that_cannot_run_is_not_scored_skipped_and_retried_later(calc,
     assert rec["hint"] == "sign in: run dead once"
     assert summary["skipped"] == {"dead": "sign in: run dead once"}
     rep = drive.summarize(drive.load_results(results))
-    assert rep["headline"] == ("On 2 tasks from your git history, oracle passed 2 at $0.10 each; dead could not run "
+    assert rep["headline"] == ("On 2 tasks from your git history, `oracle` passed 2 at $0.10 each; `dead` could not run "
                                "(`Failed to authenticate: OAuth session expired`).")
     assert [h["could_not_run"] for h in rep["harnesses"]] == [None, "Failed to authenticate: OAuth session expired"]
     again = drive.run(doc, results, [FakeAgent("dead", "noop", repo, 0.05)], max_usd=5, timeout=60,
@@ -1767,6 +1826,6 @@ def test_the_report_tells_interrupted_runs_apart_from_runs_that_could_not_run():
     recs = [record("t1", "a", "passed"), record("t2", "a", "interrupted", error="stopped by the user"),
             record("t1", "b", "passed"), record("t2", "b", "error", error="Failed to authenticate", hint="sign in")]
     notes = drive.summarize(recs)["notes"]
-    assert any(note.startswith("A: 1 run was stopped before it finished") for note in notes)
-    assert any(note.startswith("B: 1 run could not run") and "Fix: sign in." in note for note in notes)
-    assert not any(note.startswith("A: 1 run could not run") for note in notes)
+    assert any(note.startswith("`A`: 1 run was stopped before it finished") for note in notes)
+    assert any(note.startswith("`B`: 1 run could not run") and "Fix: `sign in`." in note for note in notes)
+    assert not any(note.startswith("`A`: 1 run could not run") for note in notes)

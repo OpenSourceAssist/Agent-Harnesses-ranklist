@@ -367,11 +367,27 @@ def _plural(n, word) -> str:
     return "%d %s%s" % (n, word, "" if n == 1 else "s")
 
 
+def _shown(x) -> str:
+    """A harness's name in markdown: the label from the harness table, or, for a
+    harness the table does not know, the recorded label in inline code."""
+    adapter = harnesses.ADAPTERS.get(x["harness"])
+    return adapter.label if adapter else code(x["label"], 40)
+
+
+def _fix(r) -> str:
+    """A run's fix in markdown: rebuilt from the harness table and the run's error,
+    or else the recorded hint in inline code."""
+    adapter = harnesses.ADAPTERS.get(r["harness"])
+    rebuilt = fatal_hint(adapter.label, adapter.binary, r.get("error") or "") if adapter else ""
+    return rebuilt or code(r["hint"], 80)
+
+
 def summarize(records) -> dict:
     """The scoreboard. Harnesses are compared only on the tasks every one of them
     finished; a harness with no finished run is listed as could not run. The
     headline and notes are markdown sentences, so the error text in them sits in
-    inline code; the other text fields are plain, with secrets masked."""
+    inline code, and harness names and fixes come from the harness table (or sit
+    in inline code); the other text fields are plain, with secrets masked."""
     rep = {"headline": "No runs recorded yet.", "tasks_compared": 0, "harnesses": [], "tasks": [],
            "spent_usd": 0.0, "runs": 0, "notes": []}
     latest, names, labels, order, info = {}, [], {}, [], {}
@@ -379,7 +395,8 @@ def summarize(records) -> dict:
         latest[(r["task"], r["harness"])] = r  # a rerun of the same pair replaces the older record
         if r["harness"] not in labels:
             names.append(r["harness"])
-            labels[r["harness"]] = safe_text(r.get("label") or r["harness"], 40)
+            adapter = harnesses.ADAPTERS.get(r["harness"])
+            labels[r["harness"]] = adapter.label if adapter else safe_text(r.get("label") or r["harness"], 40)
         if r["task"] not in info:
             order.append(r["task"])
             info[r["task"]] = r
@@ -412,13 +429,13 @@ def summarize(records) -> dict:
                       key=lambda x: (-x["passed"], x["cost_per_pass"] is None, x["cost_per_pass"] or 0))
     parts = []
     for x in compared:
-        part = "%s passed %d" % (x["label"], x["passed"])
+        part = "%s passed %d" % (_shown(x), x["passed"])
         if x["passed"] and x["cost_per_pass"] is not None:
             part += " at %s each" % _money(x["cost_per_pass"])
         elif x["passed"]:
             part += " (cost not measured)"
         parts.append(part)
-    cannot = ["%s could not run (%s)" % (x["label"], code(x["could_not_run"], 100))
+    cannot = ["%s could not run (%s)" % (_shown(x), code(x["could_not_run"], 100))
               for x in rep["harnesses"] if x["could_not_run"]]
     if common:
         rep["headline"] = "On %s from your git history, %s%s." % (
@@ -459,16 +476,16 @@ def _notes(rep, latest, finished, order, common) -> None:
         mine = [r for (t, n), r in latest.items() if n == x["harness"] and (t, n) not in finished]
         stopped = [r for r in mine if r.get("status") == "interrupted"]
         failed = [r for r in mine if r.get("status") != "interrupted"]
-        hints = [r.get("hint") for r in failed if r.get("hint")]
+        hinted = [r for r in failed if r.get("hint")]
         if stopped:
             notes.append("%s: %s stopped before %s finished; the next run starts %s again." % (
-                x["label"], _plural(len(stopped), "run") + (" was" if len(stopped) == 1 else " were"),
+                _shown(x), _plural(len(stopped), "run") + (" was" if len(stopped) == 1 else " were"),
                 "it" if len(stopped) == 1 else "they", "it" if len(stopped) == 1 else "them"))
         if failed:
             notes.append("%s: %s could not run, for example: %s%s" % (
-                x["label"], _plural(len(failed), "run"),
+                _shown(x), _plural(len(failed), "run"),
                 code(failed[0]["error"], 120) if failed[0].get("error") else "unknown",
-                ". Fix: %s." % safe_text(hints[0], 80) if hints else "."))
+                ". Fix: %s." % _fix(hinted[0]) if hinted else "."))
         counted = [r for (t, n), r in latest.items() if n == x["harness"] and isinstance(r.get("test_runs"), int)]
         test_runs = sum(r["test_runs"] for r in counted)
         test_failures = sum(r.get("test_failures") or 0 for r in counted)
@@ -476,7 +493,7 @@ def _notes(rep, latest, finished, order, common) -> None:
             notes.append("%s's own runs of the test command failed %d of %d times. Its sandbox blocks the network "
                          "and writes outside the copy, so a test command that needs either fails there; a setup "
                          "that installs into the copy and a test command that runs offline let it check its work."
-                         % (x["label"], test_failures, test_runs))
+                         % (_shown(x), test_failures, test_runs))
     unmeasured = [r for r in latest.values() if r.get("cost_source") in ("unmeasured", "unpriced")]
     if unmeasured:
         notes.append("Cost not measured for %s. The spend cap counted a high estimate for priced harnesses "
@@ -493,8 +510,8 @@ def _cell(res) -> str:
         return "not run"
     if res["status"] == "error":
         return "could not run"
-    if res["status"] not in SCORED:
-        return res["status"]
+    if res["status"] not in SCORED:  # "interrupted" is the skill's own; any other status is recorded text
+        return res["status"] if res["status"] == "interrupted" else code(res["status"], 40)
     cell = res["status"] + (" (time limit)" if res["timed_out"] else "") + ", %.1f min" % res["minutes"]
     return cell + (", " + _money(res["cost_usd"]) if res["cost_usd"] is not None else "")
 
@@ -509,7 +526,7 @@ def render_report(rep) -> str:
         for x in rep["harnesses"]:
             version = ", ".join(code(v, 60) for v in x["versions"]) or "unknown"
             if x["could_not_run"]:
-                lines.append("| %s | %s | could not run | n/a | n/a | n/a | n/a | n/a |" % (x["label"], version))
+                lines.append("| %s | %s | could not run | n/a | n/a | n/a | n/a | n/a |" % (_shown(x), version))
                 continue
             if x["total_cost"] is None:
                 total = "not measured"
@@ -517,19 +534,20 @@ def render_report(rep) -> str:
                 total = _money(x["total_cost"]) + (" + %d not measured" % x["unmeasured_runs"]
                                                      if x["unmeasured_runs"] else "")
             lines.append("| %s | %s | %d of %d | %d%% | %s | %s | %s | %s |" % (
-                x["label"], version, x["passed"], x["runs"], round(100 * x["pass_rate"]),
+                _shown(x), version, x["passed"], x["runs"], round(100 * x["pass_rate"]),
                 "%.1f" % x["median_minutes"] if x["median_minutes"] is not None else "n/a",
                 _money(x["cost_per_pass"]) if x["cost_per_pass"] is not None else "n/a", total,
                 "%g" % x["median_lines_changed"] if x["median_lines_changed"] is not None else "n/a"))
         lines.append("")
-    labels = [(x["harness"], x["label"]) for x in rep["harnesses"]]
+    labels = [(x["harness"], _shown(x)) for x in rep["harnesses"]]
     lines += ["Per task (the size of the original fix in changed lines, then each harness):", "",
               "| Task | Change | Original fix lines | " + " | ".join(label for _, label in labels) + " |",
               "|---|---|---|" + "---|" * len(labels)]
     for t in rep["tasks"]:
         lines.append("| %s | %s | %s | %s |" % (
-            safe_text(t["task"], 40)[:7], code(t["subject"], 100),
-            t["gold_lines"] if t["gold_lines"] is not None else "?",
+            code(safe_text(t["task"], 40)[:7]), code(t["subject"], 100),
+            "?" if t["gold_lines"] is None else t["gold_lines"] if isinstance(t["gold_lines"], int)
+            else code(t["gold_lines"], 20),
             " | ".join(_cell(t["results"].get(h)) for h, _ in labels)))
     lines += [""] + ["- " + note for note in rep["notes"]]
     lines += ["", "Counted toward the spend cap: %s." % _money(rep["spent_usd"])]

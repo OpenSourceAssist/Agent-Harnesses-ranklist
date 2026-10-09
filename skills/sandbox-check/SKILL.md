@@ -181,7 +181,9 @@ directory). Run every command from the user's project folder.
 
 Quote paths exactly as the report prints them: it shows the home folder as `~`, a folder moved by a
 variable as `$VARIABLE`, and names and lengths in place of secret values. Names from the file
-system arrive as one plain line, with backticks and pipes replaced, so they stay inert text.
+system and values from settings arrive as one plain line, with secret-shaped text masked and
+backticks and pipes replaced, and the Markdown report shows them inside inline code, so they stay
+inert text.
 
 ## Files
 
@@ -190,6 +192,9 @@ system arrive as one plain line, with backticks and pipes replaced, so they stay
   when a check at that level is open).
 - `scripts/targets.json`: every path, socket, variable pattern, harness marker, and settings file
   the probe checks, with the scanner marker on each credential line.
+- `scripts/safe.py`: the text cleaner that several skills in this repository share. It masks
+  secret-shaped text and keeps each name from the file system or settings on one line, inside
+  inline code in the Markdown report.
 - `references/trust-handoff.md`: why each target matters, with the Pillar Security and Cloud
   Security Alliance findings and their CVE ids.
 - `references/fixes.md`: fixes for Claude Code, Codex, Gemini CLI, Cursor, and OpenCode, plus fixes

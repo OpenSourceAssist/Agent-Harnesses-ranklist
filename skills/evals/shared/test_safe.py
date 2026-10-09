@@ -4,6 +4,7 @@ string sits in this file."""
 
 import os
 import sys
+import time
 
 import pytest
 
@@ -115,6 +116,114 @@ def test_redact_masks_credentials_passed_as_command_flags(command, secret, kept)
 @pytest.mark.parametrize("command", ["mkdir -p build/out", "mysql -p -e 'select 1'", "git commit -m 'use -p here'"])
 def test_redact_leaves_ordinary_flags_alone(command):
     assert S.redact(command) == command
+
+
+@pytest.mark.parametrize("text, expected", [
+    # The inputs an outside review proved unmasked.
+    ("sshpass -p 'hunter2pass' ssh host", "sshpass -p '[REDACTED]' ssh host"),
+    ("curl --user 'admin:hunter2pass'", "curl --user 'admin:[REDACTED]'"),
+    ('password="correct horse battery staple"', 'password="[REDACTED]"'),
+    ("password=short", "password=[REDACTED]"),
+    # The same gaps in the other flag and key forms.
+    ('sshpass -p "two words" ssh host', 'sshpass -p "[REDACTED]" ssh host'),
+    ("sshpass -p'hunter2pass' ssh host", "sshpass -p'[REDACTED]' ssh host"),
+    ('curl -u "admin:hunter2pass" https://x.test', 'curl -u "admin:[REDACTED]" https://x.test'),
+    ("curl --user='admin:two words' https://x.test", "curl --user='admin:[REDACTED]' https://x.test"),
+    ("mysql -uroot -p'S3cret pw' -e 'select 1'", "mysql -uroot -p'[REDACTED]' -e 'select 1'"),
+    ('mysql -uroot -p"S3cret" -e "select 1"', 'mysql -uroot -p"[REDACTED]" -e "select 1"'),
+    ("psql --password 'two words' -c 'select 1'", "psql --password '[REDACTED]' -c 'select 1'"),
+    ("db_password: 'a b c'", "db_password: '[REDACTED]'"),
+    ('{"client_secret": "with \\"escaped\\" quotes", "id": 7}', '{"client_secret": "[REDACTED]", "id": 7}'),
+    ("TOKEN=abc", "TOKEN=[REDACTED]"),
+    ("pwd: x", "pwd: [REDACTED]"),
+    ('password="unclosed quote runs to the end', 'password="[REDACTED]'),
+])
+def test_redact_masks_quoted_and_short_credentials(text, expected):
+    assert S.redact(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    'password=""', "password= ", "max_tokens: 1000", "input_tokens=5", "mysql -p -e 'select 1'",
+])
+def test_redact_leaves_empty_values_and_token_counts_alone(text):
+    assert S.redact(text) == text
+
+
+def test_code_masks_quoted_and_short_credentials():
+    assert S.code("sshpass -p 'hunter2pass' ssh host") == "`sshpass -p '[REDACTED]' ssh host`"
+    assert S.code("curl --user 'admin:hunter2pass'") == "`curl --user 'admin:[REDACTED]'`"
+    assert S.code('password="correct horse battery staple"') == '`password="[REDACTED]"`'
+    assert S.code("password=short") == "`password=[REDACTED]`"
+
+
+# Unicode: redaction runs on NFKC text with invisible characters removed, and a
+# key next to a non-ASCII letter still counts as a separate word.
+
+def test_code_masks_a_key_that_follows_a_non_ascii_letter():
+    stripe = _k("sk", "_live_") + "a1" * 12
+    assert S.code("\u00e9" + stripe) == "`\u00e9[REDACTED]`"
+    aws = _k("AK", "IA", "IOSFODNN7EXAMPLE")
+    assert S.redact("\u00e9" + aws + "\u00e9") == "\u00e9[REDACTED]\u00e9"
+    assert S.redact("\u00fcser_" + _k("pass", "word") + "=hunter2pass") == "\u00fcser_password=[REDACTED]"
+
+
+@pytest.mark.parametrize("hidden", [
+    "\u200b",  # zero-width space
+    "\u200d",  # zero-width joiner
+    "\u2060",  # word joiner
+    "\u00ad",  # soft hyphen
+    "\u202e",  # right-to-left override
+    "\ufeff",  # zero-width no-break space
+    "\u034f",  # combining grapheme joiner
+    "\ufe0f",  # variation selector
+    "\U000e0041",  # tag letter
+])
+def test_code_masks_a_key_split_by_an_invisible_character(hidden):
+    assert S.code("pass" + hidden + "word=hunter2pass") == "`password=[REDACTED]`"
+    assert S.redact("sshpass" + hidden + " -p hunter2pass") == "sshpass -p [REDACTED]"
+
+
+def test_code_masks_a_fullwidth_key():
+    fullwidth = "\uff50\uff41\uff53\uff53\uff57\uff4f\uff52\uff44"  # "password" in fullwidth letters
+    assert S.code(fullwidth + "=hunter2pass") == "`password=[REDACTED]`"
+    assert S.code("\uff53\uff4b\uff3f\uff4c\uff49\uff56\uff45\uff3f" + "a1" * 12) == "`[REDACTED]`"
+
+
+def test_redact_keeps_ordinary_non_ascii_text():
+    text = "Caf\u00e9 \u65e5\u672c\u8a9e r\u00e9sum\u00e9.pdf \u00fcber"
+    assert S.redact(text) == text
+
+
+# Time: hooks call redact() on every tool call, and a tool input can be tens of
+# kilobytes. Each filler is a worst case for one pattern: many places where a
+# match can start, each followed by a long stretch that almost matches.
+
+def _repeat(unit, size=10000):
+    return (unit * (size // len(unit) + 1))[:size]
+
+
+WORST_CASES = {
+    "dotted runs with key fragments": _repeat("x_secret."),
+    "dotted runs with token fragments": _repeat("a.token-"),
+    "password= repeats": _repeat("password="),
+    "quote characters": _repeat("'", 5000) + _repeat('"', 5000),
+    "token starts inside one run": _repeat("-eyJ"),
+    "url scheme starts": _repeat("a."),
+    "mysql words": _repeat("mysql "),
+    "user flag with equals signs": " -u" + _repeat("="),
+}
+
+
+@pytest.mark.parametrize("label", sorted(WORST_CASES))
+def test_redact_and_safe_text_take_linear_time_on_worst_case_input(label):
+    filler = WORST_CASES[label]
+    text = filler + " password=hunter2pass " + filler  # about 20,000 characters
+    for clean in (S.redact, lambda t: S.safe_text(t, limit=len(t))):
+        start = time.perf_counter()
+        out = clean(text)
+        took = time.perf_counter() - start
+        assert took < 0.2, "%s took %.3f s" % (label, took)
+        assert "hunter2pass" not in out and "password=[REDACTED]" in out
 
 
 # ---------------------------------------------------------------------------

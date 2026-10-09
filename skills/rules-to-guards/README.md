@@ -82,8 +82,8 @@ It needs Python 3.9 or newer and nothing else, on macOS or Linux, including WSL2
 ## Limits
 
 - It checks one tool call at a time. Rules about order ("run the tests before you commit") or style stay advice; [claim-check](../claim-check/) covers the tests-pass case.
-- It sees the command the agent sends. A command built at run time, such as `eval "$CMD"`, a script the agent writes and then runs, or text piped into a shell, gets past it. A command with more than 5,000 parts is checked on its first 5,000.
-- Path rules read a shell command's arguments and redirections, not the code inside a script such as `python3 -c "..."`, and they cannot tell a read from a write: `git diff dist` counts as touching `dist`. They follow `cd` within a command; after a `cd` to a folder known only at run time, such as `cd "$DIR"`, paths still start from the last folder the hook knew.
+- It sees the command the agent sends. A command built at run time, such as `eval "$CMD"`, a script the agent writes and then runs, text piped into a shell, or a here-string sent to one (`bash <<< "..."`), gets past it. A command with more than 5,000 parts is checked on its first 5,000.
+- Path rules read a shell command's arguments and redirections, not the code inside a script such as `python3 -c "..."`, and they cannot tell a read from a write: `git diff dist` counts as touching `dist`. The hook cannot tell whether a `cd` ran, so it checks each relative path twice: from the folder the command starts in and from the folder after any `cd` before it. Either match blocks, so `cd src && echo x > ../dist/a.js` is caught, and so is `cd /tmp && echo x > dist/a.js`, a false alarm the hook accepts.
 - A pattern is only as good as its fit. Read the examples `count` shows, and let `test` prove the hook before you install it.
 - `count` includes breaks from before a rule was written. Use `--since` with the date the rule was added.
 - The settings entry names the hook by its absolute path on this machine, so keep that settings file out of git or have each teammate run `generate`.

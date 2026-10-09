@@ -1383,25 +1383,35 @@ def run_outcome(command, output, exit_code, kind, truncated=False, error=False, 
 
 _DOC_EXTS = {".md", ".mdx", ".markdown", ".rst", ".txt", ".adoc", ".asciidoc", ".org", ".png", ".jpg", ".jpeg",
              ".gif", ".webp", ".ico", ".pdf", ".log", ".diff", ".patch", ".orig", ".rej", ".bak"}
+_PROSE_EXTS = {".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc", ".org"}
+_LEFTOVER_EXTS = {".log", ".orig", ".rej", ".bak"}
 _DOC_NAMES = {"license", "licence", "notice", "authors", "changelog", "changes", "history", "contributors",
               "copying"}
 _GENERATED = {"node_modules", "dist", "build", "target", ".pytest_cache", "__pycache__", ".mypy_cache",
               ".ruff_cache", "coverage", "htmlcov", ".next", ".nuxt", ".turbo", ".cache", ".tox", ".nox", ".venv",
               "venv", "site", "_site", "_build", "storybook-static", "tmp", "temp"}
-# Version control, editor, and coding agent folders: agents keep plans, notes, and settings in them, and
-# nothing in them changes a test result. Other hidden folders count: .github, .cargo, .config, .circleci,
-# and .husky can hold tests or build settings.
-_TOOL_FOLDERS = {".git", ".hg", ".svn", ".idea", ".vscode", ".claude", ".codex", ".gemini", ".cursor", ".opencode",
-                 ".superpowers"}
+# Version control folders hold no file that a run tests: a change in them never counts.
+_VCS_FOLDERS = {".git", ".hg", ".svn"}
+# Editor and coding agent folders: agents keep plans, notes, settings, and state files in them, and those
+# cannot change a test result. Source files, scripts, and tests in them can (a repository can test its
+# .claude/hooks scripts), so they count. Other hidden folders count whole: .github, .cargo, .config,
+# .circleci, and .husky can hold tests or build settings.
+_TOOL_FOLDERS = {".idea", ".vscode", ".claude", ".codex", ".gemini", ".cursor", ".opencode", ".superpowers"}
+_TOOL_STATE_EXTS = {".json", ".jsonc", ".json5", ".jsonl", ".ndjson", ".yaml", ".yml", ".toml", ".xml", ".iml",
+                    ".ini", ".mdc", ".lock"}
+# Test and fixture folders: a data file in them (expected output, a golden image) is test input.
+_TEST_PARTS = {"test", "tests", "__tests__", "testing", "spec", "specs", "fixture", "fixtures", "__fixtures__",
+               "testdata", "test_data", "snapshots", "__snapshots__"}
 _TEMP = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/", "/dev/")
 _HARNESS_HOME = (".claude", ".codex", ".gemini", ".cursor", ".config/opencode", ".local/share/opencode")
 
 
 def path_matters(path, home=None, cwd=None) -> bool:
     """Whether a change to this file can change a test or build result.
-    Documentation, images, generated and tool folders, and, outside the working folder,
-    temporary files and the harnesses' own folders in the home folder do not.
-    An unknown path does."""
+    Documentation, images, generated and version control folders, the plans and settings
+    in editor and agent folders, and, outside the working folder, temporary files and the
+    harnesses' own folders in the home folder do not. Data files in test and fixture
+    folders do. An unknown path does."""
     if not path:
         return True
     p = str(path).replace("\\", "/")
@@ -1418,16 +1428,21 @@ def path_matters(path, home=None, cwd=None) -> bool:
     if inside and p.startswith("/"):
         p = p[len(str(cwd).rstrip("/")) + 1:]  # judge folders from the working folder down
     parts = [x for x in p.split("/") if x]
-    if not parts or any(x in _GENERATED or x in _TOOL_FOLDERS for x in parts[:-1]):
-        return False  # generated output, or a version control, editor, or agent folder (.git, .vscode, .claude)
+    if not parts or any(x in _GENERATED or x in _VCS_FOLDERS for x in parts[:-1]):
+        return False  # generated output, or a version control folder (.git, .hg, .svn)
     if parts[-1] in _GENERATED and (len(parts) == 1 or parts[-1] != "build"):
         return False  # the generated folder itself, as in `rm -rf dist` (a file named build may be a script)
     name = parts[-1].lower()
     stem, ext = os.path.splitext(name)
-    if ext in (".jsonl", ".ndjson") and not any(x in ("test", "tests", "fixtures", "spec", "specs", "testdata")
-                                                  for x in parts[:-1]):
+    if stem in _DOC_NAMES and ext in ("", ".txt"):
+        return False  # LICENSE, CHANGELOG
+    if any(x.lower() in _TEST_PARTS for x in parts[:-1]):
+        return ext not in _PROSE_EXTS and ext not in _LEFTOVER_EXTS  # test input: fixtures, expected output
+    if ext in _TOOL_STATE_EXTS and any(x in _TOOL_FOLDERS for x in parts[:-1]):
+        return False  # an agent's or editor's plan, settings, or state file (.claude/settings.json)
+    if ext in (".jsonl", ".ndjson"):
         return False  # a log or state file an agent appends to, not source
-    return not (ext in _DOC_EXTS or (not ext and stem in _DOC_NAMES) or stem in _DOC_NAMES and ext in ("", ".txt"))
+    return ext not in _DOC_EXTS
 
 
 # ---------------------------------------------------------------------------

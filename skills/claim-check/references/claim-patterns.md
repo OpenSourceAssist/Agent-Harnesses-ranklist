@@ -129,11 +129,17 @@ same command.
 These do not count:
 
 - Documentation and logs: `.md`, `.rst`, `.txt`, `.log`, `.diff`, `.patch`, images, LICENSE,
-  CHANGELOG, and `.jsonl` files outside test folders.
-- Generated and tool folders: `node_modules`, `dist`, `build`, `site`, `tmp`, caches, virtual
-  environments, version control (`.git`, `.hg`, `.svn`), editor folders (`.vscode`, `.idea`), and
-  coding agent folders (`.claude`, `.codex`, `.gemini`, `.cursor`, `.opencode`, `.superpowers`).
-  Other hidden folders count, since `.github`, `.cargo`, `.config`, `.circleci`, and `.husky` can
+  CHANGELOG, and `.jsonl` files outside test folders. In a test or fixture folder (`test`, `tests`,
+  `__tests__`, `spec`, `fixtures`, `testdata`, `__snapshots__`, and similar names), data files such as
+  `.txt`, `.jsonl`, images, and `.diff` count, since tests read them; prose (`.md`, `.rst`) and
+  `.log` files still do not.
+- Generated and version control folders: `node_modules`, `dist`, `build`, `site`, `tmp`, caches,
+  virtual environments, `.git`, `.hg`, and `.svn`.
+- Plans, notes, settings, and state files in editor folders (`.vscode`, `.idea`) and coding agent
+  folders (`.claude`, `.codex`, `.gemini`, `.cursor`, `.opencode`, `.superpowers`): documentation and
+  `.json`, `.yaml`, `.toml`, `.xml`, `.ini`, `.mdc`, and `.lock` files. Source files, scripts, and
+  tests in those folders count (`.claude/hooks/check.py`, `.claude/tests/test_check.py`). Other
+  hidden folders count whole, since `.github`, `.cargo`, `.config`, `.circleci`, and `.husky` can
   hold tests or build settings.
 - Temporary files and the harnesses' own folders in the home folder, when outside the working folder.
 - Files named only by an unset shell variable, unless the name ends in a source extension.

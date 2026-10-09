@@ -1055,6 +1055,10 @@
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/scripts/probe.py"
         },
         {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/scripts/safe.py"
+        },
+        {
           "path": "scripts/targets.json",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/sandbox-check/scripts/targets.json"
         }

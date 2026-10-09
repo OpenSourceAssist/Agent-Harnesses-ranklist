@@ -27,6 +27,13 @@ try:
 except ImportError:
     tomllib = None
 
+# The shared text cleaner (sync_shared.py copies it here from skills/evals/shared/).
+# File, folder, user, and variable names and settings values are untrusted: they
+# can hold a secret, carry instructions for the agent that relays the report, or
+# break a table. safe_text() masks secrets and makes them one inert line; code()
+# also puts that line inside inline code for the Markdown report.
+from safe import code, safe_text  # noqa: E402
+
 VERSION = "1.0.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 TARGETS_FILE = os.path.join(HERE, "targets.json")
@@ -42,20 +49,6 @@ TRUE_PATHS = ("/usr/bin/true", "/bin/true")
 LOOKUP_REFUSED = "this shell cannot look the file up"
 INSIDE_REFUSED = "inside a folder this shell cannot look into"
 REPLACEABLE = "the file is read-only, but its folder is writable, so the file can be replaced"
-
-
-def safe_text(text, limit=160):
-    """One inert line for the report. File, folder, and variable names and
-    settings values are untrusted: they can carry instructions for the agent
-    that relays the report, or break a table. Line breaks and other unprintable
-    characters become spaces, lone surrogates (from names that are not UTF-8)
-    are dropped, backticks become ', pipes become /, and runs of spaces
-    collapse. Adapted from safe_text() in skills/evals/shared/transcripts.py,
-    without redaction: this report never prints a value."""
-    s = text if isinstance(text, str) else str(text)
-    s = "".join("" if 0xD800 <= ord(ch) <= 0xDFFF else ch if ch.isprintable() else " " for ch in s)
-    s = " ".join(s.replace("`", "'").replace("|", "/").split())
-    return s if len(s) <= limit else s[: max(limit - 3, 0)] + "..."
 
 
 def find_sudo(exists=os.path.exists):
@@ -696,14 +689,15 @@ def read_settings(targets, paths, platform_name, notes):
                               for n in sorted(os.listdir(folder)) if n.endswith(".json")]
                 elif ok is False:
                     notes.append("%s settings folder %s could not be listed, so its files were not read." % (
-                        name, safe_text(shown)))
+                        name, code(shown)))
             for resolved in files:
                 if not resolved or not os.path.isfile(resolved[0]):
                     continue
                 shown = safe_text(resolved[1])
                 data, problem = parse_settings(resolved[0])
                 if problem or not isinstance(data, dict):
-                    notes.append("%s settings file %s was skipped: %s." % (name, shown, problem or "it is not an object"))
+                    notes.append("%s settings file %s was skipped: %s." % (
+                        name, code(shown), problem or "it is not an object"))
                     continue
                 loaded.append((layer["layer"], shown, data))
         if loaded:
@@ -784,7 +778,7 @@ def sandbox_state(harness, claims, signs):
     if harness == "codex":
         mode = claims.get("sandbox_mode")
         if mode in ("read-only", "workspace-write"):
-            return True, "Codex settings say %s" % mode
+            return True, "Codex settings say %s" % code(mode)
         return any(s.startswith("CODEX_SANDBOX") for s in signs), "Codex marks this shell as sandboxed"
     if harness == "gemini-cli":
         if claims.get("sandbox"):
@@ -814,7 +808,7 @@ def protects(harness, check, trust, same_as_project):
 
 
 def quoted(items):
-    return listing(["`%s`" % item for item in items])
+    return listing([code(item) for item in items])
 
 
 def find_gaps(settings, checks, where, targets, env_found, same_as_project, notes):
@@ -840,9 +834,9 @@ def find_gaps(settings, checks, where, targets, env_found, same_as_project, note
         protected = sorted((c for c in opened if protects(harness, c, trust, same_as_project)), key=lambda c: (
             RISK_ORDER[c["risk"]], not trust.get(c["id"], {}).get("outside", c["category"] == "outside-project")))
         if active and protected:
-            add("critical", "%s, yet `%s` is writable from this shell (%d places the sandbox should protect). "
+            add("critical", "%s, yet %s is writable from this shell (%d places the sandbox should protect). "
                 "Either this command ran outside the sandbox, or the sandbox allows more than its "
-                "settings suggest." % (basis, protected[0]["target"], len(protected)))
+                "settings suggest." % (basis, code(protected[0]["target"]), len(protected)))
         handoff = [c["target"] for c in opened
                    if c["category"] == "trust-files" and not protects(harness, c, trust, same_as_project)]
         if active and handoff:
@@ -963,7 +957,7 @@ def where_line(result):
     w = result["where"]
     agents = ", ".join(HARNESS_NAMES.get(h, h) for h in w["harnesses"])
     status = {c["id"]: c["status"] for c in result["checks"] if c["category"] in ("project", "outside-project")}
-    parts = ["user `%s` (uid %s%s) on %s" % (w["user"], w["uid"], ", root" if w["root"] else "", w["os"]),
+    parts = ["user %s (uid %s%s) on %s" % (code(w["user"]), w["uid"], ", root" if w["root"] else "", code(w["os"])),
              "agent: " + (agents or "none found, so this looks like your own terminal"),
              "container signs: " + (", ".join(w["container_signs"]) or "none"),
              "sandbox markers: " + (", ".join(w["sandbox_signs"]) or "none"),
@@ -983,7 +977,7 @@ def render_markdown(result):
     lines += ["| %s | %s | %s | %s |" % row for row in table_rows(result)]
     if result["env"]:
         lines += ["", "Secret-like environment variables (names and lengths only): " + ", ".join(
-            "`%s` (%d characters)" % (e["name"], e["length"]) for e in result["env"]) + "."]
+            "%s (%d characters)" % (code(e["name"]), e["length"]) for e in result["env"]) + "."]
     if result["gaps"]:
         lines += ["", "Settings compared with what the probe found:"]
         lines += ["- %s (%s): %s" % (HARNESS_NAMES[g["harness"]], g["risk"], g["message"]) for g in result["gaps"]]
