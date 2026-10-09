@@ -82,7 +82,7 @@ Claude Code and Codex can run a command before every tool call, pass it the call
 - **Loop**: compares the call's tool name and input with the calls before it. The same call a third time, with only reads and searches in between, is blocked. An edit, another command, or a new prompt from you starts the count over, so re-running tests after a fix never trips it.
 - **Failures**: counts failed calls in a row from the transcript. After 5, Claude Code asks you whether the next call should run.
 
-It keeps a small file per session with counts and hashes, answers in about 50 ms, and lets the call through if anything inside it goes wrong. [How it decides](references/how-it-decides.md) covers every rule, with the numbers from replaying real sessions: over 14,663 tool calls from the 15 busiest sessions on one Mac, the loop rule never fired and the failure rule asked once.
+It keeps a small file per session with counts and hashes, answers in about 50 ms, and lets the call through if anything inside it goes wrong. [How it decides](references/how-it-decides.md) covers every rule, with the numbers from replaying real sessions: across 14,663 tool calls from the 15 busiest sessions on one Mac, the loop rule never fired and the failure rule asked once.
 
 ## Works with
 

@@ -14,6 +14,7 @@ import io
 import itertools
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -1306,7 +1307,8 @@ def test_codex_install_writes_hooks_json_with_the_harness_flag(tmp_path, capsys,
     code, out = installer(capsys, "--harness", "codex", "--write")
     hooks = json.loads((tmp_path / "codex-home" / "hooks.json").read_text())
     entry = ours(hooks)[0]
-    assert code == 0 and "guard.py' --harness codex" in entry["command"] and entry["timeout"] == 10
+    words = shlex.split(entry["command"])
+    assert code == 0 and words[1].endswith("guard.py") and words[2:4] == ["--harness", "codex"] and entry["timeout"] == 10
     assert "/hooks" in out
 
 

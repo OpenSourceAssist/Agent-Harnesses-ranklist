@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "harness-skills",
-      "description": "Ten skills that test your agent harness on your own machine: sandbox reach, guardrails, 'tests pass' claims, rules the agent breaks, token waste, regressions after updates, MCP tool design, and a test drive of coding agents on your past bugs.",
+      "description": "Ten skills that test your agent harness on your own machine: sandbox reach, guardrails, 'tests pass' claims, rules the agent breaks, token waste, regressions after updates, MCP tool design, and a test drive of coding agents on tasks from your own git history.",
       "version": "1.0.0",
       "source": "./skills",
       "strict": false,

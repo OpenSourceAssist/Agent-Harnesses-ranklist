@@ -117,6 +117,6 @@ It needs Python 3.9 or newer and nothing else to install. It has been run on mac
 
 - [session-waste-report](../session-waste-report/): where tokens and money go, whatever the version.
 - [Why the harness matters more than the model](../../comparisons/why-the-harness-matters.md): why a harness update alone can change how an agent works.
-- [harness-test-drive](../harness-test-drive/): compare harnesses on your own past bugs.
+- [harness-test-drive](../harness-test-drive/): compare harnesses on tasks from your own git history.
 - The method comes from [anthropics/claude-code#42796](https://github.com/anthropics/claude-code/issues/42796) by Stella Laurenzo, a one-off analysis of 6,852 session files that measured the same kinds of numbers. [claude-session-analyzer](https://github.com/lucemia/claude-session-analyzer) repeats that analysis for Claude Code, split into two date halves.
 - Statistics: Mann and Whitney (1947) for the rank test, Fisher (1935) for the exact test, Tarone (1990) for setting aside tests that cannot pass, and Benjamini and Hochberg (1995) for the adjustment across tests.
