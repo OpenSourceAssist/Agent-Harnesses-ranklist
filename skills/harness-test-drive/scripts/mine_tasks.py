@@ -30,7 +30,8 @@ import sys
 import time
 
 from common import (classify, duration, git, install_stop_handlers, make_workspace, remove_workspace,
-                    restore_handlers, run_command, run_tests, safe_text, touches_manifest, write_files)
+                    restore_handlers, run_command, run_tests, touches_manifest, write_files)
+from safe import code, safe_text
 
 MAX_FILES = 30     # commits that change more files are too large for a task
 MAX_LINES = 1000   # same for added plus deleted lines
@@ -203,11 +204,11 @@ def _output_tail(path, lines=15) -> str:
     """The last lines of a saved log, made safe, and where the full log is."""
     try:
         with open(path, encoding="utf-8", errors="replace") as fh:
-            text = [safe_text(line, 200) for line in fh.read().splitlines() if line.strip()]
+            text = [code(line, 200) for line in fh.read().splitlines() if line.strip()]
     except (OSError, TypeError):
         return ""
     shown = "\n".join("  " + line for line in text[-lines:]) or "  (no output)"
-    return "\nLast lines of its output:\n%s\nFull output: %s" % (shown, safe_text(path, 300))
+    return "\nLast lines of its output:\n%s\nFull output: %s" % (shown, code(path, 300))
 
 
 def _task(repo, cand, validated, runs=None) -> dict:
@@ -287,7 +288,7 @@ def render_report(doc, tasks_path) -> str:
     else:
         headline = "Found no candidate tasks in your git history since %s." % since
     lines = ["**%s**" % headline, ""]
-    cmd = "Test command: `%s` (%s)." % (safe_text(doc["test_cmd"], 200), safe_text(doc["test_cmd_source"]))
+    cmd = "Test command: %s (%s)." % (code(doc["test_cmd"], 200), safe_text(doc["test_cmd_source"]))
     if doc["head_check"]:
         cmd += " It passes at HEAD in %s." % duration(doc["head_check"]["seconds"])
     lines += [cmd, ""]
@@ -296,7 +297,7 @@ def render_report(doc, tasks_path) -> str:
                   "|---|---|---|---|---|---|"]
         for i, t in enumerate(tasks, 1):
             lines.append("| %d | %s | %s | %d | %d | %s |" % (
-                i, t["id"][:7], safe_text(t["subject"], 70), len(t["hidden_tests"]), t["gold_lines"],
+                i, t["id"][:7], code(t["subject"], 70), len(t["hidden_tests"]), t["gold_lines"],
                 "yes" if t["validated"] else "no"))
         lines.append("")
     history = "History since %s: %d commits, %d change both source and test files." % (
@@ -309,10 +310,10 @@ def render_report(doc, tasks_path) -> str:
         if counts["rejected"]:
             checked += ", %s" % _counted(counts["rejected"])
         lines.append("%s. Checking took %s." % (checked, duration(doc["validation_seconds"])))
-    lines += ["", "Tasks file: `%s`" % safe_text(tasks_path, 300)]
+    lines += ["", "Tasks file: %s" % code(tasks_path, 300)]
     if tasks and counts["checked"]:
-        lines.append("Next: `drive.py estimate --tasks %s` shows the number of runs and a cost range."
-                     % safe_text(tasks_path, 300))
+        lines.append("Next: %s shows the number of runs and a cost range."
+                     % code("drive.py estimate --tasks " + tasks_path, 330))
     return "\n".join(lines) + "\n"
 
 
@@ -360,7 +361,7 @@ def _main(args) -> int:
         try:
             top = git(args.repo, "rev-parse", "--show-toplevel").decode().strip()
         except (RuntimeError, OSError):
-            raise UsageError("%s is not a git repository." % safe_text(args.repo, 300))
+            raise UsageError("%s is not a git repository." % code(args.repo, 300))
         test_cmd, source = (args.test_cmd, "--test-cmd") if args.test_cmd else detect_test_cmd(top)
         if not test_cmd:
             raise UsageError("No test command found (no package.json test script, pytest config or tests folder, "
@@ -372,7 +373,7 @@ def _main(args) -> int:
         if not args.tasks and not os.path.exists(os.path.join(folder, ".gitignore")):
             with open(os.path.join(folder, ".gitignore"), "w") as fh:
                 fh.write("# Written by harness-test-drive. Keeps this folder out of git.\n*\n")
-        print("Test command: %s (%s)" % (safe_text(test_cmd, 200), source), file=sys.stderr)
+        print("Test command: %s (%s)" % (code(test_cmd, 200), source), file=sys.stderr)
         doc = mine(top, test_cmd, source, args.since, args.max, args.validate, args.setup_cmd, args.test_timeout,
                    logs_dir=os.path.join(folder, "logs"))
     except (UsageError, ValueError, RuntimeError) as err:  # RuntimeError: a git read failed, such as no commits

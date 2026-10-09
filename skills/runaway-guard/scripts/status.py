@@ -22,8 +22,9 @@ import os
 import sys
 
 import guard
+from safe import code, safe_text
 
-safe = guard.transcripts.safe_text
+safe = safe_text
 WIRES = ("loop", "failures", "spend")
 
 
@@ -122,13 +123,15 @@ def _stepped_in(s) -> int:
     return sum(s["trips"][w] for w in WIRES)
 
 
-def headline(s) -> str:
+def headline(s, markdown=True) -> str:
+    """The one-line summary; the session id sits in inline code for the markdown report, plain for JSON."""
     cap = s["cap_usd"]
     money = ("has spent $%.2f of its $%.2f cap" % (s["spent_usd"], cap) if cap
              else "has spent $%.2f (no spend cap is set)" % s["spent_usd"])
     n = _stepped_in(s)
     fired = "no trip wire has fired" if not n else "the guard stepped in %d time%s" % (n, "" if n == 1 else "s")
-    return "Session %s %s; %s." % (_short(s["session"]), money, fired)
+    session = _short(s["session"])
+    return "Session %s %s; %s." % (code(session) if markdown else session, money, fired)
 
 
 def report(s, reset_note="") -> str:
@@ -151,7 +154,8 @@ def report(s, reset_note="") -> str:
     out += ["| %s |" % " | ".join(row) for row in rows]
     if s["recent_trips"]:
         out += ["", "Latest events:"]
-        out += ["- %s, %s: %s, %s" % (when(t["at"]), t["wire"], t["tool"] or "a tool call", t["detail"])
+        out += ["- %s, %s: %s, %s" % (when(t["at"]), t["wire"], code(t["tool"]) if t["tool"] else "a tool call",
+                                      t["detail"])
                 for t in s["recent_trips"][-5:]]
     out.append("")
     if s["trips"]["warning"]:
@@ -162,7 +166,7 @@ def report(s, reset_note="") -> str:
     if s["estimated_tokens"]:
         out.append("$%.2f of the total is an estimate: no price is known for %s, so its %s tokens are priced "
                    "like the most expensive model of the same family." % (
-                       s["estimated_usd"], ", ".join(s["estimated_models"]) or "a model",
+                       s["estimated_usd"], ", ".join(code(m) for m in s["estimated_models"]) or "a model",
                        "{:,}".format(s["estimated_tokens"])))
     out.append("Transcripts read: %d. Last check: %s. Limits as of that check." % (s["transcripts"], when(s["updated"])))
     if s["errors_logged"]:
@@ -175,7 +179,7 @@ def list_report(summaries) -> str:
     out = ["**Runaway guard knows %d session%s.**" % (len(summaries), "" if len(summaries) == 1 else "s"), "",
            "| Session | Last check | Spent | Cap | Stepped in |", "|---|---|---|---|---|"]
     for s in summaries:
-        out.append("| %s | %s | $%.2f | %s | %d |" % (s["session"], when(s["updated"]), s["spent_usd"],
+        out.append("| %s | %s | $%.2f | %s | %d |" % (code(s["session"]), when(s["updated"]), s["spent_usd"],
                                                     "$%.2f" % s["cap_usd"] if s["cap_usd"] else "off",
                                                     _stepped_in(s)))
     return "\n".join(out) + "\n"
@@ -252,7 +256,7 @@ def main(argv=None) -> int:
                         % _number(state.get("cost_usd")))
             s = summary(path, state, folder)
             if args.json:
-                text = json.dumps(dict(s, headline=headline(s)), indent=2) + "\n"
+                text = json.dumps(dict(s, headline=headline(s, markdown=False)), indent=2) + "\n"
             else:
                 text = report(s, note)
     if args.out:

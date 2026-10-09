@@ -12,6 +12,7 @@ from __future__ import annotations
 import itertools
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -498,8 +499,17 @@ def test_a_timed_out_run_did_not_pass():
     (".superpowers/sdd/run-1/review.diff", False),
     ("build.log", False),
     ("fix.patch", False),
-    (".github/workflows/ci.yml", False),
+    (".github/workflows/ci.yml", True),
+    (".github/tests/test_check.py", True),
+    (".cargo/config.toml", True),
+    (".circleci/config.yml", True),
+    (".husky/pre-commit", True),
+    (".config/tool.toml", True),
     ("/work/app/.vscode/settings.json", False),
+    (".idea/workspace.xml", False),
+    (".git/info/exclude", False),
+    (".nox/py312/bin/activate", False),
+    (".superpowers/sdd/run-1/plan.json", False),
     (".env", True),
     ("config/.eslintrc.json", True),
     ("$QUERY_PLAN_FILE", False),
@@ -834,6 +844,19 @@ def test_a_code_change_after_the_passing_run_makes_the_claim_stale(tmp_path):
 
 def test_a_documentation_change_after_the_run_keeps_the_claim_backed(tmp_path):
     s = cc_load(tmp_path, CC().bash(*PASS).edit("/work/app/README.md").write("/tmp/notes.py").say("All tests pass."))
+    assert labels(s) == ["backed"]
+
+
+@pytest.mark.parametrize("path", ["/work/app/.github/tests/test_check.py", "/work/app/.cargo/config.toml"])
+def test_a_change_in_a_hidden_folder_with_tests_or_build_settings_makes_the_claim_stale(tmp_path, path):
+    s = cc_load(tmp_path, CC().bash(*PASS).edit(path).say("All 5 tests pass."))
+    [claim] = E.label_claims(s)
+    assert claim["label"] == "stale" and claim["changed"] == [path]
+
+
+@pytest.mark.parametrize("path", ["/work/app/.git/info/exclude", "/work/app/.pytest_cache/v/cache/lastfailed"])
+def test_a_change_in_a_version_control_or_cache_folder_keeps_the_claim_backed(tmp_path, path):
+    s = cc_load(tmp_path, CC().bash(*PASS).edit(path).say("All 5 tests pass."))
     assert labels(s) == ["backed"]
 
 
@@ -1375,9 +1398,17 @@ def test_stop_hook_blocks_when_code_changed_after_the_last_pass(tmp_path):
     assert "changed after the last passing test run" in reason and "/work/app/src/app.py" in reason
 
 
+@pytest.mark.parametrize("path", ["/work/app/.github/tests/test_check.py", "/work/app/.cargo/config.toml"])
+def test_stop_hook_blocks_when_a_hidden_folder_with_tests_or_build_settings_changed(tmp_path, path):
+    reason = S.decide(hook_payload(CC().bash(*PASS).edit(path).save(tmp_path / "home")))
+    assert "changed after the last passing test run" in reason and path in reason
+
+
 @pytest.mark.parametrize("builder", [
     lambda: CC().bash(*PASS),
     lambda: CC().bash(*PASS).edit("/work/app/README.md"),
+    lambda: CC().bash(*PASS).edit("/work/app/.git/info/exclude"),
+    lambda: CC().bash(*PASS).edit("/work/app/.pytest_cache/v/cache/lastfailed"),
     lambda: CC().edit("/work/app/src/app.py"),
     lambda: CC().bash("pytest -q | tail -1", "", 0).edit("/work/app/src/app.py"),
 ])
@@ -2135,6 +2166,24 @@ def test_scan_markdown_puts_untrusted_text_in_inline_code(tmp_path, capsys):
     _code, out = run_cli(capsys, "scan")
     assert "- Claim: `All tests pass <b>now</b>.`" in out
     assert "project `/work/app`" in out and "failed (`exit code 1`)" in out
+
+
+def _outside_code(md):
+    """The markdown with fenced blocks and inline code spans taken out: what renders as markdown."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def test_scan_markdown_puts_the_session_id_in_inline_code(tmp_path, capsys):
+    cx = CX().run("pytest -q", "1 failed, 4 passed in 0.5s", 1).patch("src/[y](//e.co).py") \
+        .say("All tests pass, see [z](//e.co).")
+    cx.records[0]["payload"]["id"] = "[x](//e.co)"  # the Codex session id comes from the transcript
+    cx.save(tmp_path / "home")
+    _code, out = run_cli(capsys, "scan")
+    assert ", session `[x](//e.co)`, project `/work/app`" in out
+    assert not [line for line in out.splitlines() if "e.co" in _outside_code(line)]
+    _code, data = scan_json(capsys)
+    assert data["examples"][0]["session"] == "[x](//e.co)"  # JSON values stay plain
 
 
 def test_diff_markdown_puts_the_detail_in_inline_code(tmp_path, capsys):

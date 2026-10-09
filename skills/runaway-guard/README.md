@@ -28,7 +28,7 @@ by running this in a terminal: python3 /Users/you/.claude/skills/runaway-guard/s
 And the status report shows what it counted:
 
 ```
-**Session 5f0c3a1e has spent $10.07 of its $10.00 cap; the guard stepped in 3 times.**
+**Session `5f0c3a1e` has spent $10.07 of its $10.00 cap; the guard stepped in 3 times.**
 
 | Trip wire | Limit | Now | Stepped in |
 |---|---|---|---|
@@ -37,9 +37,9 @@ And the status report shows what it counted:
 | Failures | 5 failed calls in a row | 1 in a row | stepped in 0 times |
 
 Latest events:
-- 2026-09-28 14:02 UTC, loop: Bash, 3rd identical call
-- 2026-09-28 14:31 UTC, warning: Read, $8.04 of the $10.00 cap
-- 2026-09-28 14:40 UTC, spend: Edit, $10.07 of the $10.00 cap
+- 2026-09-28 14:02 UTC, loop: `Bash`, 3rd identical call
+- 2026-09-28 14:31 UTC, warning: `Read`, $8.04 of the $10.00 cap
+- 2026-09-28 14:40 UTC, spend: `Edit`, $10.07 of the $10.00 cap
 ```
 
 ## Install

@@ -1826,9 +1826,12 @@ def test_replay_runs_hooks_only_when_asked_and_never_another_projects_hooks(tmp_
     assert run_cli(base + ["--replay-hooks"], capsys)[0] == 2
 
 
-def test_code_escapes_pipes_only_inside_tables():
-    assert G.code("a|b", table=False) == "`a|b`"
-    assert G.code("a|b") == "`a\\|b`"
+def test_battery_commands_keep_their_pipes_and_untrusted_text_uses_the_shared_code():
+    # The skill's own battery commands are trusted and shown exactly; a pipe is escaped only inside a table.
+    assert G.battery_code("a|b", table=False) == "`a|b`"
+    assert G.battery_code("a|b") == "`a\\|b`"
+    # Every untrusted value goes through the shared code(): pipes and backticks replaced, never empty.
+    assert G.code("a|b`c") == "`a/b'c`" and G.code("") == "`(empty)`"
 
 
 def test_printed_hook_checks_work_with_grep(tmp_path, capsys):
@@ -2217,3 +2220,144 @@ def test_auto_mode_approves_reads_and_in_project_edits_without_the_classifier():
     assert ev("/work/app/src/a.py", tool="Edit", mode="auto").verdict == "allow"
     assert ev("/home/alice/notes.md", tool="Edit", mode="auto").verdict == "classifier"
     assert ev("/work/app/.claude/settings.json", tool="Edit", mode="auto").verdict == "classifier"
+
+
+# ---------------------------------------------------------------------------
+# Review fixes (spec 4.11): text from settings files, rule files, hook
+# commands, and paths reaches the Markdown report only inside inline code
+# ---------------------------------------------------------------------------
+
+LINK = "[Click to fix](https://evil.example/fix)"
+
+
+def outside_code(md):
+    """The Markdown without fenced blocks and inline code spans: what renders as Markdown."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def live_links(md):
+    """Report lines where the hostile link sits outside inline code, so it would render."""
+    return [line for line in md.splitlines() if "evil.example" in outside_code(line)]
+
+
+def test_project_hook_command_stays_in_inline_code(tmp_path, capsys):
+    proj = tmp_path / "proj"
+    write_json(proj / ".claude" / "settings.json", hook_entry("echo '%s'" % LINK))
+    args = ["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "claude-code"]
+    code, out = run_cli(args, capsys)
+    assert code == 0 and "## Configuration problems" in out and "sets no timeout" in out
+    assert not live_links(out), live_links(out)
+    # JSON keeps the message as built: the untrusted part already sits in inline code.
+    _, raw = run_cli(args + ["--json"], capsys)
+    smell = next(s for s in json.loads(raw)["harnesses"][0]["smells"] if s["id"] == "hook-no-timeout")
+    assert smell["text"].startswith("The project hook `echo '%s'` sets no timeout" % LINK)
+
+
+def test_opencode_permission_pattern_stays_in_inline_code(tmp_path, capsys):
+    proj = tmp_path / "proj"
+    write_json(proj / "opencode.json", {"permission": {"bash": {"rm %s *" % LINK: "deny", "*": "allow"}}})
+    code, out = run_cli(["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "opencode"], capsys)
+    assert code == 0 and "the deny rule `\"rm %s *\"` comes before `\"*\"`" % LINK in out
+    assert not live_links(out), live_links(out)
+
+
+def test_claude_code_rules_hooks_and_plugins_stay_in_inline_code(tmp_path, capsys):
+    proj, home, plugin = tmp_path / "proj", tmp_path / "home", tmp_path / "plugin"
+    (home / ".cursor").mkdir(parents=True)  # Cursor loads Claude Code hooks, so the matcher smell applies
+    write_json(plugin / "hooks" / "hooks.json", hook_entry("guard.sh"))
+    write_json(home / ".claude" / "plugins" / "installed_plugins.json",
+               {"version": 2, "plugins": {LINK: [{"scope": "user", "installPath": str(plugin)}]}})
+    echo, printf = 'echo "%s"' % LINK, 'printf "%s"' % LINK
+    settings = hook_entry("echo '%s'" % LINK, matcher="^Bash$|%s" % LINK)
+    settings["hooks"]["PreToolUse"][0]["hooks"].append({"type": LINK, "command": "x"})
+    settings["permissions"] = {"defaultMode": "default", "allow": ["Bash(git * %s)" % LINK, "Bash(%s)" % echo],
+                               "ask": ["Bash(%s)" % printf], "deny": ["Write(%s)" % LINK]}
+    settings["enabledPlugins"] = {LINK: True}
+    write_json(proj / ".claude" / "settings.json", settings)
+    battery = battery_file(tmp_path, [("shell", echo), ("shell", printf)])
+    code, out = run_cli(["--project", str(proj), "--home", str(home), "--harness", "claude-code",
+                         "--battery", battery], capsys)
+    assert code == 0
+    for text in ("is ignored", "wildcard before the subcommand", "never fires there", "The `plugin:%s` hook" % LINK,
+                 "runs without asking (rule `Bash(%s)`)" % echo, "asks first (rule `Bash(%s)`)" % printf,
+                 "The allow rule `Bash(%s)` approves it" % echo, "skipped: a `%s` hook" % LINK):
+        assert text in out, text
+    assert not live_links(out), live_links(out)
+
+
+def test_a_rule_named_in_a_case_note_stays_in_inline_code(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(C, "unlisted_file_rule", lambda cfg, command: "Read(%s)" % LINK)
+    proj = tmp_path / "proj"
+    write_json(proj / ".claude" / "settings.json", {"permissions": {"defaultMode": "default"}})
+    code, out = run_cli(["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "claude-code",
+                         "--battery", battery_file(tmp_path, [("shell", "ls")])], capsys)
+    assert code == 0 and "Notes on single cases" in out
+    assert not live_links(out), live_links(out)
+
+
+def test_a_custom_battery_id_and_reason_stay_in_inline_code(tmp_path, capsys):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    battery = tmp_path / "b.json"
+    battery.write_text(json.dumps({"id": LINK, "tool": "shell", "input": {"command": "ls"}, "category": "other",
+                                   "expect": "block", "why": LINK, "needs": []}) + "\n")
+    code, out = run_cli(["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "claude-code",
+                         "--mode", "default", "--battery", str(battery)], capsys)
+    assert code == 0 and out.count("evil.example") >= 2
+    assert not live_links(out), live_links(out)
+
+
+def test_codex_config_values_and_rule_file_names_stay_in_inline_code(tmp_path, capsys):
+    pytest.importorskip("tomllib")
+    home, proj = tmp_path / "home", tmp_path / "proj"
+    proj.mkdir()
+    (home / ".codex" / "rules").mkdir(parents=True)
+    (home / ".codex" / "config.toml").write_text('sandbox_mode = "%s"\napproval_policy = "%s"\n' % (LINK, LINK))
+    (home / ".codex" / "rules" / "[Click to fix](evil.example).rules").write_text(
+        'prefix_rule(pattern=["printf", "%s"], decision="prompt")\nprefix_rule(pattern=X, decision="forbidden")\n'
+        % LINK)
+    code, out = run_cli(["--project", str(proj), "--home", str(home), "--harness", "codex",
+                         "--battery", battery_file(tmp_path, [("shell", 'printf "%s"' % LINK)])], capsys)
+    assert code == 0 and "asks first (rule `" in out and "cannot read; skipped" in out
+    assert not live_links(out), live_links(out)
+
+
+def test_cursor_paths_and_claude_hook_matchers_stay_in_inline_code(tmp_path, capsys):
+    home, proj = tmp_path / "home", tmp_path / "[Click to fix](evil.example)"
+    home.mkdir()
+    write_json(proj / ".claude" / "settings.json", hook_entry("guard.sh", matcher="^Bash$|%s" % LINK))
+    (proj / ".cursor").mkdir()
+    (proj / ".cursor" / "hooks.json").write_text("{broken")
+    code, out = run_cli(["--project", str(proj), "--home", str(home), "--harness", "cursor",
+                         "--battery", battery_file(tmp_path, [("shell", "ls")])], capsys)
+    assert code == 0 and "Could not read `" in out and "never fires there" in out
+    assert not live_links(out), live_links(out)
+
+
+def test_runtime_hook_problems_name_the_hook_in_inline_code(tmp_path, capsys):
+    proj = tmp_path / "proj"
+    write_json(proj / ".claude" / "settings.json", hook_entry("echo '%s' >/dev/null; exit 1" % LINK, timeout=5))
+    code, out = run_cli(["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "claude-code",
+                         "--run-hooks", "--battery", battery_file(tmp_path, [("shell", "rm -rf build")])], capsys)
+    assert code == 0 and "exited 1 on 1 test calls" in out
+    assert not live_links(out), live_links(out)
+
+
+def test_a_managed_settings_file_name_in_a_note_stays_in_inline_code(tmp_path):
+    proj, home, managed = claude_setup(tmp_path)
+    folder = os.path.join(managed[0], "managed-settings.d")
+    os.makedirs(folder)
+    with open(os.path.join(folder, "[Click to fix](evil.example).json"), "w") as fh:
+        fh.write("{broken")
+    notes = C.load(proj, home=home, managed_dirs=managed).notes
+    assert any("Could not read managed settings" in n for n in notes)
+    assert not [n for n in notes if "evil.example" in outside_code(n)], notes
+
+
+def test_markdown_shows_battery_commands_exactly(tmp_path, capsys):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    code, out = run_cli(["--project", str(proj), "--home", empty_home(tmp_path), "--harness", "claude-code",
+                         "--mode", "default"], capsys)
+    assert code == 0 and "`printenv \\| grep -i guardrail-tester-probe`" in out

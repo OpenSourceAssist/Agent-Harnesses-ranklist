@@ -33,7 +33,7 @@ except ImportError:  # Python 3.9 and 3.10
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mcp_client  # noqa: E402
-from mcp_client import safe_text  # noqa: E402
+from mcp_client import inline  # noqa: E402
 
 HARNESSES = ("claude-code", "codex", "gemini-cli", "cursor", "opencode")
 HARNESS_NAMES = {"claude-code": "Claude Code", "codex": "Codex", "gemini-cli": "Gemini CLI",
@@ -292,7 +292,8 @@ def read_claude(home, project, environ, opts):
     if others:
         notes.append("Claude Code: %d other project folder%s in %s %s its own local MCP servers; "
                      "pass --project to check one of them." % (
-                         others, "" if others == 1 else "s", shown(path, home), "has" if others == 1 else "have"))
+                         others, "" if others == 1 else "s", inline(shown(path, home), 200),
+                         "has" if others == 1 else "have"))
     return entries, notes
 
 
@@ -375,7 +376,7 @@ def gemini_entry(name, spec, scope, source, home):
             "underscore-in-server-name", "low",
             "Gemini CLI names MCP tools mcp_<server>_<tool> and its policy rules split at the first "
             "_ after mcp_, so policy rules for this server will not match.",
-            "Rename the server without underscores, for example %s." % name.replace("_", "-")))
+            "Rename the server without underscores, for example %s." % inline(name.replace("_", "-"), 100)))
     return entry
 
 
@@ -504,7 +505,7 @@ def collect(home=None, project=None, harnesses=HARNESSES, environ=None, include_
             found, more = READERS[harness](home, project, environ, opts)
         except ConfigError as exc:
             notes.append("%s: %s %s, so its servers were skipped." % (
-                HARNESS_NAMES[harness], shown(exc.path, home), exc))
+                HARNESS_NAMES[harness], inline(shown(exc.path, home), 200), exc))
             continue
         entries.extend(found)
         notes.extend(more)
@@ -781,13 +782,13 @@ def main(argv=None):
         parser.error("unknown harness: %s" % ", ".join(unknown))
     entries, notes = collect(project=args.project, harnesses=chosen)
     for server in group(entries):
-        print("%s (%s): %s" % (safe_text(", ".join(server["names"]), 200), server["transport"],
-                               safe_text(display_command(server["entries"][0]), 300)))
+        print("%s (%s): %s" % (", ".join(inline(n, 100) for n in server["names"]), server["transport"],
+                               inline(display_command(server["entries"][0]), 300)))
         for e in server["entries"]:
-            print("  %s %s in %s%s" % (HARNESS_NAMES[e["harness"]], e["scope"], safe_text(e["config_path"], 200),
-                                      "" if e["enabled"] else " (off: %s)" % safe_text(e["status"], 200)))
+            print("  %s %s in %s%s" % (HARNESS_NAMES[e["harness"]], e["scope"], inline(e["config_path"], 200),
+                                      "" if e["enabled"] else " (off: %s)" % e["status"]))
     for note in notes:
-        print("note: %s" % safe_text(note, 300))
+        print("note: %s" % note)
     return 0
 
 

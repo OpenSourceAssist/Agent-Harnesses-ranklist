@@ -1,7 +1,8 @@
 """Helpers shared by mine_tasks.py and drive.py.
 
-- safe_text(): makes untrusted text (commit messages, file names, harness
-  output) safe to show in a markdown report.
+- safe_text() and code(): from safe.py, the shared helpers that make untrusted
+  text (commit messages, file names, harness output) safe to show in a
+  markdown report.
 - classify(): sorts a repository path into test, doc, source, or other.
 - make_workspace(): a fresh folder holding one commit's files as a new git
   repository with a single commit, so an agent working there cannot see later
@@ -22,41 +23,7 @@ import subprocess
 import tempfile
 import time
 
-# --- Untrusted text --------------------------------------------------------------
-
-_MASK = "[REDACTED]"
-_SECRET_RES = [
-    re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)", re.S),
-    re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{16,}"),
-    re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}"),
-    re.compile(r"\bxox[abposr]-[A-Za-z0-9\-]{10,}"),
-    re.compile(r"\bAIza[0-9A-Za-z_\-]{30,}"),
-    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
-    re.compile(r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}"),
-]
-_KEY_VALUE_RE = re.compile(
-    r"(?i)(\b[A-Za-z0-9_.\-]*(?:api[_\-]?key|secret|token|passw(?:or)?d)[A-Za-z0-9_.\-]*[\"']?\s*[:=]\s*[\"']?)"
-    r"[^\s\"',;}]{6,}")
-
-
-def safe_text(text, limit=160) -> str:
-    """One inert line for a markdown report: secrets masked, control characters,
-    tabs, and line breaks turned into spaces, backticks into ', table pipes into
-    /, runs of spaces collapsed, and the result cut to `limit` characters.
-    Commit messages, file names, and harness output can carry instructions or
-    break a table; this keeps them plain text."""
-    if text is None:
-        return ""
-    s = text if isinstance(text, str) else str(text)
-    for rx in _SECRET_RES:
-        s = rx.sub(_MASK, s)
-    s = _KEY_VALUE_RE.sub(lambda m: m.group(1) + _MASK, s)
-    s = "".join(ch if ch.isprintable() else " " for ch in s)  # also drops lone surrogates
-    s = " ".join(s.replace("`", "'").replace("|", "/").split())
-    return s if len(s) <= limit else s[: max(limit - 3, 0)] + "..."
-
+from safe import code, safe_text  # noqa: F401  (also kept for callers that import them from here)
 
 # --- File classes ------------------------------------------------------------------
 
@@ -124,7 +91,7 @@ def git(repo, *args) -> bytes:
     res = subprocess.run(["git", "-C", repo] + list(args), env=_read_env(), stdin=subprocess.DEVNULL,
                          capture_output=True)
     if res.returncode != 0:
-        raise RuntimeError("git %s failed: %s" % (args[0], safe_text(res.stderr.decode("utf-8", "replace"))))
+        raise RuntimeError("git %s failed: %s" % (args[0], code(res.stderr.decode("utf-8", "replace"))))
     return res.stdout
 
 
@@ -137,7 +104,7 @@ def _workspace_git(ws, *args, input=None) -> bytes:
                          + list(args), cwd=ws, env=env, capture_output=True, **feed)
     if res.returncode != 0:
         raise RuntimeError("git %s failed in the workspace: %s"
-                           % (args[0], safe_text(res.stderr.decode("utf-8", "replace"))))
+                           % (args[0], code(res.stderr.decode("utf-8", "replace"))))
     return res.stdout
 
 
@@ -410,13 +377,21 @@ def duration(seconds) -> str:
 
 
 def run_tests(cmd, cwd, timeout, out_path=None) -> dict:
-    """run_command for the test command, after deleting the workspace's Python
-    bytecode: Python trusts a cached file when the source has the same size and
+    """run_command for the test command with no Python bytecode from earlier
+    runs: Python trusts a cached file when the source has the same size and
     modified second, so a restored test or gold file written right after an
-    earlier run could otherwise run as its old version."""
+    earlier run could otherwise run as its old version. The workspace's
+    __pycache__ folders are deleted, and PYTHONPYCACHEPREFIX points Python 3.8
+    and later at a new empty folder, also on interpreters that keep bytecode
+    elsewhere (Apple's /usr/bin/python3 uses ~/Library/Caches). The folder is
+    deleted after the run."""
     for dirpath, dirnames, _ in os.walk(cwd):
         dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules", ".venv", "venv")]
         if "__pycache__" in dirnames:
             dirnames.remove("__pycache__")
             shutil.rmtree(os.path.join(dirpath, "__pycache__"), ignore_errors=True)
-    return run_command(cmd, cwd, timeout, out_path)
+    prefix = tempfile.mkdtemp(prefix="harness-test-drive-pycache-")
+    try:
+        return run_command(cmd, cwd, timeout, out_path, env=dict(clean_env(), PYTHONPYCACHEPREFIX=prefix))
+    finally:
+        shutil.rmtree(prefix, ignore_errors=True)

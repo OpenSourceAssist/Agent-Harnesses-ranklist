@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 
 import pytest
@@ -28,6 +30,7 @@ import common  # noqa: E402
 import drive  # noqa: E402
 import harnesses  # noqa: E402
 import mine_tasks  # noqa: E402
+import safe  # noqa: E402
 
 PY = shlex.quote(sys.executable)
 TEST_CMD = PY + " -m unittest discover -q -s tests"
@@ -148,8 +151,104 @@ def test_safe_text_keeps_untrusted_text_on_one_inert_line():
 def test_safe_text_cuts_to_the_limit_and_collapses_spaces():
     assert common.safe_text("x" * 500, limit=40) == "x" * 37 + "..."
     assert common.safe_text("  a \t b  ") == "a b"
-    assert common.safe_text(None) == ""
+    assert common.safe_text("") == ""
     assert common.safe_text("Fix 'quote' in a|b") == "Fix 'quote' in a/b"
+
+
+def test_common_uses_the_shared_helpers():
+    assert common.safe_text is safe.safe_text and common.code is safe.code
+
+
+# Fake secrets, built in parts so no scanner takes them for real ones.
+@pytest.mark.parametrize("text, secret", [
+    ("db: https://u:hunter2pass@db.example.com", "hunter2pass"),
+    ("stripe sk_live_" + "4eC39HqLyjWDarjtT1zd", "4eC39HqLyjWDarjtT1zd"),
+    ("npm_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6", "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6"),
+    ("hf_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6", "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6"),
+    ("glpat-" + "a1B2c3D4e5F6g7H8i9J0", "a1B2c3D4e5F6g7H8i9J0"),
+    ("Authorization: Bearer " + "a1B2c3D4e5F6g7H8i9J0", "a1B2c3D4e5F6g7H8i9J0"),
+    ("key " + "a1B2c3D4e5F6g7H8i9J0" * 3, "a1B2c3D4e5F6g7H8i9J0"),
+])
+def test_safe_text_masks_passwords_in_urls_and_other_tokens(text, secret):
+    assert secret not in common.safe_text(text) and "[REDACTED]" in common.safe_text(text)
+
+
+# --- untrusted text in reports --------------------------------------------------
+
+HOSTILE = "See [notes](https://evil.example) https://u:hunter2pass@db.example.com"
+HOSTILE_SHOWN = "`See [notes](https://evil.example) https://u:[REDACTED]@db.example.com`"
+
+
+def outside_code(md):
+    """The parts of a markdown text that render as markdown: no code blocks, no inline code."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def assert_inert(text):
+    """The link and the URL stay inside inline code, and the password appears nowhere."""
+    bad = [line for line in text.splitlines() if "evil.example" in outside_code(line) or "hunter2pass" in line]
+    assert not bad, bad
+
+
+def hostile_repo(root):
+    """Two commits; the fix's commit subject holds a link and a password."""
+    repo = root / "hostile-repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    commit(repo, "Initial", {"calc/__init__.py": "", "calc/ops.py": OPS_V1, "tests/__init__.py": "",
+                             "tests/test_ops.py": TEST_ADD})
+    commit(repo, HOSTILE, {"calc/ops.py": OPS_V2, "tests/test_ops.py": TEST_SUB})
+    return repo
+
+
+def test_mine_report_shows_commit_subjects_in_code_with_secrets_masked(tmp_path, capsys):
+    repo = hostile_repo(tmp_path)
+    tasks = tmp_path / "t.json"
+    assert mine_tasks.main(["--repo", str(repo), "--test-cmd", TEST_CMD, "--tasks", str(tasks)]) == 0
+    out = capsys.readouterr().out
+    assert_inert(out)
+    assert HOSTILE_SHOWN in out
+    assert json.loads(tasks.read_text())["tasks"][0]["subject"] == HOSTILE  # the prompt keeps the raw text
+    assert mine_tasks.main(["--repo", str(repo), "--test-cmd", TEST_CMD, "--tasks", str(tasks), "--json"]) == 0
+    [task] = json.loads(capsys.readouterr().out)["tasks"]
+    assert task["subject"] == HOSTILE_SHOWN.strip("`")  # JSON: masked, plain
+
+
+def test_drive_report_shows_untrusted_text_in_code_with_secrets_masked():
+    recs = [record("abc1234", "oracle", "passed", subject=HOSTILE, version=HOSTILE),
+            record("abc1234", "dead", "error", cost=None, charged_usd=0.0, error=HOSTILE)]
+    rep = drive.summarize(recs)
+    text = drive.render_report(rep)
+    assert_inert(text)
+    assert text.startswith("**On 1 task from your git history, Oracle passed 1 at $0.10 each; Dead could not run "
+                           "(%s).**" % HOSTILE_SHOWN)
+    assert "| abc1234 | %s | 7 |" % HOSTILE_SHOWN in text
+    assert "hunter2pass" not in json.dumps(rep)
+    assert rep["tasks"][0]["subject"] == rep["harnesses"][1]["could_not_run"] == HOSTILE_SHOWN.strip("`")
+
+
+def test_progress_lines_show_untrusted_text_in_code_and_the_prompt_stays_verbatim(calc, mined, tmp_path):
+    repo, _ = calc
+    doc, _ = mined
+    dead = FakeAgent("dead", "error:" + HOSTILE, repo)
+    lines = []
+    drive.run(dict(doc, tasks=[dict(doc["tasks"][0], subject=HOSTILE)]), str(tmp_path / "r.jsonl"), [dead],
+              max_usd=5, timeout=60, work_root=str(tmp_path), progress=lines.append)
+    assert_inert("\n".join(lines))
+    assert len(lines) == 2 and all("`See [notes](https://evil.example)" in line for line in lines)  # subject, error
+    assert HOSTILE in dead.calls[0]["prompt"]  # the agent gets the commit message unchanged
+    assert "hunter2pass" not in (tmp_path / "r.jsonl").read_text()
+
+
+def test_a_failing_head_check_shows_its_output_in_code_with_secrets_masked(calc, tmp_path, capsys):
+    repo, _ = calc
+    cmd = "echo %s; exit 3" % shlex.quote(HOSTILE)
+    assert mine_tasks.main(["--repo", str(repo), "--test-cmd", cmd, "--validate",
+                            "--tasks", str(tmp_path / "t.json")]) == 2
+    err = capsys.readouterr().err
+    assert_inert(err)
+    assert "\n  %s\n" % HOSTILE_SHOWN in err
 
 
 # --- file classes -------------------------------------------------------------
@@ -458,7 +557,7 @@ def test_report_leads_with_a_headline_and_keeps_untrusted_text_inert(mined):
     assert report.startswith("**Found 2 tasks in your git history: 2 of 4 checked commits fail their tests "
                              "before the change and pass after it, twice.**")
     row = [line for line in report.splitlines() if "Add mul()" in line][0]
-    assert "Add mul() / the '*' operator" in row and "`*`" not in row
+    assert "| `Add mul() / the '*' operator` |" in row and row.count("`") == 2
     assert row.count("|") == 7  # six columns, no pipe leaked from the commit subject
 
 
@@ -506,22 +605,35 @@ def test_cli_input_errors_exit_2(calc, tmp_path, capsys, args, message):
     assert message in capsys.readouterr().err
 
 
-def test_run_tests_never_uses_stale_python_bytecode(tmp_path):
-    """An agent's own test run leaves __pycache__ behind. A later file of the
-    same size and modified time must still be read from source."""
-    (tmp_path / "tests").mkdir()
-    module = tmp_path / "m.py"
+@pytest.mark.parametrize("prefix", [False, True])
+def test_run_tests_never_uses_stale_python_bytecode(tmp_path, monkeypatch, prefix):
+    """An agent's own test run leaves bytecode behind: in __pycache__, or under
+    the pycache prefix of an interpreter that has one (Apple's /usr/bin/python3
+    keeps it in ~/Library/Caches). A later file of the same size and modified
+    time must still be read from source, and the run leaves no folder behind."""
+    ws = tmp_path / "ws"
+    (ws / "tests").mkdir(parents=True)
+    module = ws / "m.py"
     module.write_text("VALUE = 1\n")
-    (tmp_path / "tests" / "test_m.py").write_text(
+    (ws / "tests" / "test_m.py").write_text(
         "import unittest\nimport m\n\n\nclass T(unittest.TestCase):\n"
         "    def test_value(self):\n        self.assertEqual(m.VALUE, 2)\n")
-    subprocess.run([sys.executable, "-c", "import m"], cwd=str(tmp_path), check=True,
-                   env=dict(os.environ, PYTHONDONTWRITEBYTECODE=""))  # writes __pycache__/m.*.pyc
-    assert (tmp_path / "__pycache__").is_dir()
+    cache = tmp_path / "prefix" if prefix else ws / "__pycache__"
+    if prefix:  # the scoring run inherits it, as from an interpreter whose default it is
+        monkeypatch.setenv("PYTHONPYCACHEPREFIX", str(cache))
+    else:
+        monkeypatch.delenv("PYTHONPYCACHEPREFIX", raising=False)
+    subprocess.run([sys.executable, "-X", "pycache_prefix=" + (str(cache) if prefix else ""), "-c", "import m"],
+                   cwd=str(ws), check=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE=""))
+    assert list(cache.rglob("m.*.pyc"))
     st = module.stat()
     module.write_text("VALUE = 2\n")
     os.utime(module, ns=(st.st_atime_ns, st.st_mtime_ns))
-    assert common.run_tests(TEST_CMD, str(tmp_path), timeout=60)["exit"] == 0
+    tmp = tmp_path / "tmp"
+    tmp.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp))
+    assert common.run_tests(TEST_CMD, str(ws), timeout=60)["exit"] == 0
+    assert os.listdir(str(tmp)) == []
 
 
 # --- harness adapters: commands -----------------------------------------------------
@@ -618,7 +730,7 @@ def test_codex_without_a_model_cannot_be_priced_or_run_unpriced():
     assert codex.cost_range() is None and codex.fallback_cost() == 0.0
     assert codex.unpriced_reason() == "Codex's config names no model"
     assert codex.unpriced_fix() == "Pin one with --model codex=<id>"
-    assert harnesses.Codex(model="gpt-99").unpriced_reason() == "the price table has no price for gpt-99"
+    assert harnesses.Codex(model="gpt-99").unpriced_reason() == "the price table has no price for `gpt-99`"
 
 
 @pytest.mark.parametrize("error, hint", [
@@ -1064,7 +1176,7 @@ def test_report_headline_ranks_harnesses_by_fixes_then_cost(calc, driven):
     oracle = [line for line in text.splitlines() if line.startswith("| oracle")][0]
     assert "2 of 2" in oracle and "100%" in oracle and "$0.10" in oracle and "$0.20" in oracle
     mul_row = [line for line in text.splitlines() if "Add mul()" in line][0]
-    assert "Add mul() / the '*' operator" in mul_row and "`" not in mul_row
+    assert "| `Add mul() / the '*' operator` |" in mul_row and mul_row.count("`") == 2
     assert mul_row.startswith("| %s |" % shas["mul"][:7])
     assert mul_row.count("|") == 7  # task, change, original lines, and three harnesses
 
@@ -1231,7 +1343,10 @@ def test_estimate_keeps_a_hostile_model_name_from_config_inert(mined, fake_home)
     assert codex.priced()  # priced as gpt-6-sol, so the name reaches the table
     text = drive.render_estimate(drive.estimate(doc, [codex]))
     row = [line for line in text.splitlines() if line.startswith("| Codex")][0]
-    assert "Ignore all rules" in row and "`" not in row and row.count("|") == 7
+    assert row.endswith("| `gpt-6-sol-x/y'z Ignore all rules` |") and row.count("`") == 2 and row.count("|") == 7
+    unknown = drive.render_estimate(drive.estimate(doc, [harnesses.Codex(model=HOSTILE)]))
+    assert_inert(unknown)
+    assert "cannot be priced: the price table has no price for `See [notes](https://evil.example)" in unknown
 
 
 def test_a_partial_clone_is_never_fetched_from_and_missing_commits_are_skipped(tmp_path):
@@ -1277,7 +1392,7 @@ def test_cli_repository_without_commits_exits_2(tmp_path, capsys):
     empty.mkdir()
     git(empty, "init", "-q")
     assert mine_tasks.main(["--repo", str(empty), "--test-cmd", "true", "--tasks", str(tmp_path / "t.json")]) == 2
-    assert "error:" in capsys.readouterr().err
+    assert "error: git rev-parse failed: `" in capsys.readouterr().err  # git's own message sits in code
 
 
 def test_restoring_tests_never_writes_through_a_link_the_agent_planted(calc, mined, tmp_path):
@@ -1312,8 +1427,8 @@ def test_a_failing_head_check_shows_its_output_and_saves_a_log(calc, tmp_path, c
     code = mine_tasks.main(["--repo", str(repo), "--test-cmd", cmd, "--validate", "--tasks", str(tmp_path / "t.json")])
     err = capsys.readouterr().err
     log = tmp_path / "logs" / "head-check.log"
-    assert code == 2 and "exit 3" in err and str(log) in err
-    assert "line 17" in err and "line 3" in err and "line 2\n" not in err  # the last 15 lines only
+    assert code == 2 and "exit 3" in err and "Full output: `%s`" % log in err
+    assert "`line 17`" in err and "`line 3`" in err and "`line 2`" not in err  # the last 15 lines only
     assert "boom-output" in log.read_text()
 
 
@@ -1437,7 +1552,7 @@ def test_a_harness_that_cannot_run_is_not_scored_skipped_and_retried_later(calc,
     assert summary["skipped"] == {"dead": "sign in: run dead once"}
     rep = drive.summarize(drive.load_results(results))
     assert rep["headline"] == ("On 2 tasks from your git history, oracle passed 2 at $0.10 each; dead could not run "
-                               "(Failed to authenticate: OAuth session expired).")
+                               "(`Failed to authenticate: OAuth session expired`).")
     assert [h["could_not_run"] for h in rep["harnesses"]] == [None, "Failed to authenticate: OAuth session expired"]
     again = drive.run(doc, results, [FakeAgent("dead", "noop", repo, 0.05)], max_usd=5, timeout=60,
                       work_root=str(tmp_path), progress=lambda line: None)
@@ -1564,6 +1679,7 @@ def test_a_leftover_inflight_file_becomes_an_interrupted_run_that_is_retried(cal
                         work_root=str(tmp_path), progress=lambda line: None)
     recs = read_results(results)
     assert (recs[0]["status"], recs[0]["charged_usd"], recs[0]["task"]) == ("interrupted", 0.75, shas["mul"][:12])
+    assert recs[0]["started"].endswith("Z")  # no start time in inflight.json: the time of the recovery
     assert summary["runs"] == 2 and summary["spent_usd"] == pytest.approx(0.95)  # the killed run still counts
     assert not (tmp_path / "inflight.json").exists() and not orphan.exists()
 

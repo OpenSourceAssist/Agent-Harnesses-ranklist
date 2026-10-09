@@ -32,6 +32,10 @@ import time
 import unicodedata
 from typing import Optional
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from safe import code  # noqa: E402
+from safe import redact as shared_redact  # noqa: E402
+
 MODERN_VERSION = "2026-07-28"
 LEGACY_VERSION = "2025-11-25"
 CLIENT_INFO = {"name": "tool-design-checker", "version": "1.0.0"}
@@ -47,22 +51,14 @@ STOP_WAIT = 1.0     # seconds to wait after closing a server's input, and again 
 # variation selectors. They can hide text inside a line that looks empty.
 BLANK_GLYPHS = {"\u3164", "\u115f", "\u1160", "\uffa0", "\u2800", "\u034f", "\u17b4", "\u17b5"}
 
-SECRET_PATTERNS = [
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)", re.S),
+# Shapes the shared redact() in safe.py does not mask: sk- and glpat- keys of 16 to 19
+# characters, bearer and basic tokens of 6 to 15 characters, and key, token, or auth
+# values written after a space or with 4 or 5 characters.
+EXTRA_PATTERNS = [
     re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"),
-    re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}"),
     re.compile(r"\bglpat-[A-Za-z0-9_-]{16,}"),
-    re.compile(r"\bxox[abposr]-[A-Za-z0-9-]{10,}"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"),
-    re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"),
 ]
-# Long runs that mix letters and digits look like keys; long runs of one kind (a hash
-# of x's, a word) do not.
-LONG_RUN = re.compile(r"\b[A-Za-z0-9_\-]{40,}\b")
 BEARER = re.compile(r"(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{6,}")
-URL_PASSWORD = re.compile(r"(?i)(\b[a-z][a-z0-9+.\-]*://[^/\s:@]+:)[^@\s/]+(?=@)")
 KEY_VALUE = re.compile(
     r"(?i)\b([a-z0-9_.-]*(?:key|token|secret|passw(?:or)?d|pwd|auth|credential)s?)"
     r"(\s*[:=]\s*|\s+)([\"']?)([^\s\"',;&]{4,})")
@@ -77,16 +73,15 @@ class McpError(Exception):
 
 
 def redact(text: str, mask=()) -> str:
-    """Mask known secret values and common token shapes in free text."""
+    """Mask known secret values (mask: for example a server's configured env values),
+    the extra shapes above, and then every shape the shared redact() in safe.py knows."""
     for value in sorted({m for m in mask if m and len(m) >= MIN_SECRET}, key=len, reverse=True):
         text = text.replace(value, "***")
     text = BEARER.sub(lambda m: m.group(1) + " ***", text)
-    text = URL_PASSWORD.sub(lambda m: m.group(1) + "***", text)
     text = KEY_VALUE.sub(lambda m: m.group(1) + m.group(2) + m.group(3) + "***", text)
-    for pattern in SECRET_PATTERNS:
+    for pattern in EXTRA_PATTERNS:
         text = pattern.sub("***", text)
-    return LONG_RUN.sub(lambda m: "***" if re.search(r"[0-9]", m.group(0)) and re.search(r"[A-Za-z]", m.group(0))
-                        else m.group(0), text)
+    return shared_redact(text)
 
 
 def invisible(ch: str) -> bool:
@@ -112,6 +107,13 @@ def safe_text(text, limit: int = EXCERPT, mask=()) -> str:
 
 def excerpt(text: str, mask=()) -> str:
     return safe_text(text, EXCERPT, mask)
+
+
+def inline(text, limit: int = EXCERPT, mask=()) -> str:
+    """Untrusted text for a Markdown report or a printed line: safe_text() with the mask,
+    then code() from safe.py, which puts it inside inline code so links, HTML, and bare
+    URLs stay literal."""
+    return code(safe_text(text, limit, mask), limit)
 
 
 def modern_meta(version: str) -> dict:
@@ -459,15 +461,15 @@ def main(argv=None) -> int:
     try:
         result = list_tools_stdio(command, timeout=args.timeout)
     except McpError as exc:
-        print("error (%s): %s" % (exc.kind, exc), file=sys.stderr)
+        print("error (%s): %s" % (exc.kind, inline(exc, 400)), file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(result, indent=2))
     else:
         print("%d tools (%s protocol %s)" % (len(result["tools"]), result["era"],
-                                            safe_text(result["protocol_version"], 40)))
+                                            inline(result["protocol_version"], 40)))
         for tool in result["tools"]:
-            print("- %s" % safe_text(tool.get("name"), 128))
+            print("- %s" % inline(tool.get("name"), 128))
     return 0
 
 

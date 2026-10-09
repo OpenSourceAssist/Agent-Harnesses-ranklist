@@ -36,7 +36,7 @@ import sys
 import time
 
 import load_map
-from load_map import safe_text
+from safe import code, safe_text
 
 SAFE = "safe"
 NEVER = "never"
@@ -828,7 +828,7 @@ def parse_makefile(path):
             continue
         match = TARGET_RE.match(stripped)
         if not match:  # for example $(RULES) or $(NAME) = value: make expands the line, this checker cannot
-            unsafe.append("the Makefile has a line this checker cannot read (%s)" % safe_text(stripped, 60))
+            unsafe.append("the Makefile has a line this checker cannot read (%s)" % code(stripped, 60))
             continue
         names = match.group(1).split()
         target_variable = MAKE_ASSIGN_RE.match(match.group(2))
@@ -894,13 +894,13 @@ def builtin_rule_problem(names, info, base):
     phony = set(targets.get(".PHONY", {}).get("prereqs", []))
     for name in names:
         if "$" in name:
-            return "uses a make variable or function this checker cannot resolve (%s)" % safe_text(name, 60)
+            return "uses a make variable or function this checker cannot resolve (%s)" % code(name, 60)
         target = targets.get(name)
         if name in phony or (target and target["recipe"]):
             continue
         if (target is None and not os.path.exists(os.path.join(base, name))) or builtin_sources(
                 base, name, info["suffixes"]):
-            return "make may build %s with a built-in rule this checker does not read" % safe_text(name, 60)
+            return "make may build %s with a built-in rule this checker does not read" % code(name, 60)
     return None
 
 
@@ -997,7 +997,7 @@ def parse_justfile(path):
             entry["flags"] += ["(arguments)"] if "(" in recipe.group(3) else []  # test: (build "x") passes x
             info["default"] = current if "default" in attributes else info["default"] or current
         else:
-            info["unsafe"].append("the justfile has a line this checker cannot read (%s)" % safe_text(line, 60))
+            info["unsafe"].append("the justfile has a line this checker cannot read (%s)" % code(line, 60))
         attributes = []
     return info
 
@@ -1017,7 +1017,7 @@ def just_expand(line, variables, values):
 
     text = re.sub(r"\{\{(.*?)\}\}", expand, line)
     if problems:
-        return text, "uses a just expression this checker cannot resolve (%s)" % safe_text(problems[0], 60)
+        return text, "uses a just expression this checker cannot resolve (%s)" % code(problems[0], 60)
     return text, None
 
 
@@ -1081,7 +1081,7 @@ def git_config_problem(cwd):
             if GIT_RISKY_CONFIG_RE.match(key):
                 if key == "core.fsmonitor" and value.lower() in ("", "true", "false", "yes", "no", "on", "off", "0", "1"):
                     continue
-                return "the repo's git config runs a program (%s)" % safe_text(key, 60)
+                return "the repo's git config runs a program (%s)" % code(key, 60)
     return None
 
 
@@ -1090,13 +1090,13 @@ def git_problem(argv, cwd):
     index = 0
     while index < len(args) and args[index].startswith("-"):
         if args[index] != "--no-pager":
-            return "uses a git option this checker does not read (%s)" % safe_text(args[index], 40)
+            return "uses a git option this checker does not read (%s)" % code(args[index], 40)
         index += 1
     for arg in args[index + 1:]:
         if arg in GIT_WRITE_FLAGS or arg.startswith(("--output=", "--output-directory=")):
-            return "git writes a file with %s" % safe_text(arg, 40)
+            return "git writes a file with %s" % code(arg, 40)
         if arg in GIT_EXEC_FLAGS:
-            return "git runs another program with %s" % safe_text(arg, 40)
+            return "git runs another program with %s" % code(arg, 40)
     return git_config_problem(cwd)
 
 
@@ -1106,22 +1106,22 @@ def helper_problem(argv, cwd):
     args = argv[1:]
     for arg in args:
         if OUTPUT_FLAG_RE.match(arg):
-            return "%s writes a file with %s" % (safe_text(head, 40), safe_text(arg, 40))
+            return "%s writes a file with %s" % (code(head, 40), code(arg, 40))
     if head == "git":
         return git_problem(argv, cwd)
     if head == "date":
         for arg in args:
             if not (arg.startswith("+") or arg in DATE_READ_FLAGS
                     or re.match(r"^(-I[a-z]*|--iso-8601(=\w+)?|--rfc-3339=\w+)$", arg)):
-                return "date %s can set the clock" % safe_text(arg, 40)
+                return "date %s can set the clock" % code(arg, 40)
     if head == "hostname":
         for arg in args:
             if arg not in HOSTNAME_READ_FLAGS:
-                return "hostname %s can rename this machine" % safe_text(arg, 40)
+                return "hostname %s can rename this machine" % code(arg, 40)
     if head == "rg":
         for arg in args:
             if arg.split("=", 1)[0] in RG_EXEC_FLAGS:
-                return "rg runs another program with %s" % safe_text(arg, 40)
+                return "rg runs another program with %s" % code(arg, 40)
     if head == "printf" and any(arg.startswith("-v") for arg in args):
         return "printf -v sets a shell variable"
     return None
@@ -1228,19 +1228,19 @@ def classify(command, base_dir, repo=None, depth=0, body=False, trace=None, inhe
                 return verdict(danger[0], NEVER, danger[1])
         for name, _value in pairs:
             if blocked_variable(name):
-                return verdict("other", NOT_RUN, "sets %s, which changes what the command runs" % safe_text(name, 60))
+                return verdict("other", NOT_RUN, "sets %s, which changes what the command runs" % code(name, 60))
         argv = strip_wrappers(segment["argv"])
         writes = [t for op, t in segment["redirects"] if op in WRITE_REDIRECTS
                   and t not in ("/dev/null", "/dev/stdout", "/dev/stderr") and not t.startswith("&") and not t.isdigit()]
         for target in writes:
             if not body:
-                return verdict("other", NOT_RUN, "writes output to a file (%s)" % safe_text(target, 80))
+                return verdict("other", NOT_RUN, "writes output to a file (%s)" % code(target, 80))
             path = os.path.normpath(os.path.join(cwd, target))
             in_build = within(path, repo) and generated(path, repo)
             if os.path.exists(path) and not in_build:
-                return verdict("other", NOT_RUN, "overwrites %s, a file that already exists" % safe_text(target, 80))
+                return verdict("other", NOT_RUN, "overwrites %s, a file that already exists" % code(target, 80))
             if not in_build:
-                return verdict("other", NOT_RUN, "writes %s outside the build folders" % safe_text(target, 80))
+                return verdict("other", NOT_RUN, "writes %s outside the build folders" % code(target, 80))
         if not argv:
             continue
         danger = never_anywhere(argv) if body else never_kind(argv)
@@ -1250,15 +1250,16 @@ def classify(command, base_dir, repo=None, depth=0, body=False, trace=None, inhe
         if WATCH_RE.search(joined):
             return verdict("other", NOT_RUN, "keeps running (watch or server mode)")
         if any(p.search(joined) for p in MODIFY_RES):
-            return verdict("other", NOT_RUN, "changes files (%s)" % safe_text(joined, 60))
+            return verdict("other", NOT_RUN, "changes files (%s)" % code(joined, 60))
         head = program_name(argv[0])
         if head == "cd":
             target = argv[1] if len(argv) > 1 else ""
             if not target or target.startswith(("~", "$", "-")):
-                return verdict("other", NOT_RUN, "changes to a folder this checker cannot check (%s)" % safe_text(target or "home", 60))
+                return verdict("other", NOT_RUN, "changes to a folder this checker cannot check (%s)"
+                               % (code(target, 60) if target else "home"))
             folder = os.path.normpath(os.path.join(cwd, target))
             if not os.path.isdir(folder) or not within(folder, repo):
-                return verdict("other", NOT_RUN, "changes to a folder that is not in the repo (%s)" % safe_text(target, 60))
+                return verdict("other", NOT_RUN, "changes to a folder that is not in the repo (%s)" % code(target, 60))
             cwd = folder
             continue
         if "quoting" in expansions:
@@ -1274,7 +1275,7 @@ def classify(command, base_dir, repo=None, depth=0, body=False, trace=None, inhe
                            "it as an option")
         outside = outside_argument(argv, cwd, repo)
         if outside:
-            return verdict("other", NOT_RUN, "uses a path outside the repo (%s)" % safe_text(outside, 60))
+            return verdict("other", NOT_RUN, "uses a path outside the repo (%s)" % code(outside, 60))
         if head in HARMLESS:
             problem = helper_problem(argv, cwd)
             if problem:
@@ -1311,11 +1312,11 @@ def judge_lines(lines, base, repo, depth, trace, context, inherited=None):
 
 def named_verdict(name, kind, body):
     if kind in NEVER_REASONS:
-        return verdict(kind, NEVER, "%s (%s)" % (NEVER_REASONS[kind], safe_text(name, 60)))
+        return verdict(kind, NEVER, "%s (%s)" % (NEVER_REASONS[kind], code(name, 60)))
     if kind == "install":
-        return verdict("install", NEVER, "installs packages (%s)" % safe_text(name, 60))
+        return verdict("install", NEVER, "installs packages (%s)" % code(name, 60))
     if kind == "modify":
-        return verdict("other", NOT_RUN, "changes files (%s)" % safe_text(name, 60))
+        return verdict("other", NOT_RUN, "changes files (%s)" % code(name, 60))
     if kind not in SAFE_KINDS and not body:
         return verdict("other", NOT_RUN, NOT_A_CHECK)
     return None
@@ -1395,7 +1396,7 @@ def js_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
     if name not in scripts:
         if subcommand == "implicit":
             return classify(shlex_join(argv[argv.index(name, 1):]), cwd, repo, depth + 1, body, trace, inherited)
-        return verdict("other", NOT_RUN, "no %s script to run" % safe_text(name, 60))
+        return verdict("other", NOT_RUN, "no %s script to run" % code(name, 60))
     extra = script_arguments(argv, name)
     label = "%s script" % rel(package, repo)
     lines = []
@@ -1404,7 +1405,7 @@ def js_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
         if text:
             lines.append(("%s %s" % (label, script),
                           text + (" " + shlex_join(extra) if script == name and extra else "")))
-    held = judge_lines(lines, os.path.dirname(package), repo, depth, trace, "the %s script" % safe_text(name, 60),
+    held = judge_lines(lines, os.path.dirname(package), repo, depth, trace, "the %s script" % code(name, 60),
                        inherited)
     return held or verdict(kind if kind in SAFE_KINDS else None, SAFE)
 
@@ -1414,7 +1415,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
     directory, makefile, targets, overrides, unknown = make_parts(argv)
     overrides = dict(inherited["make"], **overrides)  # a parent make passes its command-line variables down
     if unknown:
-        return verdict("other", NOT_RUN, "uses a make option this checker does not read (%s)" % safe_text(unknown[0], 40))
+        return verdict("other", NOT_RUN, "uses a make option this checker does not read (%s)" % code(unknown[0], 40))
     base = os.path.normpath(os.path.join(cwd, directory)) if directory else cwd
     if directory and (not os.path.isdir(base) or not within(base, repo)):
         return verdict("other", NOT_RUN, "runs make in a folder that is not in the repo")
@@ -1433,7 +1434,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
             if not all(SAFE_MAKE_FLAG_RE.match(word) for word in value.split()):
                 return verdict("other", NOT_RUN, "the Makefile sets %s, which changes how make runs" % name)
         elif blocked_variable(name):
-            return verdict("other", NOT_RUN, "the Makefile sets %s, which changes what recipes run" % safe_text(name, 60))
+            return verdict("other", NOT_RUN, "the Makefile sets %s, which changes what recipes run" % code(name, 60))
     if info["unsafe"]:
         return verdict("other", NOT_RUN, info["unsafe"][0])
     if ".ONESHELL" in info["targets"]:
@@ -1454,7 +1455,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
         if is_template(goal):
             return verdict("other", NOT_RUN, PLACEHOLDER_REASON)
         if goal not in info["targets"]:
-            return verdict("other", NOT_RUN, "the Makefile has no %s target" % safe_text(goal, 60))
+            return verdict("other", NOT_RUN, "the Makefile has no %s target" % code(goal, 60))
         kind = name_kind(goal) or ("build" if not targets else None)
         visited = visit_targets(info["targets"], goal)
         problem = builtin_rule_problem(visited, info, base)
@@ -1465,7 +1466,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
             early = named_verdict(name, name_kind(name), True)
             if early:
                 return verdict(early["kind"], early["safety"], "%s (make %s runs the %s target)"
-                               % (early["reason"], safe_text(goal, 60), safe_text(name, 60)))
+                               % (early["reason"], code(goal, 60), code(name, 60)))
         early = named_verdict(goal, kind, body)
         if early:
             return early
@@ -1475,7 +1476,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
         exported = set(variables) if "*" in info["exported"] or ".EXPORT_ALL_VARIABLES" in info["targets"] \
             else info["exported"] & set(variables)
         passed = inherit(inherited, dict(overrides, **{n: variables[n] for n in exported}), overrides)
-        held = judge_lines([(s, l) for s, l in lines if l], base, repo, depth, trace, "make %s" % safe_text(goal, 60),
+        held = judge_lines([(s, l) for s, l in lines if l], base, repo, depth, trace, "make %s" % code(goal, 60),
                            passed)
         if held:
             return held
@@ -1486,7 +1487,7 @@ def make_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
 def just_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
     rest = argv[1:]
     if rest and rest[0].startswith("-"):
-        return verdict("other", NOT_RUN, "uses a just option this checker does not read (%s)" % safe_text(rest[0], 40))
+        return verdict("other", NOT_RUN, "uses a just option this checker does not read (%s)" % code(rest[0], 40))
     path = find_justfile(cwd, repo)
     if not path:
         return verdict("other", NOT_RUN, "no justfile in the repo to read")
@@ -1497,19 +1498,19 @@ def just_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
         return verdict("other", NOT_RUN, info["unsafe"][0])
     for setting in info["settings"]:
         if setting not in SAFE_JUST_SETTINGS:
-            return verdict("other", NOT_RUN, "the justfile sets %s, which changes how recipes run" % safe_text(setting, 60))
+            return verdict("other", NOT_RUN, "the justfile sets %s, which changes how recipes run" % code(setting, 60))
     for name in info["exported"]:
         if blocked_variable(name):
-            return verdict("other", NOT_RUN, "the justfile exports %s, which changes what recipes run" % safe_text(name, 60))
+            return verdict("other", NOT_RUN, "the justfile exports %s, which changes what recipes run" % code(name, 60))
     recipe = info["aliases"].get(rest[0], rest[0]) if rest else info["default"]
     params = rest[1:]
     if not recipe or recipe not in info["recipes"]:
-        return verdict("other", NOT_RUN, "the justfile has no %s recipe" % safe_text(recipe or "default", 60))
+        return verdict("other", NOT_RUN, "the justfile has no %s recipe" % (code(recipe, 60) if recipe else "default"))
     kind = name_kind(recipe)
     visited = visit_targets(info["recipes"], recipe)
     missing_recipe = next((r for r in visited if r not in info["recipes"]), None)
     if missing_recipe:
-        return verdict("other", NOT_RUN, "the justfile has no %s recipe to read" % safe_text(missing_recipe, 60))
+        return verdict("other", NOT_RUN, "the justfile has no %s recipe to read" % code(missing_recipe, 60))
     label = rel(path, repo)
     lines = [("%s backtick" % label, call) for call in info["shell"]]
     exported = {name: info["variables"].get(name) or "" for name in info["exported"]}
@@ -1520,14 +1521,14 @@ def just_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
         entry = info["recipes"][name]
         if "script" in entry["flags"]:
             return verdict("other", NOT_RUN, "the %s recipe is a script (a #! line or [script]) this checker cannot read"
-                           % safe_text(name, 60))
+                           % code(name, 60))
         if "(arguments)" in entry["flags"]:
             return verdict("other", NOT_RUN, "the %s recipe passes arguments to another recipe, which this checker "
-                           "does not follow" % safe_text(name, 60))
+                           "does not follow" % code(name, 60))
         unread = next((flag for flag in entry["flags"] if flag not in SAFE_JUST_ATTRIBUTES), None)
         if unread:
             return verdict("other", NOT_RUN, "the %s recipe uses [%s], which this checker does not read"
-                           % (safe_text(name, 60), safe_text(unread, 40)))
+                           % (code(name, 60), code(unread, 40)))
         values = {}
         for index, (variadic, dollar, param, default) in enumerate(entry["params"]):
             given = params[index:] if variadic else params[index:index + 1]
@@ -1537,16 +1538,16 @@ def just_verdict(argv, cwd, repo, depth, body, trace, inherited=None):
                 values[param] = just_value(default) if default else ""
             if dollar and blocked_variable(param):  # a $NAME parameter is exported to the recipe
                 return verdict("other", NOT_RUN, "the %s recipe exports %s, which changes what recipes run"
-                               % (safe_text(name, 60), safe_text(param, 60)))
+                               % (code(name, 60), code(param, 60)))
             if dollar:
                 exported[param] = values[param] or ""
         for line in entry["recipe"]:
             text, problem = just_expand(re.sub(r"^[@-]+", "", line), info["variables"], values)
             if problem:
-                return verdict("other", NOT_RUN, "%s (in just %s)" % (problem, safe_text(recipe, 60)))
+                return verdict("other", NOT_RUN, "%s (in just %s)" % (problem, code(recipe, 60)))
             lines.append(("%s recipe %s" % (label, name), text))
     held = judge_lines([(s, l) for s, l in lines if l], os.path.dirname(path), repo, depth, trace,
-                       "just %s" % safe_text(recipe, 60), inherit(inherited, exported))
+                       "just %s" % code(recipe, 60), inherit(inherited, exported))
     return held or verdict(kind if kind in SAFE_KINDS else None, SAFE)
 
 
@@ -1614,7 +1615,7 @@ def direct_verdict(argv, body, cwd, repo):
             return verdict("other", NOT_RUN, "creates a build environment and installs packages")
         return direct_verdict(args[1:], body, cwd, repo)
     if any(p.search(joined) for p in MODIFY_RES):
-        return verdict("other", NOT_RUN, "changes files (%s)" % safe_text(joined, 60))
+        return verdict("other", NOT_RUN, "changes files (%s)" % code(joined, 60))
     if WATCH_RE.search(joined):
         return verdict("other", NOT_RUN, "keeps running (watch or server mode)")
     if head in NETWORK_HEADS:
@@ -1644,7 +1645,7 @@ def direct_verdict(argv, body, cwd, repo):
             return verdict("other", NOT_RUN, problem) if problem else verdict(None, SAFE)
         if head in REPO_SCRIPT_RUNNERS and runs_repo_file(argv, cwd, repo):
             return verdict(None, SAFE)
-        return verdict("other", NOT_RUN, "the script runs %s, which this checker does not classify" % safe_text(head, 60))
+        return verdict("other", NOT_RUN, "the script runs %s, which this checker does not classify" % code(head, 60))
     if "/" in argv[0]:
         return verdict("other", NOT_RUN, "runs a project script that this checker does not classify")
     return verdict("other", NOT_RUN, NOT_A_CHECK)
@@ -1656,10 +1657,10 @@ def direct_verdict(argv, body, cwd, repo):
 def missing(token, cwd, repo, problems, unverified):
     first = re.sub(r"^(\./)+", "", token).split("/")[0]
     if first in GENERATED_DIRS:
-        unverified.append("%s does not exist yet (a setup step creates it)" % safe_text(token, 120))
+        unverified.append("%s does not exist yet (a setup step creates it)" % code(token, 120))
     else:
         where = rel(cwd, repo) if repo and os.path.abspath(cwd).startswith(os.path.abspath(repo)) else cwd
-        problems.append("%s does not exist (looked in %s)" % (safe_text(token, 120), safe_text(where, 120)))
+        problems.append("%s does not exist (looked in %s)" % (code(token, 120), code(where, 120)))
 
 
 def check_path(token, cwd, repo, problems, unverified, want_dir=False):
@@ -1747,9 +1748,9 @@ def static_check(command, base_dir, repo, env):
                          for env_dir in (".venv", "venv") if os.path.isfile(os.path.join(folder, env_dir, "bin", head))), None)
             if venv:
                 unverified.append("%s is not on PATH, but %s exists; the command works once that virtual "
-                                  "environment is active" % (safe_text(head, 60), safe_text(rel(venv, repo), 120)))
+                                  "environment is active" % (code(head, 60), code(rel(venv, repo), 120)))
             else:
-                problems.append("%s is not installed here (not found on PATH)" % safe_text(head, 60))
+                problems.append("%s is not installed here (not found on PATH)" % code(head, 60))
             continue
         if name in JS_TOOLS:
             check_js(argv, cwd, repo, problems, unverified)
@@ -1760,7 +1761,7 @@ def static_check(command, base_dir, repo, env):
         elif name in ("uv", "poetry", "pdm", "pipenv") and args[:1] == ["run"]:
             if name == "poetry" and not find_up(cwd, repo, "pyproject.toml"):
                 problems.append("poetry needs a pyproject.toml, and there is none in %s or above"
-                                % safe_text(rel(cwd, repo), 120))
+                                % code(rel(cwd, repo), 120))
             rest = runner_rest(args[1:])
             if rest:
                 inner = program_name(rest[0])
@@ -1775,7 +1776,7 @@ def static_check(command, base_dir, repo, env):
         elif name in ("python", "node", "bash", "sh", "zsh", "deno", "ruby", "perl", "php", "tsx", "ts-node"):
             check_script_arg(argv, cwd, repo, problems, unverified)
         elif name == "cargo" and not find_up(cwd, repo, "Cargo.toml"):
-            problems.append("cargo needs a Cargo.toml, and there is none in %s or above" % safe_text(rel(cwd, repo), 120))
+            problems.append("cargo needs a Cargo.toml, and there is none in %s or above" % code(rel(cwd, repo), 120))
         elif name == "go" and args[:1] == ["run"] and len(args) > 1 and (args[1].startswith("./") or args[1].endswith(".go")):
             check_path(args[1], cwd, repo, problems, unverified)
     status = "fail" if problems else ("unverified" if unverified else "ok")
@@ -1791,11 +1792,11 @@ def check_js(argv, cwd, repo, problems, unverified):
         return
     package = find_up(cwd, repo, "package.json")
     if not package:
-        problems.append("no package.json in %s or above" % safe_text(rel(cwd, repo), 120))
+        problems.append("no package.json in %s or above" % code(rel(cwd, repo), 120))
         return
     scripts = package_scripts(package)
-    label = safe_text(rel(package, repo), 120)
-    shown = safe_text(name, 60)
+    label = code(rel(package, repo), 120)
+    shown = code(name, 60)
     if name in scripts:
         return
     if tool == "npm" and subcommand == "start" and os.path.isfile(os.path.join(os.path.dirname(package), "server.js")):
@@ -1810,13 +1811,13 @@ def check_js(argv, cwd, repo, problems, unverified):
         elif not os.path.exists(os.path.join(modules, ".bin", name)):
             problems.append("%s is neither a script in %s nor an installed package program" % (shown, label))
         return
-    problems.append("%s has no script \"%s\"" % (label, shown))
+    problems.append("%s has no script %s" % (label, shown))
 
 
 def check_make(argv, cwd, repo, problems, unverified):
     directory, makefile, targets, _overrides, unknown = make_parts(argv)
     if unknown:
-        unverified.append("uses a make option this checker does not read (%s)" % safe_text(unknown[0], 40))
+        unverified.append("uses a make option this checker does not read (%s)" % code(unknown[0], 40))
         return
     base = os.path.join(cwd, directory) if directory else cwd
     if directory and not os.path.isdir(base):
@@ -1824,18 +1825,18 @@ def check_make(argv, cwd, repo, problems, unverified):
         return
     path = find_makefile(base, makefile)
     if not path:
-        problems.append("no Makefile in %s" % safe_text(rel(base, repo) if repo else base, 120))
+        problems.append("no Makefile in %s" % code(rel(base, repo) if repo else base, 120))
         return
     info = parse_makefile(path)
-    label = safe_text(rel(path, repo), 120)
+    label = code(rel(path, repo), 120)
     for target in targets:
         if is_template(target) or target in info["targets"]:
             continue
         if info["includes"] or info["dynamic"]:
             unverified.append("%s has no %s target, but it includes other files or pattern rules"
-                              % (label, safe_text(target, 60)))
+                              % (label, code(target, 60)))
         else:
-            problems.append("%s has no target %s" % (label, safe_text(target, 60)))
+            problems.append("%s has no target %s" % (label, code(target, 60)))
 
 
 def check_just(argv, cwd, repo, problems, unverified):
@@ -1846,10 +1847,10 @@ def check_just(argv, cwd, repo, problems, unverified):
     recipe = next((a for a in args if not a.startswith("-")), None)
     path = find_justfile(cwd, repo)
     if not path:
-        problems.append("no justfile in %s or above" % safe_text(rel(cwd, repo), 120))
+        problems.append("no justfile in %s or above" % code(rel(cwd, repo), 120))
         return
     info = parse_justfile(path)
-    label = safe_text(rel(path, repo), 120)
+    label = code(rel(path, repo), 120)
     if recipe is None:
         if not info["recipes"]:
             problems.append("%s has no recipes" % label)
@@ -1857,9 +1858,9 @@ def check_just(argv, cwd, repo, problems, unverified):
     if is_template(recipe) or recipe in info["recipes"] or recipe in info["aliases"]:
         return
     if info["imports"]:
-        unverified.append("%s has no %s recipe, but it imports other files" % (label, safe_text(recipe, 60)))
+        unverified.append("%s has no %s recipe, but it imports other files" % (label, code(recipe, 60)))
     else:
-        problems.append("%s has no recipe %s" % (label, safe_text(recipe, 60)))
+        problems.append("%s has no recipe %s" % (label, code(recipe, 60)))
 
 
 # -------------------------------------------------------------------- run
@@ -2041,10 +2042,10 @@ def test_loop_sentence(result):
     loop = result.get("test_loop")
     if not loop:
         return ""
-    command = safe_text(loop["command"], 120)
+    command = code(loop["command"], 120)
     if loop["timed_out"]:
-        return " Your test command `%s` %s." % (command, timeout_advice(loop["timeout"]))
-    return " Your test command `%s` takes %s." % (command, fmt_duration(loop["seconds"]))
+        return " Your test command %s %s." % (command, timeout_advice(loop["timeout"]))
+    return " Your test command %s takes %s." % (command, fmt_duration(loop["seconds"]))
 
 
 def commands_headline(result):
@@ -2065,7 +2066,7 @@ def run_cell(entry):
             return "passed in %s" % fmt_duration(outcome["seconds"])
         tail = outcome["output_tail"]
         return "failed (exit %s) in %s%s" % (outcome["exit_code"], fmt_duration(outcome["seconds"]),
-                                            ": %s" % tail if tail else "")
+                                            ": %s" % code(tail) if tail else "")
     if entry["safety"] == SAFE:
         if entry["static"] == "ok":
             return "safe: runs with --run"
@@ -2084,14 +2085,15 @@ def static_cell(entry):
 
 
 def render_sections(result):
-    code, cell = load_map.code, load_map.cell
+    cell = load_map.cell
     lines = ["## Documented commands", ""]
     if not result["commands"]:
         return lines + ["No commands found in the instruction files.", ""]
     lines += ["| Command | Found in | Static check | Run |", "|---|---|---|---|"]
     for entry in result["commands"]:
-        where = safe_text(", ".join(entry["sources"][:2]) + (" and more" if len(entry["sources"]) > 2 else ""), 200)
-        lines.append("| %s | %s | %s | %s |" % (code(entry["command"]), where, cell(static_cell(entry)),
+        where = ", ".join(code(source, 120) for source in entry["sources"][:2]) + (
+            " and more" if len(entry["sources"]) > 2 else "")
+        lines.append("| %s | %s | %s | %s |" % (code(entry["command"], 200), where, cell(static_cell(entry)),
                                                  cell(run_cell(entry))))
     lines.append("")
     if not result["ran"]:
@@ -2100,10 +2102,10 @@ def render_sections(result):
             lines.append("With --run, these would run (tests, lint, type checks, builds, --help, --version), one at "
                          "a time with a timeout, each in the folder of the file that documents it:")
             for entry in runnable:
-                lines.append("- %s (in %s)%s" % (code(entry["command"]), code(entry["folder"] or "."),
+                lines.append("- %s (in %s)%s" % (code(entry["command"], 200), code(entry["folder"] or ".", 200),
                                                  ", which runs:" if entry["runs"] else ""))
                 for step in entry["runs"]:
-                    lines.append("  - %s (%s)" % (code(step["line"]), safe_text(step["from"], 120)))
+                    lines.append("  - %s (%s)" % (code(step["line"], 200), code(step["from"], 120)))
         else:
             lines.append("With --run, nothing would run: no documented command is a safe test, lint, type check, "
                          "or build that passed its check.")

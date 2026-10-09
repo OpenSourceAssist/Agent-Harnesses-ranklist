@@ -110,7 +110,7 @@ Fix the file names under `read:` in `.aider.conf.yml`.
 
 ## Commands
 
-- **A missing script, target, or recipe** (`package.json has no script "lint"`, `Makefile has no target docs`): rename the command in the instruction file to one that exists, or add the missing script. Check `package.json` scripts, the Makefile, or the justfile for the current name.
+- **A missing script, target, or recipe** (the report says `package.json` has no script `lint`, or `Makefile` has no target `docs`): rename the command in the instruction file to one that exists, or add the missing script. Check `package.json` scripts, the Makefile, or the justfile for the current name.
 - **A program not on PATH**: the command names a tool that is not installed here. Either the instruction file should say how to install it, or the command is stale.
 - **A missing file or folder**: the command names a path that moved. Update the path.
 - **A failed run**: the output excerpt in the report shows why. When the command fails for everyone, fix the command in the instruction file; when it needs setup (a database, a service, an environment variable), write that setup step next to it.

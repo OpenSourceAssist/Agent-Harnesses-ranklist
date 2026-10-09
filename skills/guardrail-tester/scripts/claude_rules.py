@@ -28,8 +28,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import shell_split
+from safe import code
 
-MODES = ("default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions")
+MODES =("default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions")
 MODE_ALIASES = {"manual": "default"}
 # The docs name these as safe to strip before allow rules; the full list is internal.
 SAFE_ENV = frozenset({"NODE_ENV", "LANG", "NO_COLOR"})
@@ -269,8 +270,8 @@ def parse_rule(text, list_name="deny", source="project", source_root="") -> Rule
         return rule
     if tool in IGNORED_PATH_TOOLS:
         rule.kind = "path"
-        rule.ignored = "Claude Code never consults %s(path) rules; write %s(%s) instead" % (
-            tool, IGNORED_PATH_TOOLS[tool], spec)
+        rule.ignored = "Claude Code never consults %s(path) rules; write %s instead" % (
+            tool, code("%s(%s)" % (IGNORED_PATH_TOOLS[tool], spec)))
         return rule
     if tool == "WebFetch" and spec.strip().lower().startswith("domain:"):
         rule.kind, rule.spec = "domain", spec.strip()[len("domain:"):].strip()
@@ -1434,7 +1435,8 @@ def _load_layer(name, paths, cfg):
             data = _read_json(path)
         except (OSError, ValueError) as exc:
             layer.error = "%s: %s" % (os.path.basename(path), type(exc).__name__)
-            cfg.notes.append("Could not read %s settings (%s); it was skipped." % (name, layer.error))
+            cfg.notes.append("Could not read %s settings (%s: %s); it was skipped." % (
+                name, code(os.path.basename(path)), type(exc).__name__))
             continue
         layer.found = True
         layer.path = path if not layer.data else layer.path
@@ -1542,6 +1544,17 @@ def _smell(sid, severity, text, source=""):
     return {"id": sid, "severity": severity, "text": text, "source": source}
 
 
+def hook_source(source):
+    """A hook's source for a report line: a settings layer as is, a plugin's
+    name (read from settings) in inline code."""
+    return code(source) if source.startswith("plugin:") else source
+
+
+def hook_label(source, command):
+    """'The <source> hook <command>' for a problem line, the command in inline code."""
+    return "The %s hook %s" % (hook_source(source), code(command))
+
+
 def static_smells(cfg) -> list:
     """Configuration problems visible without running anything."""
     out = []
@@ -1556,23 +1569,23 @@ def static_smells(cfg) -> list:
         for rule in cfg.rules[list_name]:
             if rule.ignored:
                 out.append(_smell("rule-ignored", "medium", "The %s rule %s is ignored: %s." % (
-                    list_name, rule.raw, rule.ignored), rule.source))
+                    list_name, code(rule.raw), rule.ignored), rule.source))
             if list_name != "allow":
                 continue
             if rule.kind == "tool" and rule.tool == "Bash":
                 out.append(_smell("allow-all-bash", "high", "The allow rule %s approves every shell command "
                                   "without asking, so only deny rules, ask rules, and hooks stand in the way."
-                                  % rule.raw, rule.source))
+                                  % code(rule.raw), rule.source))
             if rule.kind == "bash":
                 tokens = rule.spec.split()
                 star = next((i for i, t in enumerate(tokens) if "*" in t), None)
                 if star is not None and star <= 1 and star < len(tokens) - 1:
                     out.append(_smell("allow-wildcard-before-subcommand", "medium", "The allow rule %s has a "
                                       "wildcard before the subcommand, so it approves any subcommand, including "
-                                      "git -c options that run programs." % rule.raw, rule.source))
+                                      "git -c options that run programs." % code(rule.raw), rule.source))
     cursor = os.path.isdir(os.path.join(cfg.home, ".cursor"))
     for spec in cfg.hooks:
-        label = "The %s hook %s" % (spec.source, spec.command)
+        label = hook_label(spec.source, spec.command)
         if spec.timeout is None:
             out.append(_smell("hook-no-timeout", "low", label + " sets no timeout, so Claude Code waits up to "
                               "600 seconds for it; a hook that times out lets the call through.", spec.source))
@@ -1593,10 +1606,11 @@ def static_smells(cfg) -> list:
         if cursor and spec.source in ("user", "project", "local") and hook_matcher_matches(spec.matcher, "Bash") \
                 and not hook_matcher_matches(spec.matcher, "Shell") and spec.matcher not in (None, "", "*"):
             out.append(_smell("cursor-bash-matcher", "medium", label + " also loads in Cursor, but its matcher "
-                              "%s never fires there: Cursor calls its shell tool Shell." % spec.matcher, spec.source))
+                              "%s never fires there: Cursor calls its shell tool Shell." % code(spec.matcher),
+                              spec.source))
     for spec, why in cfg.skipped_hooks:
         if why.startswith("disableAllHooks"):
-            out.append(_smell("hooks-disabled", "high", "The %s hook %s never runs: %s." % (spec.source, spec.command,
+            out.append(_smell("hooks-disabled", "high", "%s never runs: %s." % (hook_label(spec.source, spec.command),
                               why), spec.source))
     unique = {}
     for smell in out:                              # the same handler under two matchers is one finding
@@ -1755,7 +1769,7 @@ def _load_hooks(cfg, layers):
         elif managed_only and spec.source != "managed":
             why = "managed settings allow only managed hooks"
         elif spec.type != "command":
-            why = "a %s hook; this test runs command hooks only" % spec.type
+            why = "a %s hook; this test runs command hooks only" % code(spec.type)
         elif spec.is_async:
             why = "an async hook runs in the background and cannot block"
         elif not spec.command:

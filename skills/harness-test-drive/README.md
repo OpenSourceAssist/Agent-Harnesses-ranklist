@@ -11,16 +11,16 @@ A sample report. The numbers and commits are invented; your run prints its own.
 
 | Harness | Version | Passed | Pass rate | Median minutes | Cost per pass | Total cost | Median lines changed |
 |---|---|---|---|---|---|---|---|
-| Claude Code | 2.1.300 (Claude Code) | 7 of 8 | 88% | 4.2 | $0.84 | $5.88 | 14 |
-| Codex | codex-cli 0.160.0 | 6 of 8 | 75% | 6.8 | $0.47 | $2.82 | 9 |
+| Claude Code | `2.1.300 (Claude Code)` | 7 of 8 | 88% | 4.2 | $0.84 | $5.88 | 14 |
+| Codex | `codex-cli 0.160.0` | 6 of 8 | 75% | 6.8 | $0.47 | $2.82 | 9 |
 
 Per task (the size of the original fix in changed lines, then each harness):
 
 | Task | Change | Original fix lines | Claude Code | Codex |
 |---|---|---|---|---|
-| 3f2a91c | Fix off-by-one on the pager's last page | 6 | passed, 3.1 min, $0.48 | passed, 5.2 min, $0.31 |
-| 9b07d4e | Retry uploads after a 429 response | 41 | passed, 7.9 min, $1.62 | failed, 9.4 min, $0.66 |
-| c41e8a2 | Keep time zones when parsing due dates | 12 | failed, 6.3 min, $0.97 | passed, 4.4 min, $0.28 |
+| 3f2a91c | `Fix off-by-one on the pager's last page` | 6 | passed, 3.1 min, $0.48 | passed, 5.2 min, $0.31 |
+| 9b07d4e | `Retry uploads after a 429 response` | 41 | passed, 7.9 min, $1.62 | failed, 9.4 min, $0.66 |
+| c41e8a2 | `Keep time zones when parsing due dates` | 12 | failed, 6.3 min, $0.97 | passed, 4.4 min, $0.28 |
 
 - Dollar figures are API list prices: what the harness reported, or its tokens times the price
   table checked 2026-09-28. On a subscription plan, runs count against the plan's limits instead.
@@ -28,7 +28,7 @@ Per task (the size of the original fix in changed lines, then each harness):
 Counted toward the spend cap: $8.70.
 ```
 
-When a harness cannot run at all, the headline says so instead of scoring it: "On 8 tasks from your git history, Codex passed 6 at $0.47 each; Claude Code could not run (Failed to authenticate: OAuth session expired)." The run prints the fix ("sign in: run claude once") and retries those tasks next time at no charge.
+When a harness cannot run at all, the headline says so instead of scoring it: "On 8 tasks from your git history, Codex passed 6 at $0.47 each; Claude Code could not run (`Failed to authenticate: OAuth session expired`)." The run prints the fix ("sign in: run claude once") and retries those tasks next time at no charge.
 
 ## Install
 

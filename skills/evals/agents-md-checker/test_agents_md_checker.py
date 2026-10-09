@@ -10,6 +10,7 @@ Run:
 
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -1726,7 +1727,7 @@ def test_the_reason_names_the_unclassified_program(tmp_path):
     write(root, "package.json", json.dumps({"scripts": {"test": "some-unknown-tool --all"}}))
     verdict = commands.classify("npm test", str(root))
     assert verdict["safety"] == "not_run"
-    assert verdict["reason"].startswith("the script runs some-unknown-tool, which this checker does not classify")
+    assert verdict["reason"].startswith("the script runs `some-unknown-tool`, which this checker does not classify")
 
 
 @pytest.mark.parametrize("body", [
@@ -1800,8 +1801,8 @@ def test_would_run_lists_the_script_bodies(tmp_path, home):
     assert entry_found["runs"] == [{"from": "package.json script pretest", "line": "eslint ."},
                                    {"from": "package.json script test", "line": "jest --ci"}]
     text = commands.render_markdown(result)
-    assert "`eslint .` (package.json script pretest)" in text
-    assert "`jest --ci` (package.json script test)" in text
+    assert "`eslint .` (`package.json script pretest`)" in text
+    assert "`jest --ci` (`package.json script test`)" in text
 
 
 def test_uv_run_frozen_needs_an_existing_venv(project):
@@ -1862,7 +1863,7 @@ def test_claude_fix_for_an_agents_md_below_the_blocking_file(repo, home, env):
     write(repo, "pkg/AGENTS.md", "pkg rules\n")
     result = build(repo, home, env, cwd=repo / "pkg")
     fix = next(f for f in result["findings"] if f["id"] == "claude-ignores-agents-md")["fix"]
-    assert "pkg/" in fix and "`@AGENTS.md`" in fix and "instructionFiles" in fix
+    assert "`pkg/`" in fix and "`@AGENTS.md`" in fix and "instructionFiles" in fix
 
 
 def test_cursor_reads_nothing_warning_and_unverified_cell(repo, home, env):
@@ -2163,7 +2164,7 @@ def test_a_body_may_write_only_inside_build_folders(tmp_path):
         "test:only": "jest && > src/index.js",
     }}))
     verdict = commands.classify("npm test", str(root))
-    assert verdict["safety"] == "not_run" and verdict["reason"].startswith("writes junit.txt outside the build folders")
+    assert verdict["safety"] == "not_run" and verdict["reason"].startswith("writes `junit.txt` outside the build folders")
     for name in ("test:abs", "test:up", "test:link", "test:only"):
         assert commands.classify("npm run %s" % name, str(root))["safety"] == "not_run", name
     assert commands.classify("npm run test:ok", str(root))["safety"] == "safe"
@@ -2278,7 +2279,7 @@ SHELL_EVASIONS = [
     ("git log $'--output=canary'", "$'"),
     ("git log {--output=canary,--oneline}", "brace"),
     ("jest() ( ./evil.sh ); jest", "function"),
-    ("set -k; jest NODE_OPTIONS=--require=./hook.js", "runs set"),
+    ("set -k; jest NODE_OPTIONS=--require=./hook.js", "runs `set`"),
     ("printf -v PATH ./evil; jest", "printf -v"),
     ("jest --json --outputFile=/tmp/results.json", "outside the repo"),
     ("jest --json --outputFile=~/results.json", "outside the repo"),
@@ -2347,7 +2348,7 @@ JUST_EVASIONS = [
     ("evil := './evil.sh'\ncmd := 'echo ok'\ntest cmd=evil:\n    {{cmd}}\n", "just test", "cmd"),
     ("x := '''\njest\n'''\ntest:\n    pytest\n", "just test", "cannot read"),
     ('test: (helper "./evil.sh")\n    pytest\nhelper cmd:\n    {{cmd}}\n', "just test", "passes arguments"),
-    ("test: helper\n    pytest\n", "just test", "no helper recipe"),
+    ("test: helper\n    pytest\n", "just test", "no `helper` recipe"),
     ("lint:\n    ruff check .\n[default]\ntest:\n    ./evil.sh\n", "just", "evil.sh"),
 ]
 
@@ -2401,3 +2402,99 @@ def test_run_cannot_make_git_write_files_through_npm_or_a_redirect(tmp_path, hom
     assert not (root / "new-file.txt").exists()
     assert len(result["commands"]) == 5
     assert all(c["run"] is None and c["safety"] == "not_run" for c in result["commands"])
+
+
+# ============================== untrusted text stays inside inline code (spec 4.11)
+
+HOSTILE_LINK = "[Click](https:evil.example)"
+HOSTILE_HTML = "<img src=x onerror=alert(1)>"
+
+
+def outside_code(markdown):
+    """What renders as Markdown: the report with fenced blocks and inline code removed."""
+    markdown = re.sub(r"(?ms)^```.*?^```", "", markdown)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", markdown)
+
+
+def rendered(markdown, markers=("evil.example", "evil.test", "<img")):
+    """Report lines where repo text would render as a link, a bare URL, or HTML."""
+    return [line for line in markdown.splitlines() if any(m in outside_code(line) for m in markers)]
+
+
+def test_report_keeps_import_tokens_in_inline_code(repo, home):
+    write(repo, "CLAUDE.md", "Read @docs/missing-%s.md first.\n" % HOSTILE_LINK)
+    write(repo, "GEMINI.md", "Read @docs/%s.md first.\n" % HOSTILE_LINK)
+    write(repo, "docs/%s.md" % HOSTILE_LINK, "Docs.\n")
+    result = build(repo, home, {"HOME": str(home), "PATH": ""})
+    assert {"broken-import", "gemini-import-form"} <= set(finding_ids(result))
+    for script in ("load_map.py", "check.py"):
+        text = run_script(script, "--repo", repo, env=cli_env(home)).stdout
+        assert "imports `@docs/missing-[Click](https:evil.example).md`" in text, script
+        assert not rendered(text), (script, rendered(text))
+
+
+def test_report_keeps_command_output_in_inline_code(tmp_path, home):
+    root = tmp_path / "output"
+    (root / ".git").mkdir(parents=True)
+    write(root, "AGENTS.md", "```bash\npython3 -m unittest discover -s failing 2>&1 | tail -3\n```\n")
+    write(root, "failing/test_fail.py",
+          "import unittest\nclass T(unittest.TestCase):\n    def test_fail(self):\n"
+          "        print('[Fix it here](https://evil.example/fix) %s')\n        self.fail('boom')\n" % HOSTILE_HTML)
+    for script in ("commands.py", "check.py"):
+        text = run_script(script, "--repo", root, "--run", "--timeout", "60", env=cli_env(home)).stdout
+        assert "evil.example/fix" in text, script
+        assert not rendered(text), (script, rendered(text))
+
+
+def test_report_codes_and_cleans_an_oversized_rule_file_name(repo, home):
+    write(repo, "CLAUDE.md", "Project rules.\n")
+    rules = repo / ".claude" / "rules"
+    rules.mkdir(parents=True)
+    (rules / ("a`b %s.md" % HOSTILE_LINK)).write_bytes(b"x" * (4 * 1024 * 1024 + 10))
+    for script in ("load_map.py", "check.py"):
+        text = run_script(script, "--repo", repo, env=cli_env(home)).stdout
+        assert "over 4 MiB" in text, script
+        assert "a`b" not in text and not rendered(text), (script, rendered(text))
+        data = run_script(script, "--repo", repo, "--json", env=cli_env(home)).stdout
+        assert "a'b" in data and "`" not in data, script
+
+
+@pytest.mark.parametrize("command, secret", [
+    ("mysql -u root -phunter2pass app < db/schema.sql", "hunter2pass"),
+    ("sshpass -p hunter3pass ssh deploy@host.test", "hunter3pass"),
+    ("curl -u admin:hunter4pass https://api.host.test", "hunter4pass"),
+])
+def test_report_masks_passwords_passed_as_command_flags(repo, home, command, secret):
+    write(repo, "AGENTS.md", "Load the schema:\n\n```bash\n%s\n```\n" % command)
+    for args in ((), ("--json",)):
+        out = run_script("check.py", "--repo", repo, *args, env=cli_env(home)).stdout
+        assert "[REDACTED]" in out and secret not in out, args
+
+
+def test_report_keeps_every_repo_value_in_inline_code(tmp_path, home):
+    root = tmp_path / "sweep"
+    (root / ".git").mkdir(parents=True)
+    write(root, "a%sb%s/AGENTS.md" % (HOSTILE_HTML, HOSTILE_LINK), "See [the guide](www.evil.test/missing.md).\n")
+    write(root, "AGENTS.md", "Use Node 18. Run `npm run www.evil.example`, `make www.evil.example`, and `npm test`.\n")
+    write(root, "package.json", json.dumps({"scripts": {"test": "jest"}, "packageManager": "pnpm@" + HOSTILE_LINK,
+                                            "engines": {"node": ">=99 " + HOSTILE_HTML}}))
+    write(root, "Makefile", "test:\n\tpytest -q\n")
+    write(root, ".gemini/settings.json", json.dumps({"context": {"fileName": [HOSTILE_LINK + ".md"],
+                                                                 "memoryBoundaryMarkers": [HOSTILE_HTML]}}))
+    write(root, ".claude/rules/paths.md", "---\npaths: [\"%s\"]\n---\nRule.\n" % HOSTILE_HTML)
+    write(root, ".cursor/rules/style.mdc", "---\nglobs: %s\n---\nStyle.\n" % HOSTILE_LINK)
+    write(root, "opencode.json", json.dumps({"instructions": ["https://evil.example/r.md?token=abc",
+                                                              "missing-%s.md" % HOSTILE_LINK]}))
+    write(root, ".aider.conf.yml", "read: [\"%s.md\"]\n" % HOSTILE_LINK)
+    env = cli_env(home, make_bin(tmp_path / "bin", "npm", "make", "pytest"))
+    for script in ("load_map.py", "commands.py", "check.py"):
+        text = run_script(script, "--repo", root, env=env).stdout
+        assert text.startswith("**") and "evil." in text, script
+        assert not rendered(text), (script, rendered(text))
+        data = run_script(script, "--repo", root, "--json", env=env).stdout
+        assert "evil." in data and "`" not in data, script
+    text = run_script("check.py", "--repo", root, env=env).stdout
+    for value in ("`package.json` has no script `www.evil.example`", "the Makefile has no `www.evil.example` target",
+                  "packageManager to `pnpm@[Click](https:evil.example)`", "No boundary marker (`<img",
+                  "(`a<img src=x onerror=alert(1)>b[Click](https:evil.example)/AGENTS.md:1`, link)"):
+        assert value in text, value

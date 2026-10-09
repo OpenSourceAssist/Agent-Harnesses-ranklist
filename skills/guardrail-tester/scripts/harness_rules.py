@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 
 import claude_rules as C
 import shell_split
+from safe import code
 
 try:
     import tomllib
@@ -150,7 +151,7 @@ def codex_parse_rules(text, name="rules"):
     try:
         tree = ast.parse(text)
     except SyntaxError as exc:
-        return [], ["%s: cannot be read (line %s)" % (name, exc.lineno)]
+        return [], ["%s: cannot be read (line %s)" % (code(name), exc.lineno)]
     rules, warnings = [], []
     for node in tree.body:
         call = node.value if isinstance(node, ast.Expr) else None
@@ -162,7 +163,7 @@ def codex_parse_rules(text, name="rules"):
                 kwargs.setdefault("pattern", ast.literal_eval(call.args[0]))
         except (ValueError, TypeError, SyntaxError):
             warnings.append("%s line %d: a prefix_rule uses expressions this test cannot read; skipped"
-                            % (name, node.lineno))
+                            % (code(name), node.lineno))
             continue
         pattern = kwargs.get("pattern")
         decision = kwargs.get("decision", "allow")
@@ -171,7 +172,7 @@ def codex_parse_rules(text, name="rules"):
             for p in pattern)
         if not valid or decision not in _CODEX_DECISIONS:
             warnings.append("%s line %d: a prefix_rule has an invalid pattern or decision; skipped"
-                            % (name, node.lineno))
+                            % (code(name), node.lineno))
             continue
         rules.append(PrefixRule(pattern, decision, str(kwargs.get("justification") or ""), name, node.lineno))
     return rules, warnings
@@ -822,9 +823,10 @@ def opencode_config(conf, cwd, home) -> OpenCodeConfig:
                      and _oc_match(p, [sample], cfg.home)]
             if later:
                 cfg.smells.append({"id": "opencode-shadowed-deny", "severity": "high", "source": "opencode.json",
-                                   "text": "In permission.%s, the deny rule %s comes before %s. OpenCode uses the "
+                                   "text": "In %s, the deny rule %s comes before %s. OpenCode uses the "
                                            "last matching rule, so the deny never applies; move it after."
-                                           % (key, json.dumps(pattern), json.dumps(later[0]))})
+                                           % (code("permission.%s" % key), code(json.dumps(pattern)),
+                                              code(json.dumps(later[0])))})
     return cfg
 
 
@@ -893,7 +895,7 @@ def opencode_load(project, home=None) -> OpenCodeConfig:
         try:
             data = parse_jsonc(_read_text(path))
         except (OSError, ValueError):
-            notes.append("Could not read %s." % os.path.basename(path))
+            notes.append("Could not read %s." % code(os.path.basename(path)))
             continue
         if isinstance(data, dict):
             merged = C._merge(merged, data)
@@ -1018,7 +1020,7 @@ def cursor_load(project, home=None, claude_hooks=()) -> CursorConfig:
         try:
             hooks = _read_json(path).get("hooks") or {}
         except (OSError, ValueError):
-            cfg.notes.append("Could not read %s." % path)
+            cfg.notes.append("Could not read %s." % code(path))
             continue
         count = 0
         for event in CURSOR_EVENTS:
@@ -1043,7 +1045,7 @@ def cursor_load(project, home=None, claude_hooks=()) -> CursorConfig:
         if C.hook_matcher_matches(spec.matcher, "Bash") and not C.hook_matcher_matches(spec.matcher, "Shell"):
             cfg.smells.append({"id": "cursor-bash-matcher", "severity": "medium", "source": "claude-" + spec.source,
                                "text": "Cursor also loads this Claude Code hook, but its matcher %s never fires "
-                                       "there: Cursor calls its shell tool Shell." % json.dumps(spec.matcher)})
+                                       "there: Cursor calls its shell tool Shell." % code(json.dumps(spec.matcher))})
     if any(h.source.startswith("claude-") for h in cfg.hooks):
         cfg.notes.append("Cursor loads Claude Code hooks when \"Include Third-Party Plugins, Skills, and Other "
                          "Configs\" is on (the default); this test assumes it is on.")

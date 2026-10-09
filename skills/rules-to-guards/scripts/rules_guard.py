@@ -25,19 +25,24 @@ MAX_COMMANDS = 5000  # simple commands checked per tool call
 # Shell commands: split into simple commands, then unwrap each one
 # ---------------------------------------------------------------------------
 
-_HEREDOC_RE = re.compile(r"<<(-?)[ \t]*(?:'([^'\n]*)'|\"([^\"\n]*)\"|\\?([A-Za-z0-9_.\-]+))")
+_HEREDOC_RE = re.compile(r"<<(-?)[ \t]*((?:'[^'\n]*'|\"[^\"\n]*\"|\\[^\n]|[A-Za-z0-9_.\-])+)")
+_UNQUOTE_RE = re.compile(r"'([^']*)'|\"([^\"]*)\"|\\(.)")
 
 
 def split_commands(script):
     """The simple commands in a shell script, as written: split on unquoted ;, &,
     |, newlines, and parentheses, with $(...) and backtick bodies added as their
-    own commands. Heredoc bodies and comments are skipped."""
+    own commands, also inside a heredoc whose delimiter is not quoted. Other
+    heredoc text and comments are skipped."""
     out = []
     _scan(script if isinstance(script, str) else "", out, 0, None)
     return out
 
 
-def _scan(s, out, depth, blank):
+def _scan(s, out, depth, blank, marks=False):
+    """With marks, `out` also gets ("(",) and (")",) where a subshell opens and
+    closes, ("|",) for each pipe, and ("$", body) in place of the commands of each
+    $(...) and backtick body, so the caller can follow cd in each scope."""
     s = s[:MAX_CHARS]
     n, i, buf, word_start, heredocs = len(s), 0, [], True, []
 
@@ -53,7 +58,9 @@ def _scan(s, out, depth, blank):
         del buf[:]
 
     def nested(text):
-        if depth < MAX_DEPTH:
+        if marks:
+            out.append(("$", text))
+        elif depth < MAX_DEPTH:
             _scan(text, out, depth + 1, None)
 
     while i < n:
@@ -73,19 +80,7 @@ def _scan(s, out, depth, blank):
             keep(s[i:j + 1], "''")
             i, word_start = j + 1, False
         elif c == '"':
-            j, inner = i + 1, []
-            while j < n and s[j] != '"':
-                if s[j] == "\\":
-                    j += 2
-                elif s.startswith("$(", j):
-                    text, j = _balanced(s, j + 2)
-                    inner.append(text)
-                elif s[j] == "`" and s.find("`", j + 1) > 0:
-                    k = s.find("`", j + 1)
-                    inner.append(s[j + 1:k])
-                    j = k + 1
-                else:
-                    j += 1
+            inner, j = _expansions(s, i + 1, '"')
             if j >= n:  # a quote that never closes is a literal character
                 keep(c)
                 i, word_start = i + 1, False
@@ -109,8 +104,7 @@ def _scan(s, out, depth, blank):
             i = n if k < 0 else k
         elif s.startswith("<<", i) and not s.startswith("<<<", i) and _HEREDOC_RE.match(s, i):
             m = _HEREDOC_RE.match(s, i)
-            word = next(g for g in (m.group(2), m.group(3), m.group(4)) if g is not None)
-            heredocs.append(word)
+            heredocs.append(_heredoc(m))
             keep(m.group(0))
             i, word_start = m.end(), False
         elif c == "\n":
@@ -119,7 +113,7 @@ def _scan(s, out, depth, blank):
                 blank.append("\n")
             i, word_start = i + 1, True
             if heredocs:
-                i, heredocs = _skip_heredocs(s, i, heredocs), []
+                i, heredocs = _skip_heredocs(s, i, heredocs, nested), []
         elif (c == "&" and (s.startswith("&>", i) or (buf and buf[-1].endswith(">")))) or \
                 (c == "|" and buf and buf[-1].endswith(">")):
             keep(c)  # part of a redirection: &>, >&, >|
@@ -128,6 +122,8 @@ def _scan(s, out, depth, blank):
             flush()
             if blank is not None:
                 blank.append(c)
+            if marks and (c in "()" or (c == "|" and "|" not in (s[i - 1:i], s[i + 1:i + 2]))):
+                out.append((c,))  # a subshell opens or closes, or a pipe (not ||) joins two
             i, word_start = i + 1, True
         else:
             keep(c)
@@ -151,7 +147,7 @@ def _balanced(s, start):
             continue
         if s.startswith("<<", j) and not s.startswith("<<<", j) and _HEREDOC_RE.match(s, j):
             m = _HEREDOC_RE.match(s, j)
-            heredocs.append(next(g for g in (m.group(2), m.group(3), m.group(4)) if g is not None))
+            heredocs.append(_heredoc(m))
             j = m.end()
             continue
         if c == "\n" and heredocs:
@@ -182,15 +178,50 @@ def _quote_end(s, j):
     return -1
 
 
-def _skip_heredocs(s, i, words):
+def _expansions(s, j=0, stop=None):
+    """(the $(...) and backtick bodies in text that starts at s[j], index of the
+    `stop` character that ends it or len(s)). The text is double-quoted, or a
+    heredoc body whose delimiter is not quoted: the shell runs these bodies."""
+    inner, n = [], len(s)
+    while j < n and s[j] != stop:
+        if s[j] == "\\":
+            j += 2
+        elif s.startswith("$(", j):
+            text, j = _balanced(s, j + 2)
+            inner.append(text)
+        elif s[j] == "`" and s.find("`", j + 1) > 0:
+            k = s.find("`", j + 1)
+            inner.append(s[j + 1:k])
+            j = k + 1
+        else:
+            j += 1
+    return inner, j
+
+
+def _heredoc(m):
+    """(delimiter, expands) for a heredoc operator. The delimiter is the word with
+    its quotes removed, as bash does. The body expands $(...) and backticks only
+    when no part of the word is quoted: <<EOF, not <<'EOF', <<E"OF", or <<\\EOF."""
+    raw = m.group(2)
+    word = _UNQUOTE_RE.sub(lambda q: "".join(g or "" for g in q.groups()), raw)
+    return word, word == raw
+
+
+def _skip_heredocs(s, i, heredocs, run=None):
+    """Index after the heredoc bodies that start at s[i]. `run` gets each $(...)
+    and backtick body inside a heredoc that expands."""
     n = len(s)
-    for word in words:
+    for word, expands in heredocs:
+        start = i
         while i < n:
             k = s.find("\n", i)
             line = s[i:] if k < 0 else s[i:k]
             i = n if k < 0 else k + 1
             if line.strip() == word:
                 break
+        if expands and run:
+            for text in _expansions(s[start:i])[0]:
+                run(text)
     return i
 
 
@@ -384,6 +415,7 @@ class _Facts:
 
     def __init__(self):
         self.texts = []    # command texts a command rule is matched against
+        # (path, folder) pairs; the folder is where cd went, from the working folder
         self.paths = []    # arguments and input redirection targets a path rule is matched against
         self.outputs = []  # output redirection targets (> and >>): writes only
         self.commands = 0  # simple commands seen, up to MAX_COMMANDS
@@ -394,29 +426,69 @@ class _Facts:
             self._seen.add(("t", t))
             self.texts.append(t)
 
-    def path(self, p, output=False):
-        key = ("o" if output else "p", p)
+    def path(self, p, output=False, here=""):
+        key = ("o" if output else "p", p, here)
         if p and "://" not in p and key not in self._seen:
             self._seen.add(key)
-            (self.outputs if output else self.paths).append(p)
+            (self.outputs if output else self.paths).append((p, here))
 
 
-def _shell_facts(command, facts=None, depth=0):
+_CD_OPTION_RE = re.compile(r"^-[LPe@]+$")
+
+
+def _change_folder(here, base, args, pushed):
+    """The folder after cd, pushd, or popd, relative to the working folder or
+    absolute. When the hook cannot tell where it goes (cd -, a variable, ~user),
+    the folder stays where the hook last knew it."""
+    if base == "popd":
+        return pushed.pop() if pushed and not args else here
+    while args and _CD_OPTION_RE.match(args[0]):
+        args = args[1:]
+    args = args[1:] if args[:1] == ["--"] else args
+    if base == "pushd":
+        if not args:
+            return here  # swaps the top two folders
+        pushed.append(here)
+    if len(args) > 1:
+        return here
+    to = args[0] if args else "~"
+    if to == "~" or to.startswith("~/"):
+        to = os.path.expanduser("~") + to[1:]
+    if to == "-" or to.startswith(("~", "+")) or re.search(r"[$`*?\[]", to):
+        return here
+    return os.path.normpath(os.path.join(here, to))
+
+
+def _shell_facts(command, facts=None, depth=0, here=""):
+    """`here` is the folder the command starts in, as _change_folder gives it."""
     facts = facts or _Facts()
     command = command if isinstance(command, str) else ""
     blank, segments = [], []
-    _scan(command, segments, 0, blank)
+    _scan(command, segments, 0, blank, marks=True)
     if depth == 0:
         facts.text("".join(blank).strip())
+    outer, pushed = [], []  # the folder to go back to when each ( closes; pushd's stack
+    before, piped = here, False  # the folder before the last command; True right after a pipe
     for seg in segments:
         if facts.commands >= MAX_COMMANDS:
             break
+        if isinstance(seg, tuple):
+            if seg[0] == "(":
+                outer.append(here)
+            elif seg[0] == ")":
+                here = outer.pop() if outer else here
+            elif seg[0] == "|":  # bash runs each part of a pipeline in a subshell
+                here, piped = before, True
+            elif depth < MAX_DEPTH:  # a $(...) body starts here, and its cd stays inside it
+                _shell_facts(seg[1], facts, depth + 1, here)
+            continue
         facts.commands += 1
+        before, in_pipe, piped = here, piped, False
         tokens, inputs, outputs = _pull_redirections(_tokens(seg))
         for t in inputs:
-            facts.path(t)
+            facts.path(t, here=here)
         for t in outputs:
-            facts.path(t, output=True)
+            facts.path(t, output=True, here=here)
         body = _unwrap(tokens)
         if not body:
             continue
@@ -434,13 +506,15 @@ def _shell_facts(command, facts=None, depth=0):
             for arg in core[1:]:
                 if arg.startswith("-"):
                     arg = arg.split("=", 1)[1] if arg.startswith("--") and "=" in arg else ""
-                facts.path(arg)
+                facts.path(arg, here=here)
+        if base in ("cd", "pushd", "popd") and not in_pipe:
+            here = _change_folder(here, base, body[1:], pushed)
         if depth < MAX_DEPTH:
             if script:
-                _shell_facts(script, facts, depth + 1)
+                _shell_facts(script, facts, depth + 1, here)
             if base == "find":
                 for run in _find_exec(body[1:]):
-                    _shell_facts(run, facts, depth + 1)
+                    _shell_facts(run, facts, depth + 1, here)
     return facts
 
 
@@ -453,7 +527,7 @@ def command_candidates(command):
 
 def shell_path_args(command):
     """Arguments and redirection targets of a shell command that a path rule checks."""
-    return _shell_facts(command).paths
+    return [p for p, _here in _shell_facts(command).paths]
 
 
 # ---------------------------------------------------------------------------
@@ -684,7 +758,9 @@ def matches(rules, call):
                 # > and >> only write, so a rule about reading skips their targets.
                 reads_only = "read" in r.kinds and not r.kinds & {"edit", "write"}
                 candidates = facts.paths if reads_only else facts.paths + facts.outputs
-                found = next((p for p in candidates if glob_matches(r.pattern, p, cwd, root=root)), None)
+                # A path after cd starts from that folder.
+                found = next((p for p, here in candidates
+                              if glob_matches(r.pattern, p, os.path.join(cwd, here), root=root or cwd)), None)
         elif r.kind == "protect_path" and kind in r.kinds:
             found = next((p for p in call.get("paths") or [] if glob_matches(r.pattern, p, cwd, root=root)), None)
         if found is not None:

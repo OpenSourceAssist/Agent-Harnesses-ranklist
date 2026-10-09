@@ -27,7 +27,7 @@ import sys
 
 import commands
 import load_map
-from load_map import safe_text
+from safe import code, safe_text
 
 LOCKFILES = (
     ("package-lock.json", "npm"), ("npm-shrinkwrap.json", "npm"), ("pnpm-lock.yaml", "pnpm"),
@@ -136,7 +136,8 @@ def uses_by(entries, detect):
 
 
 def describe_uses(uses):
-    return " and ".join("%s (%s)" % (tool, safe_text(", ".join(sources[:2]), 200)) for tool, sources in sorted(uses.items()))
+    return " and ".join("%s (%s)" % (tool, ", ".join(code(source, 120) for source in sources[:2]))
+                        for tool, sources in sorted(uses.items()))
 
 
 def package_manager_findings(repo, cmds):
@@ -160,12 +161,12 @@ def package_manager_findings(repo, cmds):
     for tool, sources in sorted(uses.items()):
         if field_tool in PACKAGE_MANAGERS and tool != field_tool:
             facts.append("%s uses %s, but package.json sets packageManager to %s"
-                         % (safe_text(sources[0], 120), tool, safe_text(field, 60)))
+                         % (code(sources[0], 120), tool, code(field, 60)))
             evidence.append("package.json")
         elif not field_tool and len(lock_tools) == 1 and tool != lock_tools[0]:
             lock_name = next(n for n, t in locks if t == lock_tools[0])
             facts.append("%s uses %s, but the repo has %s (a %s lockfile)"
-                         % (safe_text(sources[0], 120), tool, lock_name, lock_tools[0]))
+                         % (code(sources[0], 120), tool, lock_name, lock_tools[0]))
             evidence.append(lock_name)
     if facts:
         message = "; ".join(facts)
@@ -192,7 +193,7 @@ def test_runner_findings(repo, cmds):
     for runner, sources in sorted(js.items()):
         if deps and runner not in deps and installed:
             facts.append("%s runs %s, but package.json lists %s and not %s" % (
-                safe_text(sources[0], 120), runner, " and ".join(installed), runner))
+                code(sources[0], 120), runner, " and ".join(installed), runner))
             evidence.append("package.json")
     python = uses_by(entries, py_runner_of)
     if len(python) > 1:
@@ -331,11 +332,12 @@ def version_findings(repo, loadmap):
             if pin_major:
                 pin = int(pin_major.group(1))
                 if (claim["minimum"] and claim["value"] > pin) or (not claim["minimum"] and claim["value"] != pin):
-                    facts.append("%s says %s, but %s pins Node %d" % (claim["source"], claim["text"], pin_source, pin))
+                    facts.append("%s says %s, but %s pins Node %d" % (code(claim["source"], 120), code(claim["text"], 60),
+                                                                     pin_source, pin))
                     evidence += [claim["source"], pin_source]
             if isinstance(engines, str) and not node_range_allows(engines, claim["value"]):
-                facts.append("%s says %s, but package.json engines.node is \"%s\"" % (
-                    claim["source"], claim["text"], safe_text(engines, 60)))
+                facts.append("%s says %s, but package.json engines.node is %s" % (
+                    code(claim["source"], 120), code(claim["text"], 60), code(engines, 60)))
                 evidence += [claim["source"], "package.json"]
         if facts:
             found.append(finding(
@@ -361,11 +363,12 @@ def version_findings(repo, loadmap):
             if pin_minor:
                 pin = int(pin_minor.group(1))
                 if (claim["minimum"] and claim["value"] > pin) or (not claim["minimum"] and claim["value"] != pin):
-                    facts.append("%s says %s, but %s pins Python 3.%d" % (claim["source"], claim["text"], pin_source, pin))
+                    facts.append("%s says %s, but %s pins Python 3.%d" % (code(claim["source"], 120), code(claim["text"], 60),
+                                                                         pin_source, pin))
                     evidence += [claim["source"], pin_source]
             if requires and not python_spec_allows(requires, claim["value"]):
-                facts.append("%s says %s, but pyproject.toml requires-python is \"%s\"" % (
-                    claim["source"], claim["text"], safe_text(requires, 60)))
+                facts.append("%s says %s, but pyproject.toml requires-python is %s" % (
+                    code(claim["source"], 120), code(claim["text"], 60), code(requires, 60)))
                 evidence += [claim["source"], "pyproject.toml"]
         if facts:
             found.append(finding(
@@ -455,22 +458,22 @@ def next_steps(loadmap, cmds, contradictions, dead):
         if item["severity"] == "problem" and item["fix"] not in steps:
             steps.append(item["fix"])
     for entry in documented(cmds):
-        where = (safe_text(entry["command"], 120), safe_text(entry["sources"][0], 120))
+        where = (code(entry["command"], 120), code(entry["sources"][0], 120))
         if entry["static"] == "fail":
-            steps.append("Fix `%s` in %s: %s." % (where + (entry["problems"][0],)))
+            steps.append("Fix %s in %s: %s." % (where + (entry["problems"][0],)))
         elif entry.get("run") and not entry["run"]["timed_out"] and entry["run"]["exit_code"] != 0:
-            steps.append("Fix `%s` in %s: it exits with code %s." % (where + (entry["run"]["exit_code"],)))
+            steps.append("Fix %s in %s: it exits with code %s." % (where + (entry["run"]["exit_code"],)))
     for entry in documented(cmds):
         if entry.get("run") and entry["run"]["timed_out"]:
-            steps.append("`%s` (%s) %s." % (safe_text(entry["command"], 120), safe_text(entry["sources"][0], 120),
-                                            commands.timeout_advice(entry["run"]["timeout"])))
+            steps.append("%s (%s) %s." % (code(entry["command"], 120), code(entry["sources"][0], 120),
+                                          commands.timeout_advice(entry["run"]["timeout"])))
     for item in loadmap["findings"]:
         if item["severity"] == "warning" and item["fix"] not in steps:
             steps.append(item["fix"])
     steps += [c["fix"] for c in contradictions]
     if dead:
-        steps.append("Update or remove %s, starting with `%s` (%s)." % (
-            load_map.plural(len(dead), "dead path"), safe_text(dead[0]["path"], 120), safe_text(dead[0]["source"], 120)))
+        steps.append("Update or remove %s, starting with %s (%s)." % (
+            load_map.plural(len(dead), "dead path"), code(dead[0]["path"], 120), code(dead[0]["source"], 120)))
     return steps[:3]
 
 
@@ -495,9 +498,9 @@ def run_check(repo, cwd=None, run=False, timeout=120, env=None, home=None, manag
 
 def render_markdown(result):
     loadmap, cmds = result["load_map"], result["commands"]
-    code, line_text = load_map.code, load_map.line_text
+    line_text = load_map.line_text
     lines = ["**%s**" % line_text(result["headline"]), "",
-             "Repo: %s. Start folder: %s. %s" % (code(result["repo"], 400), code(result["cwd"]), load_map.TOKEN_NOTE), "",
+             "Repo: %s. Start folder: %s. %s" % (code(result["repo"], 400), code(result["cwd"], 200), load_map.TOKEN_NOTE), "",
              "## What each agent loads", ""] + load_map.render_table(loadmap) + [""]
     if loadmap["findings"]:
         lines += ["## Load findings", ""] + load_map.render_findings(loadmap["findings"]) + [""]
@@ -507,7 +510,7 @@ def render_markdown(result):
         lines += ["- %s Fix: %s" % (line_text(c["message"]), line_text(c["fix"])) for c in result["contradictions"]] + [""]
     if result["dead_paths"]:
         lines += ["## Dead paths", ""]
-        lines += ["- %s (%s, %s)" % (code(d["path"]), safe_text(d["source"], 120), d["kind"])
+        lines += ["- %s (%s, %s)" % (code(d["path"], 200), code(d["source"], 120), d["kind"])
                   for d in result["dead_paths"]] + [""]
     if result["next_steps"]:
         lines += ["## Next steps", ""]

@@ -55,7 +55,7 @@ and commit **both** your `generate.py` change and the regenerated output files. 
 
 ## Add a skill
 
-Skills live in [skills/](skills/), one folder each, and the bar is higher than a prompt: a skill here ships a script that does the checking, tests for that script, and trigger cases that prove it gets picked for the right requests. The steps and the five checks every skill passes are in [skills/evals/README.md](skills/evals/README.md). Open an issue first with the problem the skill solves and the number it would hand back, so we can check it does not duplicate a skill here or a tool that already does the job well.
+Skills live in [skills/](skills/), one folder each, and the bar is higher than a prompt: a skill here ships a script that does the checking, tests for that script, and trigger cases that prove it gets picked for the right requests. The steps and the checks every skill passes are in [skills/evals/README.md](skills/evals/README.md). Open an issue first with the problem the skill solves and the number it would hand back, so we can check it does not duplicate a skill here or a tool that already does the job well.
 
 ## Curation bar
 

@@ -178,6 +178,8 @@ removes only rules-to-guards entries and leaves the hook file in place for the u
 - `scripts/rules_guard.py`: the hook template; `generate` writes a copy with the rules embedded.
 - `scripts/transcripts.py`: the shared session reader for Claude Code, Codex, Gemini CLI, and
   OpenCode.
+- `scripts/safe.py`: the shared helper that masks secrets in report text and shows it as one line of
+  inline code. A synced copy; do not edit it here.
 - `references/checkable-rules.md`: the rules.json schema, how commands and paths are matched, tested
   patterns, and regex pitfalls.
 - `references/hook-formats.md`: each harness's hook files, events, inputs, and blocking rules, with

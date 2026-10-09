@@ -130,8 +130,11 @@ These do not count:
 
 - Documentation and logs: `.md`, `.rst`, `.txt`, `.log`, `.diff`, `.patch`, images, LICENSE,
   CHANGELOG, and `.jsonl` files outside test folders.
-- Generated and hidden folders: `node_modules`, `dist`, `build`, `site`, `tmp`, caches, virtual
-  environments, and tool folders such as `.github`, `.vscode`, and `.claude`.
+- Generated and tool folders: `node_modules`, `dist`, `build`, `site`, `tmp`, caches, virtual
+  environments, version control (`.git`, `.hg`, `.svn`), editor folders (`.vscode`, `.idea`), and
+  coding agent folders (`.claude`, `.codex`, `.gemini`, `.cursor`, `.opencode`, `.superpowers`).
+  Other hidden folders count, since `.github`, `.cargo`, `.config`, `.circleci`, and `.husky` can
+  hold tests or build settings.
 - Temporary files and the harnesses' own folders in the home folder, when outside the working folder.
 - Files named only by an unset shell variable, unless the name ends in a source extension.
 - Changes outside the git repository the run tested (or, outside any repository, outside the folder

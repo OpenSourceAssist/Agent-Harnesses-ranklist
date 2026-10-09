@@ -178,7 +178,8 @@ For status:
   `--json`, `--out`.
 - `scripts/status.py`: spend and trip counts per session; `--list`, `--session`, `--reset`, `--json`,
   `--out`.
-- `scripts/transcripts.py`, `scripts/pricing.py`: the shared transcript reader and price table, copied
-  from this repository's shared code.
+- `scripts/transcripts.py`, `scripts/pricing.py`, `scripts/safe.py`: the shared transcript reader, price
+  table, and text cleaner that puts session ids, tool names, and model ids in the report inside inline
+  code, copied from this repository's shared code.
 - `references/how-it-decides.md`: the trip wires, thresholds, settings, safeguards, and speed.
 - `references/harness-hooks.md`: hook support in Claude Code, Codex, Gemini CLI, Cursor, and OpenCode.

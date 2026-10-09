@@ -653,6 +653,10 @@
         {
           "path": "scripts/load_map.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/scripts/load_map.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/agents-md-checker/scripts/safe.py"
         }
       ]
     },
@@ -701,6 +705,10 @@
         {
           "path": "scripts/install.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/install.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/claim-check/scripts/safe.py"
         },
         {
           "path": "scripts/stop_hook.py",
@@ -765,6 +773,10 @@
         {
           "path": "scripts/hook_runner.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/hook_runner.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/guardrail-tester/scripts/safe.py"
         },
         {
           "path": "scripts/shell_split.py",
@@ -833,6 +845,10 @@
         {
           "path": "scripts/pricing.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/pricing.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/harness-test-drive/scripts/safe.py"
         }
       ]
     },
@@ -877,6 +893,10 @@
         {
           "path": "scripts/regress.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/scripts/regress.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/regression-finder/scripts/safe.py"
         },
         {
           "path": "scripts/transcripts.py",
@@ -925,6 +945,10 @@
         {
           "path": "scripts/rules_guard.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/scripts/rules_guard.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/rules-to-guards/scripts/safe.py"
         },
         {
           "path": "scripts/transcripts.py",
@@ -977,6 +1001,10 @@
         {
           "path": "scripts/pricing.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/pricing.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/runaway-guard/scripts/safe.py"
         },
         {
           "path": "scripts/status.py",
@@ -1071,6 +1099,10 @@
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/pricing.py"
         },
         {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/safe.py"
+        },
+        {
           "path": "scripts/transcripts.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/session-waste-report/scripts/transcripts.py"
         },
@@ -1125,6 +1157,10 @@
         {
           "path": "scripts/mcp_http.py",
           "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/mcp_http.py"
+        },
+        {
+          "path": "scripts/safe.py",
+          "raw_url": "https://raw.githubusercontent.com/RyanAlberts/best-of-Agent-Harnesses/main/skills/tool-design-checker/scripts/safe.py"
         },
         {
           "path": "scripts/tools_check.py",

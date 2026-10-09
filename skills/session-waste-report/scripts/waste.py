@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pricing  # noqa: E402
 import transcripts  # noqa: E402
+from safe import code, safe_text  # noqa: E402
 
 # Rules and thresholds; references/how-it-counts.md explains each one.
 CHARS_PER_TOKEN = 4
@@ -71,6 +72,7 @@ FAILURES = [
     ("loops", "Identical-call loops (3+ same calls in a row)"),
     ("ended_badly", "Sessions that ended on an error or interrupt"),
 ]
+BY_TOOL = ("tool_errors", "loops")  # rows broken down by tool names from the transcripts; the rest use fixed kinds
 
 
 # ---------------------------------------------------------------------------
@@ -309,6 +311,8 @@ def _show_path(path, cwd) -> str:
 
 
 def _item(category, session, event, tokens, dollars, evidence, count=1, group=""):
+    """`evidence` is (template, values): fixed text with a {} for each value
+    from the transcripts, already passed through safe_text."""
     return {"category": category, "session": session, "event": event, "tokens": tokens,
             "dollars": dollars, "evidence": evidence, "count": count, "group": group}
 
@@ -355,8 +359,8 @@ def _loops(s, counted, claimed, polled) -> tuple:
                 first, last = _epoch(run[0][1].ts), _epoch(run[-1][1].ts)
                 span = ", over %s" % _duration(last - first) if first is not None and last is not None else ""
                 polls.append({"category": "polling", "anchor": run[1][1], "members": members, "count": 1,
-                              "evidence": "%s ran %d times with only waiting between%s" % (
-                                  transcripts.safe_text(_target(run[0][1].tool, s.cwd)), len(run), span)})
+                              "evidence": ("{} ran %d times with only waiting between%s" % (len(run), span),
+                                           [safe_text(_target(run[0][1].tool, s.cwd))])})
         elif len(run) >= LOOP_MIN and not _is_read(run[0][1].tool) and counted(run[-1][1]):
             loops.append((s, run[0][1].tool.name, len(run)))
         state.update(key=None, run=[], waits=[], between=[], waited=False)
@@ -400,8 +404,7 @@ def _rereads(s, counted, claimed, polled) -> list:
             claimed.update(id(e) for _, e in extra)
             shown = ", ".join(_show_path(x, s.cwd) for x in key[0])
             found.append({"category": "rereads", "anchor": extra[0][1], "members": extra, "count": len(extra),
-                          "evidence": "%s read %d times with no change between" % (
-                              transcripts.safe_text(shown), len(run))})
+                          "evidence": ("{} read %d times with no change between" % len(run), [safe_text(shown)])})
 
     for p, e in enumerate(s.events):
         if e.kind == "compaction" or (e.kind == "user" and not e.injected):
@@ -455,8 +458,8 @@ def _rebuilds(s, tl, counted) -> list:
         if tl.rebuild_tokens[j] and counted(e):
             gap = _epoch(e.ts) - _epoch(s.events[tl.calls[j - 1]].ts)
             items.append(_item("rebuilds", s, e, tl.rebuild_tokens[j], tl.rebuild_dollars[j],
-                               "%s pause before this call; %s tokens rebuilt" % (
-                                   _pause(gap), _fmt_tokens(tl.rebuild_tokens[j]))))
+                               ("%s pause before this call; %s tokens rebuilt" % (
+                                   _pause(gap), _fmt_tokens(tl.rebuild_tokens[j])), [])))
     return items
 
 
@@ -470,9 +473,8 @@ def _oversized(s, tl, counted, claimed) -> list:
         if entered > OVERSIZED_TOKENS:
             found.append({"category": "oversized", "anchor": e, "members": [(p, e)], "count": 1,
                           "carry_only": True, "group": _group(e.tool),
-                          "evidence": "%s returned about %s tokens: %s" % (
-                              transcripts.safe_text(e.tool.name, 80), _fmt_tokens(entered),
-                              transcripts.safe_text(_target(e.tool, s.cwd)))})
+                          "evidence": ("{} returned about %s tokens: {}" % _fmt_tokens(entered),
+                                       [safe_text(e.tool.name, 80), safe_text(_target(e.tool, s.cwd))])})
     return found
 
 
@@ -616,7 +618,7 @@ def _failures(totals, tally, loops, main_sessions) -> list:
         breakdown = {}
         if isinstance(value, dict):
             for k, v in sorted(value.items(), key=lambda kv: (-kv[1], kv[0])):
-                k = transcripts.safe_text(k)
+                k = safe_text(k)
                 breakdown[k] = breakdown.get(k, 0) + v
             value = sum(breakdown.values())
         rows.append({"id": fid, "label": label, "count": value, "per_100": _rate(value, bases[per]), "per": per,
@@ -712,20 +714,21 @@ def analyze(sessions, since_days=30.0, now=None, harness="all", project=None) ->
             groups.setdefault(i["group"], []).append(i)
     oversized_groups = []
     for name, members in groups.items():
-        row = {"group": transcripts.safe_text(name)}
+        row = {"group": safe_text(name)}
         row.update(_summarize(members, totals))
         oversized_groups.append(row)
     oversized_groups.sort(key=lambda r: (-r["dollars"], -r["tokens"]))
     labels = dict(WASTE)
     examples = []
     for i in sorted(items, key=lambda i: (-i["dollars"], -i["tokens"]))[:EXAMPLES]:
-        s, e = i["session"], i["event"]
+        (s, e), (template, values) = (i["session"], i["event"]), i["evidence"]
         examples.append({"category": i["category"], "label": labels[i["category"]],
                          "tokens": int(round(i["tokens"])), "dollars": round(i["dollars"], 6),
-                         "harness": s.harness, "session": transcripts.safe_text(s.id[:8]),
-                         "folder": transcripts.safe_text(_show_path(s.cwd, ""), 400) if s.cwd else "",
-                         "path": transcripts.safe_text(_show_path(s.path, ""), 400),
-                         "time": _show_time(e.ts), "evidence": i["evidence"]})
+                         "harness": s.harness, "session": safe_text(s.id[:8]),
+                         "folder": safe_text(_show_path(s.cwd, ""), 400) if s.cwd else "",
+                         "path": safe_text(_show_path(s.path, ""), 400),
+                         "time": _show_time(e.ts), "evidence": template.format(*values),
+                         "evidence_template": template, "evidence_values": values})
     for h, counts in by_harness.items():
         spent = [i for i in items if i["session"].harness == h]
         counts["dollars"] = round(counts["dollars"], 6)
@@ -746,10 +749,10 @@ def analyze(sessions, since_days=30.0, now=None, harness="all", project=None) ->
     warned = [x for x in sessions if x.warnings]
     result = {
         "window_days": since_days, "harness": harness,
-        "project": transcripts.safe_text(project, 400) if project else None,
+        "project": safe_text(project, 400) if project else None,
         "prices_checked": pricing.PRICES_CHECKED, "headline": "",
         "totals": dict(totals, dollars=round(totals["dollars"], 6),
-                       unpriced_models=sorted(transcripts.safe_text(m) for m in unpriced)),
+                       unpriced_models=sorted(safe_text(m) for m in unpriced)),
         "by_harness": {h: by_harness[h] for h in sorted(by_harness)},
         "waste": waste, "oversized_groups": oversized_groups,
         "compactions": {"count": compactions["count"], "tokens_before": compactions["tokens_before"],
@@ -764,7 +767,7 @@ def analyze(sessions, since_days=30.0, now=None, harness="all", project=None) ->
         "warnings": {"sessions": len(warned), "lines": sum(len(x.warnings) for x in warned)},
     }
     result["headline"] = _headline(result)
-    result["notes"] = _notes(result, sessions)
+    result["notes"] = _notes(result, safe_text)
     return result
 
 
@@ -844,7 +847,8 @@ def _headline(r) -> str:
     return text + "."
 
 
-def _notes(r, sessions) -> list:
+def _notes(r, show) -> list:
+    """The notes, with `show` applied to model ids: safe_text for JSON, code for markdown."""
     t, notes = r["totals"], []
     if t["sessions"]:
         notes.append("Dollars are API list prices checked %s. On a subscription plan, read them as relative cost."
@@ -853,7 +857,7 @@ def _notes(r, sessions) -> list:
                      "one that writes a compaction summary.")
     if t["unpriced_tokens"]:
         notes.append("%s tokens on models with no known price (%s) are left out of the dollar figures." % (
-            _fmt_tokens(t["unpriced_tokens"]), ", ".join(t["unpriced_models"])))
+            _fmt_tokens(t["unpriced_tokens"]), ", ".join(map(show, t["unpriced_models"]))))
     w = r["warnings"]
     if w["lines"]:
         notes.append("%s in %s could not be read or had an unknown record type, and %s skipped." % (
@@ -861,6 +865,9 @@ def _notes(r, sessions) -> list:
     if "opencode" in r["by_harness"]:
         notes.append("OpenCode support follows its documented database layout and has not been checked on a "
                      "real install.")
+    if r["harness"] == "cursor":
+        notes.append("Cursor keeps no transcripts with tool results, token usage, or times, "
+                     "so there is nothing to measure.")
     return notes
 
 
@@ -868,8 +875,8 @@ def _num(x) -> str:
     return ("%.2f" % x).rstrip("0").rstrip(".")
 
 
-def _top(breakdown, n=3) -> str:
-    return ", ".join("%s %s" % (k, format(v, ",")) for k, v in list(breakdown.items())[:n])
+def _top(breakdown, show=str, n=3) -> str:
+    return ", ".join("%s %s" % (show(k), format(v, ",")) for k, v in list(breakdown.items())[:n])
 
 
 def render_markdown(r) -> str:
@@ -891,7 +898,7 @@ def render_markdown(r) -> str:
         out.append("")
         if r["oversized_groups"]:
             out.append("Largest groups of oversized results: %s." % "; ".join(
-                "%s (%s, %s tokens, %s)" % (g["group"], _plural(g["count"], "result"), _fmt_tokens(g["tokens"]),
+                "%s (%s, %s tokens, %s)" % (code(g["group"]), _plural(g["count"], "result"), _fmt_tokens(g["tokens"]),
                                           _money(g["dollars"])) for g in r["oversized_groups"][:5]))
         comp, sub = r["compactions"], r["subagents"]
         if comp["count"]:
@@ -908,17 +915,18 @@ def render_markdown(r) -> str:
         out += ["", "## Failures", "", "| Failure | Count | Rate | Most common | Fix |", "|---|---|---|---|---|"]
         for f in r["failures"]:
             out.append("| %s | %s | %s per 100 %s | %s | %s |" % (f["label"], format(f["count"], ","),
-                                                             _num(f["per_100"]), f["per"], _top(f["breakdown"]),
+                                                             _num(f["per_100"]), f["per"],
+                                                             _top(f["breakdown"], code if f["id"] in BY_TOOL else str),
                                                              FIX_SHORT[f["id"]]))
         out += ["", "## Top examples", ""]
         if not r["examples"]:
             out.append("No waste found.")
         for n, x in enumerate(r["examples"], 1):
             out.append("%d. %s: %s, %s tokens. %s." % (n, x["label"], _money(x["dollars"]), _fmt_tokens(x["tokens"]),
-                                                     x["evidence"]))
-            out.append("   %s session %s%s%s" % (HARNESS_NAMES.get(x["harness"], x["harness"]), x["session"],
+                                                     x["evidence_template"].format(*map(code, x["evidence_values"]))))
+            out.append("   %s session %s%s%s" % (HARNESS_NAMES.get(x["harness"], x["harness"]), code(x["session"]),
                                              " at " + x["time"] if x["time"] else "",
-                                             ", in `%s`" % x["folder"] if x["folder"] else ""))
+                                             ", in %s" % code(x["folder"], 400) if x["folder"] else ""))
         out += ["", "## By harness", "",
                 "| Harness | Sessions | Model calls | Tokens | Dollars | Waste share | Top waste |",
                 "|---|---|---|---|---|---|---|"]
@@ -935,8 +943,9 @@ def render_markdown(r) -> str:
                 _fmt_tokens(c["tokens"]), _money(c["dollars"]), share, top_text))
         out.append("")
         out.append("Each fix is explained in references/fixes.md, in the section named like the row.")
-    if r["notes"]:
-        out += ["", "## Notes", ""] + ["- " + n for n in r["notes"]]
+    notes = _notes(r, code)
+    if notes:
+        out += ["", "## Notes", ""] + ["- " + n for n in notes]
     return "\n".join(out) + "\n"
 
 
@@ -975,20 +984,17 @@ def main(argv=None, home=None) -> int:
         (args.project or "").encode("utf-8")
     except UnicodeEncodeError:
         print("error: --project %s is not a UTF-8 path, so it cannot match a session's folder"
-              % transcripts.safe_text(args.project, 400), file=sys.stderr)
+              % safe_text(args.project, 400), file=sys.stderr)
         return 2
     sessions = [] if args.harness == "cursor" else load_sessions(args.harness, args.since, args.project, home)
     result = analyze(sessions, since_days=args.since, harness=args.harness, project=args.project)
-    if args.harness == "cursor":
-        result["notes"].append("Cursor keeps no transcripts with tool results, token usage, or times, "
-                               "so there is nothing to measure.")
     text = json.dumps(result, indent=2, ensure_ascii=False) + "\n" if args.json else render_markdown(result)
     if args.out:
         try:
             with open(args.out, "w", encoding="utf-8") as fh:
                 fh.write(text)
         except OSError as exc:
-            print("error: cannot write the report to %s: %s" % (transcripts.safe_text(args.out, 400),
+            print("error: cannot write the report to %s: %s" % (safe_text(args.out, 400),
                                                                  exc.strerror or type(exc).__name__), file=sys.stderr)
             return 2
         print("Report written to %s" % args.out)

@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pricing  # noqa: E402
 import transcripts  # noqa: E402
+from safe import code, safe_text  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -1059,8 +1060,8 @@ def _stand_outs(by, slices, comparisons) -> list:
                     who = "The week of %s stands" % week_start(slices[f.update].key) if len(keys) == 1 else \
                         "The weeks %s stand" % span
                 else:
-                    who = "%s %s stands" % (one.capitalize(), span) if len(keys) == 1 else \
-                        "%s %s stand" % (many.capitalize(), span)
+                    who = "%s %s stands" % (one.capitalize(), _code_keys(span)) if len(keys) == 1 else \
+                        "%s %s stand" % (many.capitalize(), _code_keys(span))
                 around = "the %s around %s" % (many, "it" if len(keys) == 1 else "them")
                 out.append({"metric": f.metric, "versions": span, "text": "%s out from %s: %s %s before, %s there, "
                             "%s after." % (who, around, METRIC[f.metric].label.lower(), _fmt(f.metric, f.before_value),
@@ -1083,9 +1084,25 @@ def clean_key(text) -> str:
     return _KEY_RE.sub("", transcripts.redact(str(text)))[:80] or "(unnamed)"
 
 
+def _k(text) -> str:
+    """A version or model id for markdown text: plain characters inside inline
+    code, so a key such as a bare URL does not render as a link."""
+    return code(clean_key(text))
+
+
+_JOINS = ("after", "between", "and", "to", "vs")
+
+
+def _code_keys(text) -> str:
+    """A place or span made of keys ("between 2.1.260 and 2.1.270") for
+    markdown: each key in inline code, the joining words plain. Keys hold no
+    spaces, so a split on spaces finds them."""
+    return " ".join(w if w in _JOINS else code(w) for w in text.split(" "))
+
+
 def _safe(text, limit=80) -> str:
     """Untrusted text such as a folder name as one inert line."""
-    return transcripts.safe_text(text, limit=limit)
+    return safe_text(text, limit=limit)
 
 
 def _home(path) -> str:
@@ -1097,7 +1114,7 @@ def _home(path) -> str:
 
 def _folder(path) -> str:
     """A folder for the markdown report: shortened, made inert, inside inline code."""
-    return "`%s`" % _safe(_home(path), 160)
+    return code(_home(path), 160)
 
 
 def _num(value):
@@ -1179,11 +1196,11 @@ def _comparison_dict(c, slices, by="version") -> dict:
 def _lead(by, name, slices, c) -> str:
     where = _where(by, slices, c)
     if by == "model":
-        return "On %s, compared with %s" % (clean_key(slices[c.update].key), clean_key(slices[c.update - 1].key))
+        return "On %s, compared with %s" % (_k(slices[c.update].key), _k(slices[c.update - 1].key))
     if by == "version":
         if where.startswith("between"):
-            return "After an update %s" % where.replace("between ", "between %s " % name, 1)
-        return "After %s %s" % (name, clean_key(slices[c.update].key))
+            return "After an update %s" % _code_keys(where).replace("between ", "between %s " % name, 1)
+        return "After %s %s" % (name, _k(slices[c.update].key))
     if where.startswith("between"):
         return "After a change between the weeks of %s and %s" % (week_start(slices[c.b0 + 1].key),
                                                                    week_start(slices[c.a1 - 1].key))
@@ -1227,7 +1244,7 @@ def _headline(by, harness, turns, slices, wins, flagged, stand_outs, info, since
     if len(slices) == 1:
         place = "in one week" if by == "week" else "on one %s" % one
         return "All {:,} {} turns{} ran {} ({}), so there is no update to test yet.".format(
-            len(turns), name, _window_phrase(since_days), place, clean_key(slices[0].key))
+            len(turns), name, _window_phrase(since_days), place, _k(slices[0].key))
     if not wins and by == "model":
         return ("Not enough history to compare models yet: {:,} {} turns from {:,} sessions across {} models, and "
                 "each model needs {} sessions within two weeks of the switch.".format(
@@ -1327,8 +1344,8 @@ def _confounders(by, slices, flagged, wins, filtered_by_project) -> list:
             sb, sa = _shares(before, attr), _shares(after, attr)
             if sb[0][0] != sa[0][0] or abs(sa[0][1] - dict(sb).get(sa[0][0], 0.0)) >= 0.3:
                 add(attr, "The %s mix changed at the same point: before, %s ran %s of turns; after, %s ran %s. Run "
-                    "again with %s to separate the two." % (word, clean_key(sb[0][0]), _pct(sb[0][1]),
-                                                            clean_key(sa[0][0]), _pct(sa[0][1]), flag))
+                    "again with %s to separate the two." % (word, _k(sb[0][0]), _pct(sb[0][1]),
+                                                            _k(sa[0][0]), _pct(sa[0][1]), flag))
         if not filtered_by_project:
             pb, pa = dict(_shares(before, "project")), dict(_shares(after, "project"))
             common = set(pb) & set(pa)
@@ -1374,7 +1391,7 @@ def _confounders(by, slices, flagged, wins, filtered_by_project) -> list:
             if old and old >= 0.3 * (old + len(after)):
                 add("concurrent", "Both models were in use at the same time, so the difference may come from the "
                     "tasks each was used for. In the two weeks after %s first ran, %s still ran %s of the turns of "
-                    "the two." % (key, clean_key(slices[update - 1].key), _pct(old / float(old + len(after)))))
+                    "the two." % (_k(key), _k(slices[update - 1].key), _pct(old / float(old + len(after)))))
     return out
 
 
@@ -1386,7 +1403,7 @@ _RETENTION = {
 
 
 def _names(keys) -> str:
-    return _and([clean_key(k) for k in keys])
+    return _and([_k(k) for k in keys])
 
 
 def _notes(by, harness, turns, slices, slice_notes, wins, comparisons, counts, info, since_days, min_turns,
@@ -1419,11 +1436,11 @@ def _notes(by, harness, turns, slices, slice_notes, wins, comparisons, counts, i
                          _day(max(r[2] for r in rows)), "it" if one else "them"))
     if slice_notes["left_out"]:
         notes.append("Left out models with too little data (each needs %d turns from %d sessions): %s." % (
-            min_turns, min_sessions, ", ".join("%s (%s, %s)" % (clean_key(k), _count(n, "turn"), _count(s, "session"))
+            min_turns, min_sessions, ", ".join("%s (%s, %s)" % (_k(k), _count(n, "turn"), _count(s, "session"))
                                                for k, n, s in slice_notes["left_out"])))
     if untested and wins:
         notes.append("Not tested: %s: each side of %s needs %d sessions and %d turns, even with neighbors "
-                     "added." % (", ".join("%s (%s)" % (u["update"], _count(u["sessions"], "session"))
+                     "added." % (", ".join("%s (%s)" % (code(u["update"]), _count(u["sessions"], "session"))
                                            for u in untested),
                                  "a model change" if by == "model" else "an update", min_sessions, min_turns))
     if counts["untestable"]:
@@ -1548,7 +1565,7 @@ def render_markdown(result) -> str:
     lines = ["**%s**" % result["headline"], ""]
     totals = result["totals"]
     if totals["turns"]:
-        where = " in `%s`" % result["project"] if result["project"] else ""
+        where = " in %s" % code(result["project"], 200) if result["project"] else ""
         window = ", last %d days" % result["since_days"] if result["since_days"] else ""
         text = "%s%s%s, split by %s: %s in %s across %d %s, with %s tested." % (
             name, where, window, by, _count(totals["turns"], "turn"), _count(totals["sessions"], "session"),
@@ -1566,8 +1583,9 @@ def render_markdown(result) -> str:
                   "|---|---|---|---|---|---|---|---|---|"]
         for c in result["flagged"]:
             lines.append("| %s | %s (session %s) | %s | %s | %s | %s | %s vs %s | %d, %d | %s |" % (
-                c["where"], c["label"], c["measured"].split()[0], _fmt(c["metric"], c["before_value"]),
-                _fmt(c["metric"], c["after_value"]), _fmt_change(c), c["usually"], c["before"], c["after"],
+                _code_keys(c["where"]), c["label"], c["measured"].split()[0], _fmt(c["metric"], c["before_value"]),
+                _fmt(c["metric"], c["after_value"]), _fmt_change(c), c["usually"], _code_keys(c["before"]),
+                _code_keys(c["after"]),
                 c["sessions_before"], c["sessions_after"], _fmt_p(c["p_adjusted"])))
         lines.append("")
     if result["stand_outs"]:
@@ -1575,7 +1593,7 @@ def render_markdown(result) -> str:
     if result["confounders"]:
         lines += ["## What else changed at the same point", "",
                   "These numbers show what changed, not why: the kind of work may have changed too.", ""]
-        lines += ["- %s: %s" % (c["where"], c["text"]) for c in result["confounders"]]
+        lines += ["- %s: %s" % (_code_keys(c["where"]), c["text"]) for c in result["confounders"]]
         lines.append("")
     if result["slices"]:
         first = UNITS[by][0].capitalize()
@@ -1584,7 +1602,7 @@ def render_markdown(result) -> str:
                   "|---|---|---|---|%s" % ("---|" * len(METRICS))]
         for sl in result["slices"]:
             lines.append("| %s | %s | %d | %d | %s |" % (
-                sl["key"], _days(sl["first_day"], sl["last_day"]), sl["sessions"], sl["turns"],
+                code(sl["key"]), _days(sl["first_day"], sl["last_day"]), sl["sessions"], sl["turns"],
                 " | ".join(_fmt(m.key, sl["values"][m.key]["value"]) for m in METRICS)))
         lines.append("")
     if result["notes"]:
@@ -1616,7 +1634,7 @@ def render_svg(result) -> Optional[str]:
     out = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" role="img" '
            'font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="11">' % (
                width, top + height * len(metrics), width, top + height * len(metrics)),
-           "<title>%s</title>" % escape(result["headline"]),
+           "<title>%s</title>" % escape(result["headline"].replace("`", "")),  # no inline-code marks in a chart
            '<text x="12" y="22" fill="%s" font-size="13">%s by %s, one value per session</text>' % (
                _INK, escape(HARNESS_NAMES.get(result["harness"], result["harness"])), escape(result["by"]))]
     n = len(slices)

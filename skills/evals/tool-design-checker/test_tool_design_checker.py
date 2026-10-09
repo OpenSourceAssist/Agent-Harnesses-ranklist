@@ -1307,7 +1307,7 @@ def test_hostile_tool_text_stays_inert_in_reports(tmp_path):
     assert md.returncode == 0, md.stderr
     assert "\udcff" not in md.stdout and "na`me" not in md.stdout
     assert not lines_starting(md.stdout, "**Ignore")
-    row = [line for line in md.stdout.splitlines() if line.startswith("| evil")]
+    row = [line for line in md.stdout.splitlines() if line.startswith("| `evil/na'me` |")]
     assert row and row[0].count("|") == 5
     js = run_cli("lint", "--tools", str(path), "--json")
     data = json.loads(js.stdout)
@@ -1342,7 +1342,7 @@ def test_hostile_config_values_stay_inert(tmp_path):
     assert md.returncode == 0, md.stderr
     assert not lines_starting(md.stdout, "## Injected")
     assert "`rm" not in md.stdout
-    row = [line for line in md.stdout.splitlines() if line.startswith("| x ")]
+    row = [line for line in md.stdout.splitlines() if line.startswith("| `x ## Injected` |")]
     assert row and row[0].count("|") == 8
 
 
@@ -1626,7 +1626,7 @@ def test_recursive_schemas_are_walked_once_with_a_note():
         "children": {"type": "array", "description": "Child nodes.", "items": {"$ref": "#/$defs/Node"}}}}}
     props(tool)["tree"] = {"$ref": "#/$defs/Node"}
     first = tools_check.lint_tool(tool)
-    assert first["notes"] == ["recursive schema at tree.children"]
+    assert first["notes"] == ["recursive schema at `tree.children`"]
     assert first == tools_check.lint_tool(copy.deepcopy(tool))
 
 
@@ -1946,7 +1946,7 @@ def test_approvals_from_project_settings_are_named(tmp_path):
     entry = server_named(data, "repo-srv")[0]["configured_in"][0]
     assert entry["enabled"] and "approved by .claude/settings.json" in entry["status"]
     assert data["launch_plan"]["approved_by_project_settings"] == ["repo-srv"]
-    assert "approved by settings files inside this project: repo-srv" in md.stdout
+    assert "approved by settings files inside this project: `repo-srv`" in md.stdout
 
 
 # 7. Invisible characters
@@ -1979,3 +1979,163 @@ def test_irregular_or_huge_config_files_are_skipped(tmp_path, monkeypatch):
     monkeypatch.setattr(mcp_configs, "MAX_CONFIG_BYTES", 100)
     _entries, notes = mcp_configs.collect(home=str(home), project=str(project), harnesses=("claude-code",), environ={})
     assert any(".claude.json" in n and "larger than" in n for n in notes)
+
+
+# ---------------------------------------------------------------------------
+# Review fixes (third review, spec 4.11): untrusted text reaches Markdown only
+# inside inline code, and the shared redact() masks it. Each test below failed
+# before its fix.
+# ---------------------------------------------------------------------------
+
+import re  # noqa: E402
+
+HTML = "<img src=x onerror=alert(1)>"
+
+
+def _k(*parts):
+    """A fake secret, assembled at run time so no secret-shaped string sits in this file."""
+    return "".join(parts)
+
+
+STRIPE_KEY = _k("sk", "_live_", "4eC39HqLyjWDarjtT1zdp7dc")
+NPM_TOKEN = _k("np", "m_", "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5")   # 34 characters: under the old 40-character rule
+HF_TOKEN = _k("h", "f_", "Q1w2E3r4T5y6U7i8O9p0A1s2D3f4G5")    # 33 characters
+FLAG_PASSWORD = _k("Hunter", "2pwx")
+STDERR_SECRETS = "fatal: Stripe answered 401 for %s; npm %s; hub %s; curl -u admin:%s https://x.test" % (
+    STRIPE_KEY, NPM_TOKEN, HF_TOKEN, FLAG_PASSWORD)
+
+
+def outside_code(md):
+    """The text with fenced blocks and inline code spans removed."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def assert_html_stays_in_code(md):
+    bad = [line for line in md.splitlines() if "<img" in outside_code(line)]
+    assert not bad, bad
+    try:
+        import markdown
+    except ImportError:  # the line check above still runs
+        return
+    html = markdown.markdown(md, extensions=["tables"])
+    assert "<img" not in html and "&lt;img src=x onerror=alert(1)&gt;" in html
+
+
+def test_lint_markdown_keeps_tool_names_parameters_and_notes_in_inline_code(tmp_path):
+    node = {"type": "object", "properties": {"kids": {"type": "array", "items": {"$ref": "#/$defs/Node"}}}}
+    search = {"name": "search " + HTML, "description": "Search the docs. Returns matching pages.",
+              "inputSchema": {"type": "object", "$defs": {"Node": node},
+                              "properties": {"q " + HTML: {"type": "string"},
+                                             "tree " + HTML: {"$ref": "#/$defs/Node"}}}}
+    find = dict(search, name="find " + HTML)
+    path = tmp_path / "tools.json"
+    path.write_text(json.dumps({"tools": [search, find]}))
+    md = run_cli("lint", "--tools", str(path))
+    assert md.returncode == 0, md.stderr
+    assert_html_stays_in_code(md.stdout)
+    assert "| `search %s` |" % HTML in md.stdout
+    assert "the weakest is `search %s` (" % HTML in md.stdout.splitlines()[0]  # it also lacks a limit
+    assert "**`search %s`** (" % HTML in md.stdout
+    assert "- `search %s`: recursive schema at `tree %s.kids`" % (HTML, HTML) in md.stdout
+    js = json.loads(run_cli("lint", "--tools", str(path), "--json").stdout)
+    assert [t["name"] for t in js["tools"]] == ["search " + HTML, "find " + HTML]  # JSON values stay plain
+    assert js["tools"][0]["params"][0] == "q " + HTML
+    missing = run_cli("lint", "--tools", str(tmp_path / ("nope %s.json" % HTML)))
+    assert missing.returncode == 2 and "<img" not in outside_code(missing.stderr)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="folder names with < and > are POSIX")
+def test_installed_markdown_keeps_server_names_env_names_and_paths_in_inline_code(tmp_path):
+    home, project = tmp_path / "home", tmp_path / ("project " + HTML)
+    home.mkdir()
+    project.mkdir()
+    write_json(project / ".mcp.json", {"mcpServers": {"docs " + HTML: {
+        "command": "docs-server", "env": {"NAME" + HTML: "v"}}}})
+    write_json(home / ".claude.json", {"projects": {str(project): {"enabledMcpjsonServers": ["docs " + HTML]}}})
+    write_json(home / ".gemini" / "settings.json", {"mcpServers": {"my_srv " + HTML: {"command": "x"}}})
+    write_json(home / ".gemini" / "trustedFolders.json", {str(project): "TRUST_FOLDER"})
+    (project / ".cursor").mkdir()
+    (project / ".cursor" / "mcp.json").write_text("{broken")
+    only = ",".join(n + " " + HTML for n in ("docs", "my_srv", "ghost"))
+    md = run_cli("installed", "--project", str(project), "--only", only, env=clean_env(home), cwd=str(project))
+    assert md.returncode == 0, md.stderr
+    assert_html_stays_in_code(md.stdout)
+    assert "| `docs %s` |" % HTML in md.stdout
+    assert "(env: `NAME%s`)" % HTML in md.stdout
+    assert "from files inside this project: `docs %s`" % HTML in md.stdout
+    assert "- no server named `ghost %s`" % HTML in md.stdout
+    data = json.loads(run_cli("installed", "--project", str(project), "--only", only, "--json",
+                              env=clean_env(home), cwd=str(project)).stdout)
+    assert server_named(data, "docs " + HTML)[0]["env_names"] == ["NAME" + HTML]  # JSON values stay plain
+
+
+def test_installed_launch_keeps_tool_names_collisions_and_server_errors_in_inline_code(tmp_path):
+    home, project = tmp_path / "home", tmp_path / "project"
+    home.mkdir()
+    project.mkdir()
+    unclear = {"description": "Search.", "inputSchema": {"type": "object", "properties": {}}}
+    write_json(home / ".claude.json", {"mcpServers": {
+        "alpha " + HTML: fake_entry_config(tmp_path, [dict(unclear, name="search " + HTML)], mode="noise"),
+        "beta " + HTML: fake_entry_config(tmp_path, [dict(unclear, name="find " + HTML)]),
+        "broken": fake_entry_config(tmp_path, [], mode="exit", stderr="fatal " + HTML)}})
+    md = run_cli("installed", "--project", str(project), "--launch", env=clean_env(home), cwd=str(project))
+    assert md.returncode == 0, md.stderr
+    assert_html_stays_in_code(md.stdout)
+    assert "- `search %s` (`alpha %s`) and `find %s` (`beta %s`), in Claude Code:" % (HTML, HTML, HTML, HTML) \
+        in md.stdout
+    assert "**`search %s` (`alpha %s`)** (" % (HTML, HTML) in md.stdout
+    assert "- `alpha %s`: medium, stdout-noise:" % HTML in md.stdout
+    assert "| failed: `the server exited with code 3" in md.stdout
+
+
+def test_server_stderr_masks_token_shapes_the_shared_redact_knows(tmp_path):
+    """The server reads a key that no harness config holds and echoes it on stderr."""
+    home, project = tmp_path / "home", tmp_path / "project"
+    home.mkdir()
+    project.mkdir()
+    entry = fake_entry_config(tmp_path, [], mode="exit", stderr="$BILLING_VALUE", expand_env=True)
+    write_json(home / ".claude.json", {"mcpServers": {"billing": entry}})
+    shell = clean_env(home, BILLING_VALUE=STDERR_SECRETS)
+    outputs = []
+    for extra in ((), ("--json",)):
+        result = run_cli("installed", "--project", str(project), "--launch", *extra, env=shell, cwd=str(project))
+        assert result.returncode == 0, result.stderr
+        outputs.append(result.stdout + result.stderr)
+    assert "fatal: Stripe answered 401" in outputs[0]
+    command = " ".join(shlex.quote(a) for a in [sys.executable] + entry["args"])
+    lint = run_cli("lint", "--server", command, env=shell)
+    assert lint.returncode == 2 and "fatal: Stripe answered 401" in lint.stderr
+    outputs.append(lint.stdout + lint.stderr)
+    for output in outputs:
+        for secret in (STRIPE_KEY, NPM_TOKEN, HF_TOKEN, FLAG_PASSWORD):
+            assert secret not in output, secret
+
+
+def test_redact_uses_the_shared_patterns_and_keeps_its_own():
+    for secret in (STRIPE_KEY, NPM_TOKEN, HF_TOKEN):
+        assert secret not in mcp_client.redact("before %s after" % secret)
+    for command, secret in (("mysql -uroot -pS3cretPw1 -e 'select 1'", "S3cretPw1"),
+                            ("sshpass -p %s ssh host" % FLAG_PASSWORD, FLAG_PASSWORD)):
+        assert secret not in mcp_client.redact(command)
+    # Its own extras: values from a server's config, short bearer tokens, short sk- keys.
+    out = mcp_client.redact("Bearer abc.def-ghi_jkl and plain-config-value and sk-" + "Ab12Cd34Ef56Gh78",
+                            mask=["plain-config-value"])
+    assert "abc.def-ghi_jkl" not in out and "plain-config-value" not in out and "Ab12Cd34Ef56Gh78" not in out
+
+
+def test_helper_scripts_print_untrusted_names_in_inline_code(tmp_path):
+    argv = fake_server_argv(tmp_path, mode="legacy", tools=[{"name": "t " + HTML, "description": "d",
+                                                             "inputSchema": {"type": "object"}}])
+    listed = subprocess.run([sys.executable, os.path.join(SCRIPTS, "mcp_client.py"), "--"] + argv,
+                            capture_output=True, text=True, timeout=30)
+    assert listed.returncode == 0, listed.stderr
+    assert "- `t %s`" % HTML in listed.stdout and "<img" not in outside_code(listed.stdout)
+    home, project = tmp_path / "home", tmp_path / "project"
+    home.mkdir()
+    project.mkdir()
+    write_json(home / ".claude.json", {"mcpServers": {"s " + HTML: {"command": "srv", "args": [HTML]}}})
+    configs = subprocess.run([sys.executable, os.path.join(SCRIPTS, "mcp_configs.py"), "--project", str(project)],
+                             capture_output=True, text=True, env=clean_env(home), timeout=30)
+    assert configs.returncode == 0, configs.stderr
+    assert "`s %s`" % HTML in configs.stdout and "<img" not in outside_code(configs.stdout)

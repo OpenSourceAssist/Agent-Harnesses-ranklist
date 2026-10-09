@@ -13,6 +13,7 @@ import datetime
 import itertools
 import json
 import os
+import re
 import shlex
 import sys
 import time
@@ -753,7 +754,7 @@ def test_an_injected_change_is_flagged_at_the_right_version():
     assert {after for after, _m in flagged(result)} == {"2.1.203"}
     assert {c["where"] for c in result["flagged"]} == {"after 2.1.203"}
     assert {"reads_before_edit", "interrupts"} <= {m for _a, m in flagged(result)}
-    assert result["headline"].startswith("After Claude Code 2.1.203, your agent reads ")
+    assert result["headline"].startswith("After Claude Code `2.1.203`, your agent reads ")
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3, 4, 5, 6])
@@ -973,7 +974,7 @@ def test_counts_in_notes_use_thousands_separators():
 @pytest.mark.parametrize("turns, by, start", [
     ([], "version", "No Claude Code turns found in the last 90 days."),
     ([mk(session="s%d" % i, version="2.1.284") for i in range(40)], "version",
-     "All 40 Claude Code turns in the last 90 days ran on one version (2.1.284)"),
+     "All 40 Claude Code turns in the last 90 days ran on one version (`2.1.284`)"),
     ([mk(session="s%d" % (i % 15), version="2.1.%d" % (i % 4)) for i in range(80)], "version",
      "Not enough history to test an update yet: 80 Claude Code turns from 15 sessions across 4 versions"),
     ([mk(session="s%d" % (i % 15), model="model-%d" % (i % 2)) for i in range(80)], "model",
@@ -1005,7 +1006,7 @@ def test_markdown_leads_with_the_bold_headline_then_the_flagged_table():
     text = regress.render_markdown(result)
     assert text.startswith("**" + result["headline"] + "**\n")
     assert text.index("## Flagged changes") < text.index("## By version")
-    row = [line for line in text.splitlines() if line.startswith("| after 1.1.0 | Reads before the first edit")][0]
+    row = [line for line in text.splitlines() if line.startswith("| after `1.1.0` | Reads before the first edit")][0]
     assert "| 6 | 1 | -83% | worse |" in row and "| 12, 12 |" in row
     assert "Before (per session)" in text and "After (per session)" in text
 
@@ -1040,6 +1041,46 @@ def test_untrusted_text_stays_inert_in_every_output():
     svg = regress.render_svg(result)
     root = ET.fromstring(svg)
     assert root.tag.endswith("svg") and "<b>" not in svg and "`" not in svg
+
+
+def _outside_code(md):
+    """The markdown with fenced blocks and inline code spans taken out: what renders as markdown."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+URL = "https://evil.example/upgrade-now"
+
+
+def test_a_version_that_is_a_link_stays_in_inline_code():
+    turns = _two_sides(lambda s: {}, lambda s: {})
+    for t in turns:
+        if t.version == "1.1.0":
+            t.version = URL
+    result = regress.evaluate(turns, "version", min_sessions=12, since_days=90)
+    text = regress.render_markdown(result)
+    assert result["headline"].startswith("After Claude Code `%s`, your agent reads " % URL)
+    assert "| after `%s` |" % URL in text and "| `%s` |" % URL in text  # the flagged table and the version table
+    assert not [line for line in text.splitlines() if "evil.example" in _outside_code(line)]
+    assert result["flagged"][0]["update"] == result["slices"][1]["key"] == URL  # JSON values stay plain
+    assert "`" not in regress.render_svg(result)
+
+
+def test_model_names_that_are_links_stay_in_inline_code_in_every_section():
+    turns = _two_sides(lambda s: {"model": "claude-opus-5"}, lambda s: {"model": URL})
+    turns += [mk(session="old-%d" % s, version="0.9.0", t=NOW - 2 * DAY + s) for s in range(3)]  # left out: ran late
+    info = {"files": 25, "subagent_files": 0, "subagents_attached": 0, "turns_before_window": 0, "warnings": 0,
+            "unpriced_models": {URL: 4}}
+    result = regress.evaluate(turns, "version", min_sessions=12, info=info, since_days=90)
+    assert [c["kind"] for c in result["confounders"]] == ["model"] and result["left_out"]["versions"]
+    text = regress.render_markdown(result)
+    assert "after `1.1.0`: The model mix changed" in text and "after, `%s` ran 100%%" % URL in text
+    assert "Left out `0.9.0`: it ran" in text and "known price: `%s`." % URL in text
+    assert not [line for line in text.splitlines() if "evil.example" in _outside_code(line)]
+    by_model = regress.evaluate(turns, "model", min_sessions=12, since_days=90)
+    text = regress.render_markdown(by_model)
+    assert by_model["headline"].startswith("On `%s`, compared with `claude-opus-5`" % URL)
+    assert not [line for line in text.splitlines() if "evil.example" in _outside_code(line)]
 
 
 def test_svg_has_one_chart_per_flagged_metric_and_parses_as_xml():
@@ -1102,7 +1143,7 @@ def test_cli_reports_a_regression_and_changes_no_file(home, capsys):
     code = regress.main(["--min-sessions", "12"])
     out = capsys.readouterr().out
     assert code == 0
-    assert out.startswith("**After Claude Code 2.1.201, your agent edits without reading first in most sessions")
+    assert out.startswith("**After Claude Code `2.1.201`, your agent edits without reading first in most sessions")
     assert snapshot(home) == before
 
 
@@ -1129,7 +1170,7 @@ def test_cli_out_and_svg_write_only_the_files_asked_for(home, tmp_path, capsys):
     assert regress.main(["--min-sessions", "12", "--out", str(report), "--svg", str(chart)]) == 0
     printed = capsys.readouterr().out
     assert "Report written to" in printed
-    assert report.read_text(encoding="utf-8").startswith("**After Claude Code 2.1.201")
+    assert report.read_text(encoding="utf-8").startswith("**After Claude Code `2.1.201`")
     ET.fromstring(chart.read_text(encoding="utf-8"))
     assert sorted(os.listdir(str(report.parent))) == ["chart.svg", "report.md"]
 
@@ -1236,7 +1277,7 @@ def test_versions_that_ran_after_newer_ones_are_left_out():
     assert keys(slices) == ["2.1.200", "2.1.210", "2.1.220", "2.1.230"]
     assert [row[0] for row in notes["out_of_order"]] == ["2.1.147"]
     notes = regress.evaluate(turns, "version", min_sessions=12, since_days=90)["notes"]
-    assert any(n.startswith("Left out 2.1.147: it ran ") and "after newer versions" in n and "--by week" in n
+    assert any(n.startswith("Left out `2.1.147`: it ran ") and "after newer versions" in n and "--by week" in n
                for n in notes)
 
 
@@ -1353,7 +1394,7 @@ def test_a_window_that_borrowed_is_placed_within_the_span_it_covers():
     result = regress.evaluate(turns, "version", min_sessions=12)
     (c,) = [c for c in result["flagged"] if c["metric"] == "reads_before_edit"]
     assert c["where"] == "between 4.0.1 and 4.0.2"
-    assert result["headline"].startswith("After an update between Claude Code 4.0.1 and 4.0.2, your agent reads ")
+    assert result["headline"].startswith("After an update between Claude Code `4.0.1` and `4.0.2`, your agent reads ")
 
 
 def test_a_change_next_to_a_tiny_version_is_placed_within_its_span():
@@ -1401,7 +1442,7 @@ def test_untested_updates_are_listed_with_their_sessions():
                   for s in range(sessions) for k in range(3)]
     result = regress.evaluate(turns, "version", min_sessions=12)
     assert result["untested"] == [{"update": "2.1.280", "sessions": 7}]
-    assert any(n.startswith("Not tested: 2.1.280 (7 sessions)") for n in result["notes"])
+    assert any(n.startswith("Not tested: `2.1.280` (7 sessions)") for n in result["notes"])
 
 
 # Item 6: the --project hint survives a shell
@@ -1495,7 +1536,7 @@ def test_a_version_that_stands_out_is_reported_once_and_not_headlined():
     assert result["flagged"] == []
     assert [(x["versions"], x["metric"]) for x in result["stand_outs"]] == [("8.0.1", "reads_before_edit")]
     assert result["headline"].startswith("No lasting behavior change passed the test")
-    assert "8.0.1 stands out from the versions around it" in regress.render_markdown(result)
+    assert "Version `8.0.1` stands out from the versions around it" in regress.render_markdown(result)
 
 
 # Item 14: one-turn sessions

@@ -7,16 +7,16 @@ Finds the rules in AGENTS.md, CLAUDE.md, and GEMINI.md that your coding agent br
 A sample run. The numbers and names are invented; your agent prints its own. First the count (`rules.py count --rules rules.json --project .`):
 
 ```
-**Your agent broke 2 of your 4 checkable rules 22 times in the last 30 days; 'Use pnpm, never npm' leads with 19.**
+**Your agent broke 2 of your 4 checkable rules 22 times in the last 30 days; `Use pnpm, never npm` leads with 19.**
 
 Checked 9,614 tool calls in 188 sessions from the last 30 days (Claude Code 171, Codex 17), in sessions under `~/code/shop`.
 
 | Rule | Breaks | Ran | Stopped | Sessions | Last | Source |
 |---|---|---|---|---|---|---|
-| use-pnpm | 19 | 17 | 2 | 7 | 2026-09-19 | AGENTS.md:14 |
-| no-generated-edits | 3 | 3 | 0 | 2 | 2026-09-12 | AGENTS.md:31 |
-| no-force-push | 0 | 0 | 0 | 0 | never | AGENTS.md:29 |
-| no-env-reads | 0 | 0 | 0 | 0 | never | AGENTS.md:30 |
+| use-pnpm | 19 | 17 | 2 | 7 | 2026-09-19 | `AGENTS.md:14` |
+| no-generated-edits | 3 | 3 | 0 | 2 | 2026-09-12 | `AGENTS.md:31` |
+| no-force-push | 0 | 0 | 0 | 0 | never | `AGENTS.md:29` |
+| no-env-reads | 0 | 0 | 0 | 0 | never | `AGENTS.md:30` |
 
 Examples, newest first (secrets masked, cut to 160 characters):
 - use-pnpm, Claude Code, 2026-09-19 14:02 UTC, ran: `cd web && npm install left-pad`
@@ -83,7 +83,7 @@ It needs Python 3.9 or newer and nothing else, on macOS or Linux, including WSL2
 
 - It checks one tool call at a time. Rules about order ("run the tests before you commit") or style stay advice; [claim-check](../claim-check/) covers the tests-pass case.
 - It sees the command the agent sends. A command built at run time, such as `eval "$CMD"`, a script the agent writes and then runs, or text piped into a shell, gets past it. A command with more than 5,000 parts is checked on its first 5,000.
-- Path rules read a shell command's arguments and redirections, not the code inside a script such as `python3 -c "..."`, and they cannot tell a read from a write: `git diff dist` counts as touching `dist`.
+- Path rules read a shell command's arguments and redirections, not the code inside a script such as `python3 -c "..."`, and they cannot tell a read from a write: `git diff dist` counts as touching `dist`. They follow `cd` within a command; after a `cd` to a folder known only at run time, such as `cd "$DIR"`, paths still start from the last folder the hook knew.
 - A pattern is only as good as its fit. Read the examples `count` shows, and let `test` prove the hook before you install it.
 - `count` includes breaks from before a rule was written. Use `--since` with the date the rule was added.
 - The settings entry names the hook by its absolute path on this machine, so keep that settings file out of git or have each teammate run `generate`.

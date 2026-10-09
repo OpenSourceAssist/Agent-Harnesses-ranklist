@@ -31,8 +31,9 @@ import re
 import shutil
 import subprocess
 
-from common import clean_env, safe_text
+from common import clean_env
 from pricing import cost_usd, price_for
+from safe import code, safe_text
 
 # Token use assumed for one run when estimating cost (Anthropic meanings:
 # input is uncached input). A short fix and a long one; both are guesses.
@@ -109,7 +110,7 @@ class Harness:
         return self.model is not None and price_for(self.model) is not None
 
     def unpriced_reason(self) -> str:
-        return "the price table has no price for %s" % safe_text(self.model, 60)
+        return "the price table has no price for %s" % code(self.model, 60)
 
     def unpriced_fix(self) -> str:
         return "Pass --allow-unpriced %s to run it anyway; its runs count $0" % self.name

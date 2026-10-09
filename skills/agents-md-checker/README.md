@@ -21,13 +21,13 @@ and 2 of 7 documented commands fail.**
 | Aider          | nothing                              | none                        | nothing                |
 
 Failing commands:
-  npm run lint   AGENTS.md:14  package.json has no script "lint"
-  make docs      AGENTS.md:16  Makefile has no target docs
+  npm run lint   AGENTS.md:14  `package.json` has no script `lint`
+  make docs      AGENTS.md:16  `Makefile` has no target `docs`
 
 Next steps:
-  1. Add `@AGENTS.md` as the first line of CLAUDE.md so Claude Code reads both.
+  1. Add `@AGENTS.md` as the first line of `CLAUDE.md` so Claude Code reads both.
   2. Move long sections into linked docs so Codex keeps the whole file.
-  3. Fix `npm run lint` in AGENTS.md:14.
+  3. Fix `npm run lint` in `AGENTS.md:14`.
 ```
 
 The full report also lists every file per agent with its status, the commands `--run` would execute, contradictions between the files (package manager, test runner, Node and Python versions), and links that point at nothing.
@@ -90,7 +90,7 @@ That only reads files. To also run the documented tests, lint, type checks, and 
 
 The scripts read the instruction files and config files in your repo on your machine. Instruction files in your home folder and system folders (such as `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`) are measured by size only; their text is never read or printed. From agent settings files in your home folder, the scripts read only the few settings that change loading (for example the Codex trust level for this project and the Gemini CLI file-name setting), and show only those values.
 
-The checker makes no network calls; commands run with `--run` can, for example to download dependencies. Without `--run` nothing is executed; with it, only the listed commands run, and output excerpts in the report have secret-looking values replaced and are cut to 160 characters. File names, commands, and output from the repo are printed as inert text (no line breaks, backticks, or table pipes), so a hostile repo cannot break the report or slip instructions into it.
+The checker makes no network calls; commands run with `--run` can, for example to download dependencies. Without `--run` nothing is executed; with it, only the listed commands run, and output excerpts in the report have secret-looking values replaced and are cut to 160 characters. File names, commands, and output from the repo are printed as inert text inside inline code (no line breaks, backticks, or table pipes), so links and HTML in them do not render, and a hostile repo cannot break the report or slip instructions into it.
 
 ## Related
 

@@ -27,6 +27,8 @@ import os
 import re
 import sys
 
+from safe import code, safe_text
+
 try:
     import tomllib  # Python 3.11+
 except ImportError:  # Python 3.9 and 3.10 cannot read TOML with the standard library
@@ -201,46 +203,6 @@ def find_imports(text):
             if token and ("/" in token or "." in token):
                 found.append((number, token))
     return found
-
-
-MASK = "[REDACTED]"
-SECRET_RES = [re.compile(p, re.S) for p in (  # the same patterns as skills/evals/shared/transcripts.py
-    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)",
-    r"\bsk-ant-[A-Za-z0-9_\-]{16,}", r"\bsk-[A-Za-z0-9_\-]{20,}", r"\bgh[pousr]_[A-Za-z0-9]{20,}",
-    r"\bgithub_pat_[A-Za-z0-9_]{20,}", r"\bglpat-[A-Za-z0-9_\-]{20,}", r"\bxox[abposr]-[A-Za-z0-9\-]{10,}",
-    r"\bAIza[0-9A-Za-z_\-]{30,}", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b", r"\b[rsp]k_(?:live|test)_[0-9A-Za-z]{16,}",
-    r"\bnpm_[A-Za-z0-9]{30,}", r"\bhf_[A-Za-z0-9]{30,}",
-    r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}",
-)]
-KEEP_PREFIX_RES = [re.compile(p) for p in (  # keep group 1, mask the rest of the match
-    r"(?i)(\b(?:bearer|basic)\s+)[A-Za-z0-9._~+/\-]{16,}=*",
-    r"(?i)(\b[a-z][a-z0-9+.\-]*://[^/\s:@]+:)[^@\s/]+(?=@)",
-    r"(?i)(\b[A-Za-z0-9_.\-]*(?:api[_\-]?key|secret|token|passw(?:or)?d|pwd|credential|"
-    r"private[_\-]?key|access[_\-]?key)[A-Za-z0-9_.\-]*[\"']?\s*[:=]\s*[\"']?)[^\s\"',;}]{6,}",
-)]
-LONG_RUN_RE = re.compile(r"[A-Za-z0-9+=_\-]{40,}")
-
-
-def redact(text):
-    """Mask API keys, tokens, private keys, passwords in URLs, and long secret-like strings."""
-    out = str(text or "")
-    for pattern in SECRET_RES:
-        out = pattern.sub(MASK, out)
-    for pattern in KEEP_PREFIX_RES:
-        out = pattern.sub(lambda m: m.group(1) + MASK, out)
-    return LONG_RUN_RE.sub(lambda m: MASK if re.search(r"[0-9]", m.group(0)) and re.search(r"[A-Za-z]", m.group(0))
-                           else m.group(0), out)
-
-
-def safe_text(text, limit=160):
-    """Make untrusted text (a path, a command, rule text, command output) safe to show: secrets masked,
-    control characters and line breaks turned into spaces, backticks and table pipes replaced, runs of
-    spaces collapsed, and the result cut to `limit` characters. Text from a repo can carry instructions
-    for the agent that relays the report, or break a table; this keeps it one inert line."""
-    out = redact(text if isinstance(text, str) else str(text))
-    out = "".join(ch if ch.isprintable() else " " for ch in out)
-    out = " ".join(out.replace("`", "'").replace("|", "/").split())
-    return out if len(out) <= limit else out[:max(limit - 3, 0)] + "..."
 
 
 def unquote(value):
@@ -433,8 +395,8 @@ class Context:
         return real == repo or real.startswith(repo + os.sep)
 
     def show(self, path, limit=200):
-        """The display path, made safe for report text."""
-        return safe_text(self.display(path), limit)
+        """The display path as inline code, for report text."""
+        return code(self.display(path), limit)
 
     def display(self, path):
         path = os.path.abspath(path)
@@ -549,9 +511,9 @@ class Context:
             with open(path, "r", encoding="utf-8") as handle:
                 return json.loads(strip_json_comments(handle.read()))
         except ValueError:
-            self.note("Could not read %s: it is not valid JSON, so its settings were not applied." % self.display(path), owner)
+            self.note("Could not read %s: it is not valid JSON, so its settings were not applied." % self.show(path), owner)
         except OSError:
-            self.note("Could not open %s, so its settings were not applied." % self.display(path), owner)
+            self.note("Could not open %s, so its settings were not applied." % self.show(path), owner)
         return None
 
     def config_toml(self, path, owner=None):
@@ -564,7 +526,7 @@ class Context:
             with open(path, "rb") as handle:
                 return tomllib.load(handle)
         except (OSError, ValueError):
-            self.note("Could not read %s as TOML, so its settings were not applied." % self.display(path), owner)
+            self.note("Could not read %s as TOML, so its settings were not applied." % self.show(path), owner)
             return {}
 
     def finding(self, fid, harness, severity, message, fix, path="", clause=None):
@@ -603,7 +565,7 @@ class Harness:
         if loaded_bytes is None:
             loaded_bytes = size if status in AT_START else 0
         item = {
-            "path": ctx.display(key),  # raw here; safe_text runs when it is shown
+            "path": ctx.display(key),  # raw here; code() or safe_text() runs when it is shown
             "scope": scope or ("project" if ctx.inside(key) else "outside"),
             "status": status,
             "bytes": size,
@@ -681,10 +643,10 @@ def follow_imports(ctx, h, importer, max_depth, seen, add_file, depth=1, accept=
             if token.lower().endswith(DOC_EXTENSIONS) and not os.path.isdir(target):
                 ctx.finding(
                     "broken-import", h, "problem",
-                    "%s:%d imports @%s, but that file does not exist, so %s loads nothing from it."
-                    % (ctx.show(importer), number, safe_text(token), h.name),
+                    "%s imports %s, but that file does not exist, so %s loads nothing from it."
+                    % (code("%s:%d" % (ctx.display(importer), number), 200), code("@" + token), h.name),
                     "Fix the path after @ or remove the line.",
-                    ctx.show(target),
+                    ctx.display(target),
                     clause="%s cannot find a file your instructions import" % h.name,
                 )
             continue
@@ -786,10 +748,10 @@ def build_claude(ctx):
             item = h.add(path, SKIPPED, reason="over the 4 MiB limit, so Claude Code skips it", via=via, scope=scope, anchor=anchor)
             ctx.finding(
                 "claude-file-too-large", h, "problem",
-                "Claude Code skips %s: at %s it is over the 4 MiB limit." % (item["path"], fmt_bytes(size)),
+                "Claude Code skips %s: at %s it is over the 4 MiB limit." % (code(item["path"], 200), fmt_bytes(size)),
                 "Keep the essentials in the file and move the rest into linked docs.",
                 item["path"],
-                clause="Claude Code skips %s because it is over 4 MiB" % item["path"],
+                clause="Claude Code skips %s because it is over 4 MiB" % code(item["path"], 200),
             )
             return False
         text = ctx.read(path)
@@ -810,7 +772,7 @@ def build_claude(ctx):
         paths = as_list(frontmatter(ctx.read(path)).get("paths")) if ctx.inside(path) else []
         if paths:
             h.add(path, CONDITIONAL, reason="loads when Claude Code works on files matching %s"
-                  % safe_text(", ".join(paths)))
+                  % code(", ".join(paths)))
         else:
             top(path, scope=scope)
 
@@ -874,7 +836,7 @@ def build_claude(ctx):
                     h.add(path, SKIPPED, reason="Claude Code does not read %s" % rel)
 
     for directory in ctx.below(ctx.cwd):
-        where = ctx.show(directory) + "/"
+        where = code(ctx.display(directory) + "/", 200)
         for rel in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
             path = ctx.find(directory, rel)
             if path:
@@ -897,21 +859,21 @@ def build_claude(ctx):
         agents_path = ctx.show(skipped_path)
         blocker = ctx.show(nearest)
         name = os.path.basename(nearest) if ctx.located(nearest) else None
-        if name:
-            label = "a .claude/CLAUDE.md" if blocker.endswith(".claude/CLAUDE.md") else "a %s" % safe_text(name)
+        if name:  # name is CLAUDE.md or CLAUDE.local.md in the file system's case, so it stays plain
+            label = "a .claude/CLAUDE.md" if ctx.display(nearest).endswith(".claude/CLAUDE.md") else "a %s" % safe_text(name)
             clause = "Claude Code ignores your AGENTS.md because %s exists" % label
             target = next((b for b in reversed(inside_blockers) if os.path.basename(b) == "CLAUDE.md"), nearest)
             target_dir = os.path.dirname(target)
             folder = os.path.dirname(target_dir) if os.path.basename(target_dir) == ".claude" else target_dir
             agents_dir = os.path.dirname(skipped_path)
             if agents_dir.startswith(folder + os.sep):
-                fix = ("Add a CLAUDE.md in %s/ whose first line is `@AGENTS.md`, or set instructionFiles to "
-                       "claude-md-and-agents-md." % ctx.show(agents_dir))
+                fix = ("Add a CLAUDE.md in %s whose first line is `@AGENTS.md`, or set instructionFiles to "
+                       "claude-md-and-agents-md." % code(ctx.display(agents_dir) + "/", 200))
             else:
                 rel = os.path.relpath(skipped_path, target_dir).replace(os.sep, "/")
-                fix = ("Add `@%s` as the first line of %s so Claude Code reads both (the path is relative to the "
+                fix = ("Add %s as the first line of %s so Claude Code reads both (the path is relative to the "
                        "file that holds the import), or set instructionFiles to claude-md-and-agents-md."
-                       % (safe_text(rel), ctx.show(target)))
+                       % (code("@" + rel), ctx.show(target)))
         else:
             clause = "Claude Code ignores your AGENTS.md because %s exists above this repo" % blocker
             fix = ("Move or rename %s, or add a CLAUDE.md to this repo whose first line is `@AGENTS.md`."
@@ -920,16 +882,16 @@ def build_claude(ctx):
             "claude-ignores-agents-md", h, "problem",
             "Claude Code skips %s because %s exists. It reads AGENTS.md only when no CLAUDE.md, "
             ".claude/CLAUDE.md, or CLAUDE.local.md exists in the start folder or above." % (agents_path, blocker),
-            fix, agents_path, clause=clause,
+            fix, ctx.display(skipped_path), clause=clause,
         )
 
     for item in h.files:
         if item["status"] == LOADED and item["scope"] == "project" and (item["lines"] or 0) > CLAUDE_GUIDE_LINES:
             ctx.finding(
                 "claude-file-long", h, "info",
-                "%s has %d lines; Claude Code's guidance is under 200 lines per file." % (safe_text(item["path"]), item["lines"]),
+                "%s has %d lines; Claude Code's guidance is under 200 lines per file." % (code(item["path"], 200), item["lines"]),
                 "Move procedures into linked docs and keep the file to what every session needs.",
-                safe_text(item["path"]),
+                item["path"],
             )
     return h
 
@@ -992,7 +954,7 @@ def build_codex(ctx):
     chain = chain[chain.index(root):] if root else [ctx.cwd]
     if root is None:
         ctx.note("No project root marker (%s) found, so Codex reads only the start folder."
-                 % (", ".join(markers) or "none configured"), h)
+                 % (", ".join(code(m) for m in markers) or "none configured"), h)
 
     trust = codex_trust(config, root or ctx.cwd, ctx.cwd)
     if trust == "trusted":
@@ -1041,18 +1003,18 @@ def build_codex(ctx):
                 project_seen = True
                 if chosen is not None:
                     if ctx.is_blank(chosen):
-                        reason = "the empty %s in this folder hides it" % os.path.basename(chosen)
+                        reason = "the empty %s in this folder hides it" % code(os.path.basename(chosen))
                         if os.path.basename(chosen) == "AGENTS.override.md" and not ctx.is_blank(path):
                             ctx.finding(
                                 "codex-empty-override", h, "problem",
                                 "Codex takes the empty %s, skips it as empty, and never reads %s."
                                 % (ctx.show(chosen), ctx.show(path)),
                                 "Delete the empty AGENTS.override.md or move your rules into it.",
-                                ctx.show(chosen),
+                                ctx.display(chosen),
                                 clause="an empty AGENTS.override.md hides your AGENTS.md from Codex",
                             )
                     else:
-                        reason = "Codex reads one file per folder and took %s" % os.path.basename(chosen)
+                        reason = "Codex reads one file per folder and took %s" % code(os.path.basename(chosen))
                     h.add(path, SKIPPED, reason=reason)
                     continue
                 chosen = path
@@ -1081,7 +1043,7 @@ def build_codex(ctx):
                                              ", ".join(ctx.show(p) for p in cut_files)),
                 "Move long sections into linked docs so Codex keeps the whole file, or raise "
                 "project_doc_max_bytes in %s." % ctx.show(config_path),
-                ctx.show(cut_files[0]),
+                ctx.display(cut_files[0]),
                 clause="Codex cuts its last %s" % fmt_bytes(h.cut_bytes),
             )
 
@@ -1146,7 +1108,7 @@ def build_gemini(ctx):
                     "reads only its default GEMINI.md." % ctx.show(project_path),
                     "Trust this folder in Gemini CLI (or remove its DO_NOT_TRUST entry in ~/.gemini/trustedFolders.json), "
                     "or set context.fileName in ~/.gemini/settings.json.",
-                    ctx.show(project_path),
+                    ctx.display(project_path),
                     clause="Gemini CLI ignores your .gemini/settings.json because the folder is not trusted",
                 )
         else:
@@ -1166,7 +1128,7 @@ def build_gemini(ctx):
         if dig(layer, "context", "includeDirectories"):
             ctx.note("context.includeDirectories adds more folders; their files are not mapped here.", h)
     if names != ["GEMINI.md"]:
-        ctx.note("context.fileName: %s." % safe_text(", ".join(names)), h)
+        ctx.note("context.fileName: %s." % ", ".join(code(n) for n in names), h)
 
     for name in names:
         path = os.path.join(gemini_dir, name)
@@ -1188,7 +1150,7 @@ def build_gemini(ctx):
     chain = list(reversed(chain)) if boundary_found else [ctx.cwd]
     if not boundary_found:
         ctx.note("No boundary marker (%s) found; this map assumes Gemini CLI reads only the start folder."
-                 % (", ".join(markers) or "none configured"), h)
+                 % (", ".join(code(m) for m in markers) or "none configured"), h)
 
     seen = set()
     rejected = []
@@ -1214,20 +1176,21 @@ def build_gemini(ctx):
         importer, number, token = rejected[0]
         ctx.finding(
             "gemini-import-form", h, "warning",
-            "%s:%d imports @%s, but Gemini CLI documents imports only as @./file.md, @../file.md, or "
+            "%s imports %s, but Gemini CLI documents imports only as @./file.md, @../file.md, or "
             "@/absolute/file.md, so this map does not count it as loaded%s."
-            % (ctx.show(importer), number, safe_text(token),
+            % (code("%s:%d" % (ctx.display(importer), number), 200), code("@" + token),
                " (%d more like it)" % (len(rejected) - 1) if len(rejected) > 1 else ""),
-            "Write the import as `@./%s`." % safe_text(token),
-            ctx.show(importer),
-            clause="Gemini CLI may skip the @%s import in %s" % (safe_text(token), safe_text(os.path.basename(importer))),
+            "Write the import as %s." % code("@./" + token),
+            ctx.display(importer),
+            clause="Gemini CLI may skip the %s import in %s" % (code("@" + token), code(os.path.basename(importer))),
         )
 
     for directory in ctx.below(ctx.cwd):
         for name in names:
             path = ctx.find(directory, name)
             if path:
-                h.add(path, ON_DEMAND, reason="loads just in time when Gemini CLI works in %s/" % ctx.show(directory))
+                h.add(path, ON_DEMAND, reason="loads just in time when Gemini CLI works in %s"
+                      % code(ctx.display(directory) + "/", 200))
 
     if not project_loaded:
         if any(ctx.find(d, "AGENTS.md") for d in chain):
@@ -1242,7 +1205,7 @@ def build_gemini(ctx):
         ctx.finding(
             "gemini-reads-nothing", h, "warning",
             "Gemini CLI looks for %s and finds none between the project root and the start folder, so it starts "
-            "with no project instructions." % safe_text(" or ".join(names)),
+            "with no project instructions." % " or ".join(code(n) for n in names),
             fix,
             clause="Gemini CLI reads no project file",
         )
@@ -1313,7 +1276,7 @@ def build_opencode(ctx):
                 continue
             if re.match(r"^https?://", item):
                 ctx.note("OpenCode also fetches %s at startup; remote files are not measured here."
-                         % safe_text(item.split("?", 1)[0]), h)
+                         % code(item.split("?", 1)[0]), h)
                 continue
             pattern = os.path.expanduser(item)
             if not os.path.isabs(pattern):
@@ -1321,7 +1284,7 @@ def build_opencode(ctx):
             matches = sorted(glob.glob(pattern, recursive=True)) if re.search(r"[*?\[]", item) else [pattern]
             matches = [m for m in matches if os.path.isfile(m)]
             if not matches:
-                ctx.note("instructions entry %s in %s matches no file." % (safe_text(item), ctx.show(config)), h)
+                ctx.note("instructions entry %s in %s matches no file." % (code(item), ctx.show(config)), h)
             for match in matches:
                 h.add(match, LOADED, via="instructions in %s" % ctx.show(config), anchor=ctx.repo)
                 project_loaded = project_loaded or ctx.inside(match)
@@ -1360,7 +1323,7 @@ def build_cursor(ctx):
             if always:
                 h.add(path, LOADED, reason="alwaysApply: true")
             elif globs:
-                h.add(path, CONDITIONAL, reason="auto-attached when files match %s" % safe_text(", ".join(globs)))
+                h.add(path, CONDITIONAL, reason="auto-attached when files match %s" % code(", ".join(globs)))
             elif description:
                 h.add(path, CONDITIONAL, reason="the agent decides from the description")
             else:
@@ -1386,7 +1349,7 @@ def build_cursor(ctx):
     for directory in ctx.below(ctx.cwd):
         path = ctx.find(directory, "AGENTS.md")
         if path:
-            h.add(path, ON_DEMAND, reason="applies when working in %s/" % ctx.show(directory))
+            h.add(path, ON_DEMAND, reason="applies when working in %s" % code(ctx.display(directory) + "/", 200))
 
     legacy = ctx.find(ctx.repo, ".cursorrules")
     if legacy:
@@ -1418,7 +1381,7 @@ def build_cursor(ctx):
             "cursor-md-ignored", h, "problem",
             "Cursor ignores %s in .cursor/rules because they end in .md: %s." % (plural(len(md_ignored), "file"), listed),
             "Rename each file to .mdc and add frontmatter with description, globs, or alwaysApply: true.",
-            ctx.show(md_ignored[0]),
+            ctx.display(md_ignored[0]),
             clause="Cursor ignores %s that end in .md" % plural(len(md_ignored), "rule file"),
         )
     if manual:
@@ -1428,14 +1391,14 @@ def build_cursor(ctx):
             % ("1 Cursor rule has" if len(manual) == 1 else "%d Cursor rules have" % len(manual),
                ", ".join(ctx.show(p) for p in manual)),
             "Add alwaysApply: true, globs, or a description if the rule should apply on its own.",
-            ctx.show(manual[0]),
+            ctx.display(manual[0]),
         )
     for path in too_long:
         ctx.finding(
             "cursor-rule-too-long", h, "info",
             "%s has %d lines; Cursor's guidance is under 500 lines per rule." % (ctx.show(path), ctx.lines(path)),
             "Split it into smaller rules, or move reference material into linked docs.",
-            ctx.show(path),
+            ctx.display(path),
         )
     return h
 
@@ -1453,9 +1416,9 @@ def build_copilot(ctx):
             continue
         globs = as_list(frontmatter(ctx.read(path)).get("applyTo"))
         if any(g in ("**", "**/*", "*") for g in globs):
-            h.add(path, LOADED, reason="applyTo: %s" % safe_text(", ".join(globs)))
+            h.add(path, LOADED, reason="applyTo: %s" % code(", ".join(globs)))
         elif globs:
-            h.add(path, CONDITIONAL, reason="applies to files matching %s" % safe_text(", ".join(globs)))
+            h.add(path, CONDITIONAL, reason="applies to files matching %s" % code(", ".join(globs)))
         else:
             h.add(path, ON_DEMAND, reason="no applyTo, so it is used only when attached")
     for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
@@ -1465,7 +1428,7 @@ def build_copilot(ctx):
     for directory in ctx.below(ctx.repo):
         path = ctx.find(directory, "AGENTS.md")
         if path:
-            h.add(path, ON_DEMAND, reason="agent instructions for %s/" % ctx.show(directory))
+            h.add(path, ON_DEMAND, reason="agent instructions for %s" % code(ctx.display(directory) + "/", 200))
     personal = os.path.join(ctx.home, ".copilot")
     path = os.path.join(personal, "copilot-instructions.md")
     if os.path.isfile(path):
@@ -1543,9 +1506,9 @@ def build_aider(ctx):
         ctx.finding(
             "aider-read-missing", h, "problem",
             "The read: setting in %s names %s that do not exist: %s."
-            % (ctx.show(source), plural(len(missing), "file"), safe_text(", ".join(missing))),
+            % (ctx.show(source), plural(len(missing), "file"), ", ".join(code(m) for m in missing)),
             "Fix the file names under read: in %s." % ctx.show(source),
-            ctx.show(source),
+            ctx.display(source),
             clause="Aider's read: setting names a file that does not exist",
         )
     return h
@@ -1666,11 +1629,6 @@ def cell(text):
     return line_text(text).replace("|", "/")
 
 
-def code(text, limit=200):
-    """Untrusted text shown as inline code."""
-    return "`%s`" % safe_text(text, limit)
-
-
 def render_table(result):
     lines = [
         "| Agent | Loads at session start | Size | Cut or skipped |",
@@ -1678,7 +1636,7 @@ def render_table(result):
     ]
     for h in result["harnesses"]:
         at_start = [f for f in h["files"] if f["status"] in AT_START]
-        names = ", ".join(code(f["path"]) for f in at_start[:3])
+        names = ", ".join(code(f["path"], 200) for f in at_start[:3])
         if len(at_start) > 3:
             names += " and %d more" % (len(at_start) - 3)
         size = "%s, about %s tokens" % (fmt_bytes(h["loaded_bytes"]), fmt_int(h["loaded_tokens_est"])) if at_start else "none"
@@ -1687,10 +1645,10 @@ def render_table(result):
             cut.append("%s cut" % fmt_bytes(h["cut_bytes"]))
         skipped = [f["path"] for f in h["files"] if f["status"] == SKIPPED and f["scope"] == "project"]
         if skipped:
-            cut.append("skips " + ", ".join(code(p) for p in skipped[:3]) + (" and more" if len(skipped) > 3 else ""))
+            cut.append("skips " + ", ".join(code(p, 200) for p in skipped[:3]) + (" and more" if len(skipped) > 3 else ""))
         unverified = [f["path"] for f in h["files"] if f["status"] == UNVERIFIED and f["scope"] == "project"]
         if unverified:
-            cut.append("unverified: " + ", ".join(code(p) for p in unverified[:3])
+            cut.append("unverified: " + ", ".join(code(p, 200) for p in unverified[:3])
                        + (" and more" if len(unverified) > 3 else ""))
         lines.append("| %s | %s | %s | %s |" % (h["name"], cell(names or "nothing"), size, cell("; ".join(cut) or "nothing")))
     return lines
@@ -1720,8 +1678,8 @@ def render_details(result):
                 parts.append(fmt_bytes(item["bytes"]))
             if item["scope"] in ("user", "managed", "outside"):
                 parts.append("%s file, size only" % item["scope"])
-            text = "- %s: %s" % (code(item["path"]), ", ".join(parts))
-            detail = "; ".join(safe_text(x, 300) for x in (item["via"], item["reason"]) if x)
+            text = "- %s: %s" % (code(item["path"], 200), ", ".join(parts))
+            detail = "; ".join(line_text(x) for x in (item["via"], item["reason"]) if x)
             if detail:
                 text += " (%s)" % detail
             lines.append(text)
@@ -1732,7 +1690,7 @@ def render_details(result):
 
 
 def render_sections(result):
-    lines = ["Repo: %s. Start folder: %s. %s" % (code(result["repo"], 400), code(result["cwd"]), TOKEN_NOTE), ""]
+    lines = ["Repo: %s. Start folder: %s. %s" % (code(result["repo"], 400), code(result["cwd"], 200), TOKEN_NOTE), ""]
     lines += ["## What each agent loads", ""] + render_table(result) + [""]
     if result["findings"]:
         lines += ["## Load findings", ""] + render_findings(result["findings"]) + [""]

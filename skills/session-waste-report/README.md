@@ -20,7 +20,7 @@ A sample report. Every number and name in it is invented; your agent prints its 
 | Re-reads of unchanged files | 41 re-reads | 12.8M | $19 | 1% | Read once; search or read a range |
 | Polling loops | 3 loops | 2.2M | $4.35 | 0.3% | Wait inside one command |
 
-Largest groups of oversized results: Read (52 results, 71.4M tokens, $47); Bash git diff (7 results, 9.6M tokens, $6.80).
+Largest groups of oversized results: `Read` (52 results, 71.4M tokens, $47); `Bash git diff` (7 results, 9.6M tokens, $6.80).
 Compactions: 17, with about 176.3k tokens of context before each. Fix: one task per session.
 Subagents: 38% of spend ($565, 611M tokens) in 121 subagent sessions. Fix: narrow tasks, cheaper models.
 
@@ -28,7 +28,7 @@ Subagents: 38% of spend ($565, 611M tokens) in 121 subagent sessions. Fix: narro
 
 | Failure | Count | Rate | Most common | Fix |
 |---|---|---|---|---|
-| Tool errors | 377 | 3.41 per 100 tool calls | Bash 268, Edit 61, Read 19 | Fix the top failing command |
+| Tool errors | 377 | 3.41 per 100 tool calls | `Bash` 268, `Edit` 61, `Read` 19 | Fix the top failing command |
 | Permission denials | 29 | 0.26 per 100 tool calls | user-rejected 22, permission-rule 7 | Allow safe commands; write the rules |
 | User interrupts | 23 | 4.13 per 100 user messages |  | Write the reason down as a rule |
 | Sessions that ended on an error or interrupt | 18 | 6.79 per 100 sessions | error 11, interrupt 7 | Check the state before closing |
@@ -36,9 +36,9 @@ Subagents: 38% of spend ($565, 611M tokens) in 121 subagent sessions. Fix: narro
 ## Top examples
 
 1. Cache rebuilds after pauses: $5.40, 284k tokens. 1-hour 52-minute pause before this call; 284k tokens rebuilt.
-   Claude Code session 8c1d2e4f at 2026-09-14 16:05 UTC, in `~/code/shop`
-2. Tool results over 10,000 tokens: $3.65, 3.1M tokens. Read returned about 16.9k tokens: src/data/catalog.json.
-   Claude Code session 3b9e0f12 at 2026-09-20 09:41 UTC, in `~/code/shop`
+   Claude Code session `8c1d2e4f` at 2026-09-14 16:05 UTC, in `~/code/shop`
+2. Tool results over 10,000 tokens: $3.65, 3.1M tokens. `Read` returned about 16.9k tokens: `src/data/catalog.json`.
+   Claude Code session `3b9e0f12` at 2026-09-20 09:41 UTC, in `~/code/shop`
 ```
 
 The full report also has error streaks, corrections, identical-call loops, a table per harness, and notes on prices and anything it skipped. `--json` prints all of it for scripts.

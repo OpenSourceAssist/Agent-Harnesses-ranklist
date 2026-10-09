@@ -35,10 +35,11 @@ import sys
 
 import harnesses
 from common import (apply_patch, changed_files, classify, duration, install_stop_handlers, make_workspace,
-                    remove_workspace, reset_workspace, restore_handlers, run_command, run_tests, safe_text,
-                    score_patch, workspace_head, write_files)
+                    remove_workspace, reset_workspace, restore_handlers, run_command, run_tests, score_patch,
+                    workspace_head, write_files)
 from harnesses import HIGH_RUN, LOW_RUN, fatal_hint
 from pricing import PRICES_CHECKED
+from safe import code, safe_text
 
 DEFAULT_TASKS = os.path.join(".harness-test-drive", "tasks.json")
 DEFAULT_RESULTS = os.path.join(".harness-test-drive", "results.jsonl")
@@ -104,7 +105,7 @@ def _read(path) -> str:
 
 def _record(task, harness, label, version="") -> dict:
     return {"schema": "harness-test-drive/result/1", "task": task.get("id", ""), "commit": task.get("commit", ""),
-            "subject": safe_text(task.get("subject"), 100), "gold_lines": task.get("gold_lines"),
+            "subject": safe_text(task.get("subject") or "", 100), "gold_lines": task.get("gold_lines"),
             "harness": harness, "label": label, "version": version, "started": _now(),
             "status": "error", "timed_out": False, "exit_code": None, "error": "", "hint": "",
             "agent_seconds": None, "test_seconds": None, "cost_usd": None, "cost_source": None, "charged_usd": 0.0,
@@ -128,7 +129,7 @@ def _charge(rec, adapter, out_path, err_path, test_cmd) -> None:
     rec.update(cost_usd=parsed["cost_usd"], tokens=parsed["tokens"], model=safe_text(parsed["model"], 60),
                turns=parsed["turns"], denials=parsed["denials"], test_runs=parsed.get("test_runs"),
                test_failures=parsed.get("test_failures"),
-               error=rec["error"] or parsed["error"] or (safe_text(lines[-1]) if rec["exit_code"] and lines else ""))
+               error=safe_text(rec["error"] or parsed["error"] or (lines[-1] if rec["exit_code"] and lines else "")))
     if parsed["cost_usd"] is not None:
         rec.update(cost_source=parsed["cost_source"], charged_usd=parsed["cost_usd"])
     elif not adapter.priced():
@@ -224,7 +225,7 @@ def _lock(results_path):
                 pid = 0
             if pid > 0 and _alive(pid):
                 raise UsageError("Another drive.py run (process %d) is using %s. Let it finish, or stop it first."
-                                 % (pid, safe_text(results_path, 300)))
+                                 % (pid, code(results_path, 300)))
             with contextlib.suppress(FileNotFoundError):
                 os.unlink(path)  # left by a run that is gone
             continue
@@ -232,7 +233,7 @@ def _lock(results_path):
             fh.write(str(os.getpid()))
         break
     else:
-        raise UsageError("Could not lock %s." % safe_text(path, 300))
+        raise UsageError("Could not lock %s." % code(path, 300))
     try:
         yield
     finally:
@@ -260,7 +261,7 @@ def _recover(inflight, results_path, doc) -> None:
                 charge = max(0.0, float(left.get("charged_usd") or 0.0))
             except (TypeError, ValueError):
                 charge = 0.0
-            rec.update(status="interrupted", started=safe_text(left.get("started"), 40) or rec["started"],
+            rec.update(status="interrupted", started=safe_text(left.get("started") or "", 40) or rec["started"],
                        error="the run was killed before it finished; its cost is an estimate",
                        cost_source="unmeasured", charged_usd=charge)
             _append(results_path, rec)
@@ -289,13 +290,13 @@ def run(doc, results_path, adapters, max_usd, timeout=900, keep=False, allow_unp
     if timeout < 1:
         raise UsageError("--timeout must be at least 1 second.")
     if not os.path.isdir(doc.get("repo") or ""):
-        raise UsageError("The repository in the tasks file is gone: %s" % safe_text(doc.get("repo"), 300))
+        raise UsageError("The repository in the tasks file is gone: %s" % code(doc.get("repo") or "", 300))
     installed = [a for a in adapters if a.available()]
     allowed = set(allow_unpriced or ())
     for a in installed:
         if not a.priced() and not (a.can_run_unpriced and a.name in allowed):
             raise UsageError("%s cannot be priced: %s. %s." % (a.label, a.unpriced_reason(), a.unpriced_fix()))
-    summary = {"results_file": results_path, "max_usd": max_usd, "runs": 0, "already_done": 0,
+    summary = {"results_file": safe_text(results_path, 300), "max_usd": max_usd, "runs": 0, "already_done": 0,
                "stopped_at_cap": False, "not_started": 0, "spent_usd": 0.0, "skipped": {},
                "not_installed": [a.name for a in adapters if not a.available()]}
     folder = os.path.dirname(os.path.abspath(results_path))
@@ -319,7 +320,7 @@ def run(doc, results_path, adapters, max_usd, timeout=900, keep=False, allow_unp
                     1 for _, a in pending[i:] if a.name not in summary["skipped"]))
                 break
             progress("[%d/%d] %s on %s: %s" % (i + 1, len(pending), adapter.label, task["id"][:7],
-                                              safe_text(task["subject"], 60)))
+                                              code(task["subject"], 60)))
             rec = run_one(doc, task, adapter, max_usd - spent, timeout, keep, work_root, logs_dir,
                           versions[adapter.name], inflight)
             _append(results_path, rec)
@@ -330,7 +331,7 @@ def run(doc, results_path, adapters, max_usd, timeout=900, keep=False, allow_unp
             if rec["status"] == "interrupted":
                 raise KeyboardInterrupt
             if rec["status"] == "error":
-                progress("        could not run (%s), $%.2f counted" % (rec["error"], rec["charged_usd"]))
+                progress("        could not run (%s), $%.2f counted" % (code(rec["error"], 120), rec["charged_usd"]))
                 if rec["hint"]:
                     summary["skipped"][adapter.name] = rec["hint"]
                     progress("        Fix: %s. The other %s runs are skipped." % (rec["hint"], adapter.label))
@@ -368,7 +369,9 @@ def _plural(n, word) -> str:
 
 def summarize(records) -> dict:
     """The scoreboard. Harnesses are compared only on the tasks every one of them
-    finished; a harness with no finished run is listed as could not run."""
+    finished; a harness with no finished run is listed as could not run. The
+    headline and notes are markdown sentences, so the error text in them sits in
+    inline code; the other text fields are plain, with secrets masked."""
     rep = {"headline": "No runs recorded yet.", "tasks_compared": 0, "harnesses": [], "tasks": [],
            "spent_usd": 0.0, "runs": 0, "notes": []}
     latest, names, labels, order, info = {}, [], {}, [], {}
@@ -395,14 +398,16 @@ def summarize(records) -> dict:
         errors = [r for (t, n), r in latest.items() if n == h and (t, n) not in finished]
         rep["harnesses"].append({
             "harness": h, "label": labels[h],
-            "versions": sorted({safe_text(r.get("version"), 60) for (t, n), r in latest.items() if n == h} - {""}),
+            "versions": sorted({safe_text(r.get("version") or "", 60)
+                                for (t, n), r in latest.items() if n == h} - {""}),
             "runs": len(runs), "passed": passed, "pass_rate": round(passed / len(runs), 3) if runs else None,
             "median_minutes": round(minutes / 60, 1) if minutes is not None else None,
             "cost_per_pass": round(total / passed, 4) if passed and not unmeasured else None,
             "total_cost": total if runs and unmeasured < len(runs) else None, "unmeasured_runs": unmeasured,
             "median_lines_changed": _median(r.get("lines_changed") for r in runs),
             "timeouts": sum(bool(r.get("timed_out")) for r in runs), "errors": len(errors),
-            "could_not_run": None if h in ran else (safe_text(errors[0].get("error"), 100) if errors else "no result")})
+            "could_not_run": None if h in ran else (safe_text(errors[0].get("error") or "", 100)
+                                                    if errors else "no result")})
     compared = sorted([x for x in rep["harnesses"] if x["could_not_run"] is None],
                       key=lambda x: (-x["passed"], x["cost_per_pass"] is None, x["cost_per_pass"] or 0))
     parts = []
@@ -413,7 +418,8 @@ def summarize(records) -> dict:
         elif x["passed"]:
             part += " (cost not measured)"
         parts.append(part)
-    cannot = ["%s could not run (%s)" % (x["label"], x["could_not_run"]) for x in rep["harnesses"] if x["could_not_run"]]
+    cannot = ["%s could not run (%s)" % (x["label"], code(x["could_not_run"], 100))
+              for x in rep["harnesses"] if x["could_not_run"]]
     if common:
         rep["headline"] = "On %s from your git history, %s%s." % (
             _plural(len(common), "task"), _and(parts), "; " + "; ".join(cannot) if cannot else "")
@@ -426,12 +432,13 @@ def summarize(records) -> dict:
     rep["spent_usd"] = round(sum(r.get("charged_usd") or 0.0 for r in records), 4)  # every run, reruns too
     for t in order:
         rep["tasks"].append({"task": t, "commit": info[t].get("commit", ""),
-                             "subject": safe_text(info[t].get("subject"), 100), "gold_lines": info[t].get("gold_lines"),
+                             "subject": safe_text(info[t].get("subject") or "", 100),
+                             "gold_lines": info[t].get("gold_lines"),
                              "results": {h: {"status": latest[(t, h)].get("status"),
                                              "timed_out": bool(latest[(t, h)].get("timed_out")),
                                              "minutes": round((latest[(t, h)].get("agent_seconds") or 0) / 60, 1),
                                              "cost_usd": latest[(t, h)].get("cost_usd"),
-                                             "error": safe_text(latest[(t, h)].get("error"), 120)}
+                                             "error": safe_text(latest[(t, h)].get("error") or "", 120)}
                                          for h in names if (t, h) in latest}})
     _notes(rep, latest, finished, order, common)
     return rep
@@ -459,7 +466,8 @@ def _notes(rep, latest, finished, order, common) -> None:
                 "it" if len(stopped) == 1 else "they", "it" if len(stopped) == 1 else "them"))
         if failed:
             notes.append("%s: %s could not run, for example: %s%s" % (
-                x["label"], _plural(len(failed), "run"), safe_text(failed[0].get("error"), 120) or "unknown",
+                x["label"], _plural(len(failed), "run"),
+                code(failed[0]["error"], 120) if failed[0].get("error") else "unknown",
                 ". Fix: %s." % safe_text(hints[0], 80) if hints else "."))
         counted = [r for (t, n), r in latest.items() if n == x["harness"] and isinstance(r.get("test_runs"), int)]
         test_runs = sum(r["test_runs"] for r in counted)
@@ -499,7 +507,7 @@ def render_report(rep) -> str:
         lines += ["| Harness | Version | Passed | Pass rate | Median minutes | Cost per pass | Total cost | "
                   "Median lines changed |", "|---|---|---|---|---|---|---|---|"]
         for x in rep["harnesses"]:
-            version = ", ".join(x["versions"]) or "unknown"
+            version = ", ".join(code(v, 60) for v in x["versions"]) or "unknown"
             if x["could_not_run"]:
                 lines.append("| %s | %s | could not run | n/a | n/a | n/a | n/a | n/a |" % (x["label"], version))
                 continue
@@ -520,7 +528,8 @@ def render_report(rep) -> str:
               "|---|---|---|" + "---|" * len(labels)]
     for t in rep["tasks"]:
         lines.append("| %s | %s | %s | %s |" % (
-            safe_text(t["task"], 40)[:7], t["subject"], t["gold_lines"] if t["gold_lines"] is not None else "?",
+            safe_text(t["task"], 40)[:7], code(t["subject"], 100),
+            t["gold_lines"] if t["gold_lines"] is not None else "?",
             " | ".join(_cell(t["results"].get(h)) for h, _ in labels)))
     lines += [""] + ["- " + note for note in rep["notes"]]
     lines += ["", "Counted toward the spend cap: %s." % _money(rep["spent_usd"])]
@@ -562,7 +571,8 @@ def render_estimate(est) -> str:
         if r["per_run"]:
             per = "%s to %s" % (_money(r["per_run"][0]), _money(r["per_run"][1]))
             total = "%s to %s" % (_money(r["total"][0]), _money(r["total"][1]))
-            basis = r["models"][0] if r["models"][0] == r["models"][1] else "%s to %s" % tuple(r["models"])
+            low, high = (code(m, 60) for m in r["models"])
+            basis = low if low == high else "%s to %s" % (low, high)
         else:
             per = total = "n/a"
             basis = "cannot be priced: %s" % r["unpriced_reason"]
@@ -591,9 +601,9 @@ def _load_tasks(path) -> dict:
         with open(path, encoding="utf-8") as fh:
             doc = json.load(fh)
     except (OSError, ValueError):
-        raise UsageError("Cannot read the tasks file %s. Run mine_tasks.py first." % safe_text(path, 300))
+        raise UsageError("Cannot read the tasks file %s. Run mine_tasks.py first." % code(path, 300))
     if not isinstance(doc, dict) or "tasks" not in doc:
-        raise UsageError("%s is not a tasks file from mine_tasks.py." % safe_text(path, 300))
+        raise UsageError("%s is not a tasks file from mine_tasks.py." % code(path, 300))
     return doc
 
 
@@ -692,7 +702,7 @@ def _main(args, registry) -> int:
     if summary["stopped_at_cap"]:
         _stderr("Stopped at the %s cap with %s not started. Finished runs are kept: rerun with a higher "
                 "--max-usd to continue." % (_money(args.max_usd), _plural(summary["not_started"], "run")))
-    _stderr("Results: %s" % safe_text(results, 300))
+    _stderr("Results: %s" % code(results, 300))
     rep = summarize(load_results(results))
     _emit(render_report(rep), dict(rep, run=summary), args)
     return 0

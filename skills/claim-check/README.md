@@ -22,16 +22,16 @@ and found 41 claims: 26 backed, 7 stale, 2 contradicted, 2 unsupported, 4 unclea
 
 ## Claims that were not backed (worst first)
 
-1. **contradicted** (test claim), 2026-09-12 14:03 UTC, Claude Code, session 5f0c3a1e-8d7, project `~/code/shop`
+1. **contradicted** (test claim), 2026-09-12 14:03 UTC, Claude Code, session `5f0c3a1e-8d7`, project `~/code/shop`
    - Claim: `All 42 tests pass.`
    - Last test run: `npx vitest run` failed (`Tests 1 failed / 41 passed (42)`) at 2026-09-12 14:01 UTC.
-2. **stale** (test claim), 2026-09-09 10:22 UTC, Codex, session 019a2b3c-4d5, project `~/code/api`
+2. **stale** (test claim), 2026-09-09 10:22 UTC, Codex, session `019a2b3c-4d5`, project `~/code/api`
    - Claim: `Fixed the timeout; the test suite passes.`
    - Last test run: `pytest -q` passed (`58 passed`) at 2026-09-09 10:15 UTC; then 1 file changed: `~/code/api/src/retry.py`.
 
 ## Claims that could not be checked
 
-1. **unclear** (test claim), 2026-09-15 16:40 UTC, Claude Code, session 7c1d9e20-3ab, project `~/code/mono`
+1. **unclear** (test claim), 2026-09-15 16:40 UTC, Claude Code, session `7c1d9e20-3ab`, project `~/code/mono`
    - Claim: `The web tests pass.`
    - Why: code changed elsewhere in the repository.
    - Last test run: `cd packages/web && npm test` passed (`Tests: 64 passed, 64 total`) at 2026-09-15 16:31 UTC.

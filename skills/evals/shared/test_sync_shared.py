@@ -11,6 +11,8 @@ SCRIPT = os.path.join(TOOLS, "sync_shared.py")
 TRANSCRIPT_SKILLS = ["guardrail-tester", "runaway-guard", "claim-check", "rules-to-guards",
                      "session-waste-report", "regression-finder"]
 PRICING_SKILLS = ["harness-test-drive", "runaway-guard", "session-waste-report", "regression-finder"]
+# transcripts.py imports safe.py, so every skill with transcripts.py gets safe.py too.
+SAFE_SKILLS = TRANSCRIPT_SKILLS + ["harness-test-drive", "tool-design-checker", "agents-md-checker"]
 ALL_TEN = ["harness-test-drive", "agents-md-checker", "sandbox-check", "guardrail-tester", "runaway-guard",
            "claim-check", "rules-to-guards", "session-waste-report", "regression-finder", "tool-design-checker"]
 HEADER = ("# Copied from skills/evals/shared/%s by skills/evals/tools/sync_shared.py. "
@@ -22,6 +24,7 @@ def make_repo(root, skills):
     shared.mkdir(parents=True)
     (shared / "transcripts.py").write_text('"""transcripts source"""\nX = 1\n')
     (shared / "pricing.py").write_text('"""pricing source"""\nY = 2\n')
+    (shared / "safe.py").write_text('"""safe source"""\nZ = 3\n')
     for name in skills:
         (root / "skills" / name).mkdir()
     return root
@@ -46,7 +49,8 @@ def test_sync_copies_each_module_into_the_skills_that_list_it(tmp_path):
     make_repo(tmp_path, ALL_TEN)
     code, _out = run(tmp_path)
     assert code == 0
-    want = sorted(["%s/transcripts.py" % s for s in TRANSCRIPT_SKILLS] + ["%s/pricing.py" % s for s in PRICING_SKILLS])
+    want = sorted(["%s/transcripts.py" % s for s in TRANSCRIPT_SKILLS] + ["%s/pricing.py" % s for s in PRICING_SKILLS]
+                  + ["%s/safe.py" % s for s in SAFE_SKILLS])
     assert copies(tmp_path) == want
 
 
@@ -61,7 +65,7 @@ def test_sync_skips_skill_folders_that_do_not_exist_and_says_so(tmp_path):
     make_repo(tmp_path, ["claim-check"])
     code, out = run(tmp_path)
     assert code == 0
-    assert copies(tmp_path) == ["claim-check/transcripts.py"]
+    assert copies(tmp_path) == ["claim-check/safe.py", "claim-check/transcripts.py"]
     assert not (tmp_path / "skills" / "runaway-guard").exists()
     assert "runaway-guard" in out and "not found" in out
 

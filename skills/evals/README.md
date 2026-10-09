@@ -1,6 +1,6 @@
 # How the skills are tested
 
-Every skill in this folder passes five checks before it ships, and CI runs the first four on every push. The test files live here, next to the skills rather than inside them, so when you install a skill you get only the files it needs to run.
+Every skill in this folder passes four automated checks, and CI runs them on every push. A fifth set, the behavior cases, is written for a fresh agent to run. The test files live here, next to the skills rather than inside them, so when you install a skill you get only the files it needs to run.
 
 | Check | What it proves | Command | Runs in CI |
 |---|---|---|---|
@@ -8,7 +8,7 @@ Every skill in this folder passes five checks before it ships, and CI runs the f
 | Security | No hidden installers, no piping downloads into a shell, no undeclared network calls, no credential reads that the skill does not explain | `python3 skills/evals/tools/skill_scanner.py skills` | yes |
 | Trigger routing | Each skill's example prompts pick that skill over all the others, and prompts that only sound similar do not | `python3 skills/evals/tools/run_trigger_evals.py` | yes |
 | Scripts | Every classifier, threshold, and output field behaves as the skill promises, on synthetic data built at test time | `python3 -m pytest -q -p no:cacheprovider skills/evals/<name>` | yes |
-| Behavior | A fresh agent given only the skill and a real request runs the right script, leads with the right result, and asks before changing anything | the prompts in `skills/evals/<name>/evals.json` | before release |
+| Behavior | A fresh agent given only the skill and a real request runs the right script, leads with the right result, and asks before changing anything | the prompts in `skills/evals/<name>/evals.json`, run with skill-creator's eval runner | no |
 
 `tests/test_skills.py` wires the first four into the repo's test suite, along with the registry check, the shared-code check below, and a check that every script parses as Python 3.9.
 
@@ -20,7 +20,9 @@ Every skill in this folder passes five checks before it ships, and CI runs the f
 
 ## Shared code
 
-Six skills read agent session logs and four compute cost, so the log reader and the price table live once, in `shared/`. Each skill still installs on its own, so `tools/sync_shared.py` copies the shared files into the skills that use them, and `sync_shared.py --check` fails the build if a copy drifts from its source. To change the log reader or the price table, edit the file in `shared/`, run `python3 skills/evals/tools/sync_shared.py`, and commit both.
+Six skills read agent session logs, four compute cost, and nine clean untrusted text the same way before it goes in a report, so the log reader (`transcripts.py`), the price table (`pricing.py`), and the text cleaner (`safe.py`) live once, in `shared/`. Each skill still installs on its own, so `tools/sync_shared.py` copies the shared files into the skills that use them, and `sync_shared.py --check` fails the build if a copy drifts from its source. To change a shared file, edit it in `shared/`, run `python3 skills/evals/tools/sync_shared.py`, and commit both.
+
+To show untrusted text in a Markdown report, a skill script uses `from safe import code, safe_text`: `safe_text()` gives one line with secrets masked, and `code()` puts that line inside inline code so links and HTML stay plain text. `transcripts.py` imports these functions from `safe.py`, so every skill that gets `transcripts.py` also gets `safe.py`.
 
 ## Adding a skill
 

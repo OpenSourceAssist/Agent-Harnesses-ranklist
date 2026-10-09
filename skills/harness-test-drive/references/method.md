@@ -73,9 +73,12 @@ pyproject.toml, requirements*.txt, go.mod, Cargo.toml, Gemfile, and others). It 
 the copy, for example `npm ci`, `pnpm install --frozen-lockfile`, or
 `python3 -m venv .venv && .venv/bin/pip install -e .` with the test command
 `.venv/bin/python -m pytest`. A setup that installs into the user's own environment changes that
-environment 30 times over. Python bytecode caches in the copy are deleted before every test run:
-Python trusts a cached file when the source has the same size and the same modified second, so a
-test file written right after an earlier run could otherwise run as its old version.
+environment 30 times over. No test run reads Python bytecode from an earlier run: Python trusts a
+cached file when the source has the same size and the same modified second, so a test file written
+right after an earlier run could otherwise run as its old version. Before each run the copy's
+`__pycache__` folders are deleted, and `PYTHONPYCACHEPREFIX` points the run at a new empty folder,
+which also covers interpreters that keep bytecode outside the copy, such as Apple's
+`/usr/bin/python3`.
 
 ## The fresh copy
 

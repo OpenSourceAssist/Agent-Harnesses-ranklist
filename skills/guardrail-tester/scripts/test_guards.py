@@ -52,6 +52,7 @@ import harness_rules as R  # noqa: E402
 import hook_runner as H  # noqa: E402
 import shell_split  # noqa: E402
 import transcripts as T  # noqa: E402
+from safe import code, safe_text  # noqa: E402
 
 VERSION = "1.0.0"
 CHECKED = "2026-10-08"
@@ -215,13 +216,15 @@ def show_path(path, home):
     home = (home or "").rstrip("/")
     if home and (path == home or path.startswith(home + "/")):
         path = "~" + path[len(home):]
-    return T.safe_text(path, 160)
+    return safe_text(path, 160)
 
 
-def code(text, trusted=True, table=True):
-    """Inline code. Inside a table cell a pipe is escaped as \\|; elsewhere it stays as is."""
-    text = str(text) if trusted else T.safe_text(text, 160)
-    text = text.replace("\n", " \\n ")
+def battery_code(text, table=True):
+    """A command from the skill's own battery.json, which is trusted, as inline code
+    shown exactly: a newline shows as \\n, and inside a table cell a pipe is escaped
+    as \\|. A reader needs the real pipe to see that a download goes into a shell.
+    Untrusted text goes through code() from safe.py instead."""
+    text = str(text).replace("\n", " \\n ")
     if table:
         text = text.replace("|", "\\|")
     fence = "``" if "`" in text else "`"
@@ -572,13 +575,13 @@ def evaluate_call(h, tool, tool_input, pool, args, case=None, cfg=None, mode=Non
     decision = None
     if h.key == "claude-code":
         if outcome.decision:
-            decision = C.HookDecision(outcome.decision, T.safe_text(outcome.reason, 160) if outcome.reason else "")
+            decision = C.HookDecision(outcome.decision, safe_text(outcome.reason, 160) if outcome.reason else "")
         result = C.evaluate(cfg, tool, tool_input, mode=mode, hook=decision, needs=needs)
         rules = C.evaluate(cfg, tool, tool_input, mode=mode, needs=needs)
     else:
         rules = _other_rules(h.key, cfg, tool, tool_input, needs)
         if outcome.decision == "deny":
-            result = C.Result("deny", "hook", T.safe_text(outcome.reason, 160) if outcome.reason else
+            result = C.Result("deny", "hook", safe_text(outcome.reason, 160) if outcome.reason else
                               "a hook blocked it")
         elif outcome.decision == "ask" and rules.verdict == "allow":
             result = C.Result("ask", "hook", "a hook asks first")
@@ -599,13 +602,14 @@ def _other_rules(key, cfg, tool, tool_input, needs=()):
     return R.cursor_evaluate(cfg, tool, tool_input)
 
 
-def _safe_note(text, home, limit=300):
-    """A note or problem line with the home folder shown as ~, made safe to print."""
+def _home_as_tilde(text, home):
+    """A note or problem line with the home folder shown as ~. The line is fixed
+    text; each untrusted part went through code() where the line was built."""
     home = (home or "").rstrip("/")
     text = str(text)
     if home:
         text = text.replace(home + "/", "~/").replace(home, "~")
-    return T.safe_text(text, limit)
+    return text
 
 
 def _claude_mode(cfg, args, notes):
@@ -625,10 +629,10 @@ def _claude_mode(cfg, args, notes):
 
 
 def _hook_display(source, event, matcher, command, status=""):
-    shown = {"source": T.safe_text(source, 120), "event": event, "matcher": T.safe_text(matcher or "*", 80),
-             "command": T.safe_text(command, 160)}
+    shown = {"source": safe_text(source, 120), "event": event, "matcher": safe_text(matcher or "*", 80),
+             "command": safe_text(command, 160)}
     if status:
-        shown["status"] = T.safe_text(status, 200)
+        shown["status"] = status   # fixed text; an untrusted part went through code() where it was built
     return shown
 
 
@@ -653,8 +657,8 @@ def load_harness(key, project, home, args):
         for spec, why in cfg.skipped_hooks:
             h.hooks.append(("", _hook_display(spec.source, "PreToolUse", spec.matcher, spec.command or spec.type,
                                               "skipped: " + why)))
-        h.notes = [_safe_note(n, cfg.home) for n in cfg.notes + extra]
-        h.smells = [dict(s, text=_safe_note(s["text"], cfg.home, 400), source=T.safe_text(s.get("source", ""), 120))
+        h.notes = [_home_as_tilde(n, cfg.home) for n in cfg.notes + extra]
+        h.smells = [dict(s, text=_home_as_tilde(s["text"], cfg.home), source=safe_text(s.get("source", ""), 120))
                     for s in cfg.smells]
         return h
     loader = {"codex": R.codex_load, "gemini-cli": R.gemini_load, "opencode": R.opencode_load}.get(key)
@@ -677,8 +681,8 @@ def load_harness(key, project, home, args):
                   "off": "turned off in /hooks, so Codex never runs it"}.get(getattr(hook, "trust", ""), "")
         h.hooks.append(("%s:%s:%d" % (hook.source, hook.event, i),
                         _hook_display(hook.source, hook.event, hook.matcher, hook.command, status)))
-    h.notes = [_safe_note(n, home_dir) for n in cfg.notes]
-    h.smells = [dict(s, text=_safe_note(s["text"], home_dir, 400)) for s in cfg.smells]
+    h.notes = [_home_as_tilde(n, home_dir) for n in cfg.notes]
+    h.smells = [dict(s, text=_home_as_tilde(s["text"], home_dir)) for s in cfg.smells]
     h.support = {
         "codex": "exec-policy rules, sandbox, and hooks simulated",
         "gemini-cli": "policy engine and tools settings simulated",
@@ -792,7 +796,7 @@ def suggest_fix(h, case, call, result, args):
     fix = {"should_catch": "PreToolUse hook", "rule": "", "hook_patterns": [], "note": ""}
     notes = []
     if result.verdict == "allow" and result.layer == "rule" and result.rule:
-        notes.append("The allow rule %s approves it; narrow or remove it." % T.safe_text(result.rule, 120))
+        notes.append("The allow rule %s approves it; narrow or remove it." % code(result.rule, 120))
     if case["tool"] == "shell":
         fix["hook_patterns"] = [p["id"] for p in matching_patterns(case["input"]["command"])]
     tool, tool_input = call
@@ -960,7 +964,7 @@ def _unlisted_note(h, case, result):
         return ""
     return ("Your deny rule %s names a file this command uses, but Read and Edit rules reach only the file commands "
             "Claude Code recognizes (the docs name cat, head, tail, sed, and tee; this test also counts grep, wc, "
-            "diff, and stat), so this test assumes it does not apply." % T.safe_text(rule, 120))
+            "diff, and stat), so this test assumes it does not apply." % code(rule, 120))
 
 
 def tally(entries):
@@ -1004,11 +1008,11 @@ def run_battery(h, battery, project, home, pool, args, trusted):
         ev = evaluate_call(h, tool, tool_input, pool, args, case=case, needs=case["needs"])
         result = ev.result
         entry = {"id": case["id"], "category": case["category"], "tool": case["tool"],
-                 "text": case_text(case) if trusted else T.safe_text(case_text(case), 160), "expect": case["expect"],
-                 "why": case["why"] if trusted else T.safe_text(case["why"], 200), "needs": list(case["needs"])}
+                 "text": case_text(case) if trusted else safe_text(case_text(case), 160), "expect": case["expect"],
+                 "why": case["why"] if trusted else safe_text(case["why"], 200), "needs": list(case["needs"])}
         entry.update(_entry_result(case, result, ev.rules, ev.outcome))
-        entry.update({"detail": T.safe_text(result.detail, 300),
-                      "rule": T.safe_text(result.rule, 160) if result.rule else "",
+        entry.update({"detail": safe_text(result.detail, 300),
+                      "rule": safe_text(result.rule, 160) if result.rule else "",
                       "note": _unlisted_note(h, case, result)})
         if not entry["stopped"] and entry["bucket"] != "unknown":
             entry["fix"] = suggest_fix(h, case, call, result, args)
@@ -1187,7 +1191,7 @@ def run_replay(h, args, home, project, pool):
                     shown = command
                 else:
                     shown = "%s %s" % (call.kind.capitalize(), show_path(paths[0], home_dir))
-                info["examples"].append(T.safe_text(shown, 160))
+                info["examples"].append(safe_text(shown, 160))
     info["sessions"] = len(used_sessions)
     info["friction_pct"] = round(100.0 * info["friction"] / info["calls"], 1) if info["calls"] else 0.0
     return info
@@ -1205,7 +1209,7 @@ def runtime_smells(h, pool, limit):
         if harness != h.key or hook_id not in labels:
             continue
         source = labels[hook_id]["source"]
-        label = "The %s hook %s" % (source, labels[hook_id]["command"])
+        label = C.hook_label(source, labels[hook_id]["command"])
         p = stats.problems
         if p.get("exit-1"):
             out.append({"id": "hook-exit-1", "severity": "high", "source": source,
@@ -1240,7 +1244,7 @@ def runtime_smells(h, pool, limit):
         if durations and durations[len(durations) // 2] > 2.0 and not p.get("timeout"):
             out.append({"id": "hook-slow", "severity": "low", "source": source,
                         "text": label + " takes about %.1f seconds per call." % durations[len(durations) // 2]})
-    return [dict(s, text=T.safe_text(s["text"], 400)) for s in out]
+    return out
 
 
 def _hook_status(h, hook_id, display, pool):
@@ -1268,7 +1272,7 @@ def _worst_example(sec):
     if not sec["misses"]:
         return ""
     text = next(c["text"] for c in sec["cases"] if c["id"] == sec["misses"][0])
-    return code(text.split("\n")[0], table=False)
+    return code(text) if sec["custom_battery"] else battery_code(text.split("\n")[0], table=False)
 
 
 def _runs_clause(b, example):
@@ -1286,7 +1290,7 @@ def _runs_clause(b, example):
 
 def _mode_reason(sec):
     if sec["harness"] == "claude-code":
-        return "Manual mode asks" if sec["mode"] == "default" else "%s mode asks" % T.safe_text(sec["mode"], 40)
+        return "Manual mode asks" if sec["mode"] == "default" else "%s mode asks" % safe_text(sec["mode"], 40)
     return "%s asks by default" % sec["name"]
 
 
@@ -1362,13 +1366,18 @@ def headline(sections, hooks_run):
     return text
 
 
+def _case_id(sec, case):
+    """A case id: plain from the skill's own battery, in inline code from a custom one."""
+    return code(case["id"]) if sec["custom_battery"] else case["id"]
+
+
 def _what_happens(case):
     if case["decided_by"] == "sandbox" and case["detail"].startswith("asks first ("):
         return case["detail"].split(":")[0] + " (the sandbox)"
     if case["verdict"] == "ask" and case["bucket"] == "asks_mode":
         return "asks first, only because of the mode"
     words = VERDICT_WORDS.get(case["verdict"], case["verdict"])
-    by = {"hook": "a hook", "rule": "rule %s" % case["rule"] if case["rule"] else "a rule",
+    by = {"hook": "a hook", "rule": "rule %s" % code(case["rule"]) if case["rule"] else "a rule",
           "built-in": "a built-in check", "mode": "the mode", "sandbox": "the sandbox"}.get(case["decided_by"], "")
     return "%s (%s)" % (words, by) if by else words
 
@@ -1385,12 +1394,12 @@ def _replay_lines(sec):
         return lines + [replay["note"] or "No calls to replay."]
     if sec["harness"] == "claude-code":
         if sec["mode_source"].startswith("--mode"):
-            lines.append("Every call is simulated in %s mode (--mode)." % T.safe_text(sec["mode"], 40))
+            lines.append("Every call is simulated in %s mode (--mode)." % safe_text(sec["mode"], 40))
         else:
             lines.append("Each call is simulated in the permission mode its session recorded (recorded for %d of %d "
                          "calls; the rest use %s, from %s)." % (
-                             replay["modes_recorded"], replay["calls"], T.safe_text(sec["mode"], 40),
-                             T.safe_text(sec["mode_source"], 60)))
+                             replay["modes_recorded"], replay["calls"], safe_text(sec["mode"], 40),
+                             safe_text(sec["mode_source"], 60)))
     verdicts = ", ".join("%d %s" % (v, VERDICT_WORDS.get(k, k)) for k, v in sorted(replay["by_verdict"].items()))
     lines.append("%d calls from %d sessions in the last %d days: %s. %d (%.1f%%) would ask first or be blocked."
                  % (replay["calls"], replay["sessions"], replay["window_days"], verdicts, replay["friction"],
@@ -1398,7 +1407,7 @@ def _replay_lines(sec):
     lines.append("%d look dangerous by the hook checks above; %d of them ran, and %d would still not be blocked as "
                  "expected today." % (replay["dangerous"], replay["dangerous_ran"], replay["dangerous_through"]))
     for example in replay["examples"]:
-        lines.append("- %s" % code(example, trusted=False, table=False))
+        lines.append("- %s" % code(example))
     if replay["other_project_calls"]:
         lines.append("%d of these calls came from other project folders: each was checked against that folder's own "
                      "rules, and no hook from those folders ran." % replay["other_project_calls"])
@@ -1411,16 +1420,16 @@ def _replay_lines(sec):
 def render_markdown(report):
     lines = ["**%s**" % report["headline"], ""]
     if not report["harnesses"]:
-        return "\n".join(lines + ["## Notes", ""] + ["- %s" % T.safe_text(n, 300) for n in report["notes"]]) + "\n"
+        return "\n".join(lines + ["## Notes", ""] + ["- %s" % n for n in report["notes"]]) + "\n"
     lines.append("Checked %s against the documented rules of each harness (docs checked %s). %s The dangerous "
                  "commands were never run." % (
-                     code(report["project"], trusted=False, table=False), CHECKED,
+                     code(report["project"]), CHECKED,
                      "Hooks ran with test input, one at a time." if report["hooks_run"] else
                      "Hooks were not run; read each hook script, then add --run-hooks to test them."))
     lines += ["", "| Harness | Mode | Blocked | Not blocked | Asks (rule, hook, or check) | Asks (mode only) | "
                   "Runs without asking | Support |", "|---|---|---|---|---|---|---|---|"]
     for sec in report["harnesses"]:
-        mode = T.safe_text(sec["mode"], 40)
+        mode = code(sec["mode"], 80) if sec["harness"] == "codex" else safe_text(sec["mode"], 40)
         if sec["mode_source"] == C.BUILT_IN_SOURCE:
             mode += " (%s)" % C.BUILT_IN_SOURCE
         lines.append(_table_row(sec["name"], mode, sec["battery"], sec["support"]))
@@ -1446,19 +1455,21 @@ def render_markdown(report):
             parts = []
             if fix.get("rule"):
                 parts.append("deny %s %s" % (_plural(fix["rule"].count(", ") + 1, "rule", "rules"),
-                                             code(fix["rule"], trusted=False)))
+                                             code(fix["rule"])))
             if fix.get("hook_patterns"):
                 parts.append("hook check %s" % ", ".join(fix["hook_patterns"]))
                 used_patterns += [p for p in fix["hook_patterns"] if p not in used_patterns]
             if fix.get("note"):
-                parts.append(T.safe_text(fix["note"], 300))
+                parts.append(fix["note"])
             lines.append("| %s | %s | %s | %s | %s | %s |" % (
-                case["id"], code(case["text"]), case["expect"], T.safe_text(_what_happens(case), 200),
-                T.safe_text(case["why"], 200), "; ".join(parts) or "see the sandbox"))
-    noted = [(sec["name"], c) for sec in report["harnesses"] for c in sec["cases"] if c.get("note")]
+                _case_id(sec, case), code(case["text"]) if sec["custom_battery"] else battery_code(case["text"]),
+                case["expect"], _what_happens(case),
+                code(case["why"], 200) if sec["custom_battery"] else safe_text(case["why"], 200),
+                "; ".join(parts) or "see the sandbox"))
+    noted = [(sec, c) for sec in report["harnesses"] for c in sec["cases"] if c.get("note")]
     if noted:
         lines += ["", "Notes on single cases:", ""]
-        lines += ["- %s, %s: %s" % (name, c["id"], T.safe_text(c["note"], 400)) for name, c in noted]
+        lines += ["- %s, %s: %s" % (sec["name"], _case_id(sec, c), c["note"]) for sec, c in noted]
     if used_patterns:
         lines += ["", "Hook checks named above, as extended regular expressions for `grep -Eq` in a PreToolUse hook "
                       "such as templates/claude-code-safe-settings/.claude/hooks/guard.sh. Each pattern is one argument "
@@ -1488,18 +1499,16 @@ def render_markdown(report):
                         s["rules"]["allow"], s["rules"]["ask"], s["rules"]["deny"], s["hooks"])
                 elif s.get("count"):
                     extra = " (%d entries)" % s["count"]
-                lines.append("- %s %s %s: %s%s" % (sec["name"], s["layer"], s["kind"],
-                                                   code(s["path"], trusted=False, table=False), extra))
+                lines.append("- %s %s %s: %s%s" % (sec["name"], s["layer"], s["kind"], code(s["path"]), extra))
         else:
             lines.append("- %s: no settings files found, so the built-in defaults apply." % sec["name"])
         for hook in sec["hooks"]:
             lines.append("- %s hook (%s, %s, matcher %s): %s, %s" % (
-                sec["name"], T.safe_text(hook["source"], 120), hook["event"],
-                code(hook["matcher"], trusted=False, table=False), code(hook["command"], trusted=False, table=False),
-                T.safe_text(hook["status"], 200)))
+                sec["name"], C.hook_source(hook["source"]), hook["event"], code(hook["matcher"]),
+                code(hook["command"]), hook["status"]))
     notes = list(report["notes"]) + [n for sec in report["harnesses"] for n in sec["notes"]]
     if notes:
-        lines += ["", "## Notes", ""] + ["- %s" % T.safe_text(n, 300) for n in dict.fromkeys(notes)]
+        lines += ["", "## Notes", ""] + ["- %s" % n for n in dict.fromkeys(notes)]
     return "\n".join(lines) + "\n"
 
 
@@ -1557,7 +1566,7 @@ def _test_harness(key, project, home, battery, trusted, pool, args):
                "support": h.support + ("; hooks run" if pool.enabled and h.hooks else ""),
                "mode": h.mode, "mode_source": h.mode_source, "sources": h.sources, "hooks": hooks,
                "battery": counts, "cases": cases, "misses": misses, "smells": smells, "replay": replay,
-               "notes": h.notes}
+               "notes": h.notes, "custom_battery": not trusted}
     if also:
         section["also"] = also
     return section
@@ -1567,7 +1576,7 @@ def main(argv=None):
     args = build_parser().parse_args(argv)
     project = os.path.normpath(os.path.abspath(os.path.expanduser(args.project)))
     if not os.path.isdir(project):
-        return _usage_error("project folder not found: %s" % T.safe_text(args.project, 160))
+        return _usage_error("project folder not found: %s" % safe_text(args.project, 160))
     home = os.path.normpath(os.path.abspath(os.path.expanduser(args.home))) if args.home else None
     if home and not os.path.isdir(home):
         return _usage_error("--home folder not found")

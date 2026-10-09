@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 
 import rules_guard as G  # noqa: E402
 import transcripts as T  # noqa: E402
+from safe import code, safe_text  # noqa: E402
 
 VERSION = "1.0.0"
 
@@ -184,8 +185,9 @@ def _version_trap(pattern):
 # ---------------------------------------------------------------------------
 
 def safe(text, limit=160):
-    """Untrusted text (a rule line, a command, a path) as one inert line."""
-    return T.safe_text(text, limit)
+    """Untrusted text (a rule line, a command, a path) as one inert line, for JSON.
+    Markdown shows untrusted text only through code(), inside inline code."""
+    return safe_text(text, limit)
 
 
 def _n(count, word, plural=None):
@@ -222,7 +224,7 @@ def _emit(args, result, render):
     if args.out:
         with open(args.out, "w", encoding="utf-8", errors="replace") as fh:
             fh.write(text)
-        _write_out("Report written to %s\n" % safe(args.out, 300))
+        _write_out("Report written to %s\n" % code(args.out, 300))
     else:
         _write_out(text)
 
@@ -377,7 +379,7 @@ def extract(repo, user=False, files=()):
             with open(path, encoding="utf-8", errors="replace") as fh:
                 lines = fh.read(4 << 20).splitlines()
         except OSError as exc:
-            notes.append("Cannot read %s (%s)." % (safe(_display(path, repo)), type(exc).__name__))
+            notes.append("Cannot read %s (%s)." % (code(_display(path, repo)), type(exc).__name__))
             continue
         shown = safe(_display(path, repo))
         read.append({"path": shown, "lines": len(lines)})
@@ -398,7 +400,7 @@ def extract(repo, user=False, files=()):
     checkable = sum(1 for c in candidates if c["hint"] != "advice")
     if not read:
         headline = ("No context files found in %s. Pass --file to read one by name, or --user to read your "
-                    "personal ones." % safe(_display(repo)))
+                    "personal ones." % code(_display(repo), 300))
     elif not candidates:
         headline = "Found no rule lines (never, always, must, do not, avoid, prefer) in %s." % _n(
             len(read), "context file")
@@ -430,11 +432,12 @@ def _imports(lines, folder, home):
 def render_extract(result):
     out = ["**%s**" % result["headline"], ""]
     if result["files"]:
-        out += ["Files read: " + ", ".join("`%s` (%s)" % (f["path"], _n(f["lines"], "line"))
+        out += ["Files read: " + ", ".join("%s (%s)" % (code(f["path"]), _n(f["lines"], "line"))
                                          for f in result["files"]) + ".", ""]
     if result["candidates"]:
         out += ["| Where | Hint | Rule |", "|---|---|---|"]
-        out += ["| `%s:%d` | %s | %s |" % (c["file"], c["line"], c["hint"], c["text"]) for c in result["candidates"]]
+        out += ["| %s | %s | %s |" % (code("%s:%d" % (c["file"], c["line"])), c["hint"], code(c["text"]))
+                for c in result["candidates"]]
         out += ["", "Hints: command, path, and tool rules can become hooks; advice rules stay as text.", "",
                 "Next: write the checkable rules to rules.json (schema and tested patterns: "
                 "references/checkable-rules.md), then count the breaks with `rules.py count --rules rules.json`."]
@@ -501,7 +504,7 @@ def load_calls(since, harness="all", project=None):
             e.tool.output = ""  # results are not needed; free the memory
         sessions.append(s)
     # A recently modified file can hold calls older than the window; since= drops them.
-    calls = [Call(s.harness, s.id, s.cwd, e.ts or e.tool.ts, e.tool)
+    calls = [Call(s.harness, s.id, s.cwd, _date_time(e.ts or e.tool.ts), e.tool)
              for s, e in T.unique_events(sessions, since=since_ts)]
     calls.sort(key=lambda c: c.ts)
     return calls, skipped
@@ -512,7 +515,7 @@ def _applies(rule, kind):
 
 
 def _label(raw):
-    return "'%s'" % safe(raw.get("text") or raw["id"], 80).rstrip(".")
+    return code(str(raw.get("text") or "").strip().rstrip(".") or raw["id"], 80)
 
 
 def _excerpt(call, match):
@@ -527,6 +530,15 @@ def _excerpt(call, match):
     if call.tool.kind in ("read", "edit", "write") and isinstance(match, str) and match != call.tool.name:
         return safe("%s %s" % (call.tool.name, _display(match, call.cwd or None)))
     return safe(call.tool.name)
+
+
+_DATE_TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}")
+
+
+def _date_time(ts):
+    """A session timestamp, or "" when it does not start with a date and time:
+    reports show its first characters as written."""
+    return ts if isinstance(ts, str) and _DATE_TIME_RE.match(ts) else ""
 
 
 def _when(ts):
@@ -614,19 +626,10 @@ def _count_headline(results, rules, calls, label):
         top["violations"])
 
 
-def _code(text):
-    """Text as an inline code span on one line, whatever backticks it holds."""
-    text = "".join(ch if ch.isprintable() else " " for ch in str(text))
-    longest = max([len(run) for run in re.findall(r"`+", text)] or [0])
-    fence = "`" * (longest + 1)
-    pad = " " if text.startswith("`") or text.endswith("`") else ""
-    return fence + pad + text + pad + fence
-
-
 def render_count(res):
     out = ["**%s**" % res["headline"], ""]
     if res["tool_calls"]:
-        where = "in sessions under `%s`" % res["project"] if res["project"] else "across all projects"
+        where = "in sessions under %s" % code(res["project"], 300) if res["project"] else "across all projects"
         split = ", ".join("%s %s" % (HARNESS_NAMES.get(h, h), "{:,}".format(n)) for h, n in res["by_harness"].items())
         out += ["Checked %s tool calls in %s from %s (%s), %s." % (
             "{:,}".format(res["tool_calls"]), _n(res["sessions"], "session"), res["window"], split, where), ""]
@@ -634,21 +637,21 @@ def render_count(res):
         for r in res["rules"]:
             out.append("| %s | %d | %d | %d | %d | %s | %s |" % (
                 r["id"], r["violations"], r["ran"], r["stopped"], r["sessions"], r["last"][:10] or "never",
-                r["source"] or "-"))
+                code(r["source"]) if r["source"] else "-"))
         out += ["", "Stopped means you, a permission rule, a hook, or an auto reviewer refused the call before it ran."]
         examples = [(r["id"], e) for r in res["rules"] for e in r["examples"]]
         if examples:
             out += ["", "Examples, newest first (secrets masked, cut to 160 characters):"]
-            out += ["- %s, %s, %s, %s: `%s`" % (rid, HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"],
-                                              "stopped (%s)" % e["stopped"] if e["stopped"] else "ran", e["excerpt"])
+            out += ["- %s, %s, %s, %s: %s" % (rid, HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"],
+                                            "stopped (%s)" % e["stopped"] if e["stopped"] else "ran", code(e["excerpt"]))
                     for rid, e in examples]
-        out += ["", "Patterns:"] + ["- %s (%s, %s): %s" % (r["id"], r["kind"], r["tool"], _code(r["pattern"]))
+        out += ["", "Patterns:"] + ["- %s (%s, %s): %s" % (r["id"], r["kind"], r["tool"], code(r["pattern"]))
                                     for r in res["rules"]]
     for w in res["warnings"]:
         out += ["", "Warning: " + w]
     if res["advice_only"]:
-        out += ["", "Advice only, not counted: " + ", ".join("%s (%s)" % (a["id"], a["source"] or "no source")
-                                                            for a in res["advice_only"]) + "."]
+        out += ["", "Advice only, not counted: " + ", ".join(
+            "%s (%s)" % (a["id"], code(a["source"]) if a["source"] else "no source") for a in res["advice_only"]) + "."]
     broken = [r["id"] for r in res["rules"] if r["violations"]]
     if broken:
         same = (" --project %s" % shlex.quote(res["project"]) if res["project"] else "") + \
@@ -1022,7 +1025,7 @@ def generate(rules, harnesses, scope="project", project=".", hook_path=None, wri
     planned = plan(rules, harnesses, scope, project, hook_path, uninstall, replace)
     changed = [c for c in planned["changes"] if c["action"] != "unchanged"] + (
         [planned["hook"]] if planned["hook"] and planned["hook"]["action"] != "unchanged" else [])
-    links = ["%s leads to %s" % (safe(_display(path), 300), safe(_display(real), 300))
+    links = ["%s leads to %s" % (code(_display(path), 300), code(_display(real), 300))
              for path, real in planned["redirects"]]
     if write and links and not follow_symlinks:
         raise ValueError("nothing was written: %s, outside the %s, through a symlink. Check the target, then run "
@@ -1034,7 +1037,7 @@ def generate(rules, harnesses, scope="project", project=".", hook_path=None, wri
     if planned["kept"]:
         extra += " (%d kept from the hook already there)" % len(planned["kept"])
     if planned["dropped"]:
-        extra += ". No longer enforced: %s" % safe(", ".join(planned["dropped"]))
+        extra += ". No longer enforced: %s" % ", ".join(code(d, 64) for d in planned["dropped"])
     if not changed:
         headline = ("The rules-to-guards hook is already installed and up to date in %s." % where if not uninstall
                     else "There is no rules-to-guards hook to remove in %s." % _names(harnesses))
@@ -1042,7 +1045,7 @@ def generate(rules, harnesses, scope="project", project=".", hook_path=None, wri
         apply(planned)
         headline = ("Installed a hook that enforces %s in %s%s." % (rules_n, where, extra) if not uninstall else
                     "Removed the rules-to-guards hook from %s. The hook file stays at %s; delete it if you "
-                    "like." % (where, safe(_display(planned["hook_path"]), 300)))
+                    "like." % (where, code(_display(planned["hook_path"]), 300)))
     else:
         headline = ("Dry run: this would %s. Nothing was written; run again with --write to apply." % (
             "install a hook that enforces %s in %s%s" % (rules_n, where, extra) if not uninstall else
@@ -1080,16 +1083,16 @@ def generate(rules, harnesses, scope="project", project=".", hook_path=None, wri
 def render_generate(res):
     out = ["**%s**" % res["headline"], ""]
     if res["hook"]:
-        out += ["Hook script: `%s` (%s; Python 3.9+, standard library only, rules embedded):" % (
-            safe(res["hook"]["path"], 300), {"create": "new file", "update": "replaced",
+        out += ["Hook script: %s (%s; Python 3.9+, standard library only, rules embedded):" % (
+            code(res["hook"]["path"], 300), {"create": "new file", "update": "replaced",
                                             "unchanged": "unchanged"}[res["hook"]["action"]])]
-        out += ["- %s (%s, %s): %s%s" % (r["id"], r["kind"], r["tool"], _code(r["pattern"]),
+        out += ["- %s (%s, %s): %s%s" % (r["id"], r["kind"], r["tool"], code(r["pattern"]),
                                          ", kept from the hook already there" if r["kept"] else "")
                 for r in res["rules"]]
         out.append("")
     for s in res["settings"]:
         label = {"create": "new file", "update": "changed", "unchanged": "unchanged"}[s["action"]]
-        out.append("%s: `%s` (%s)" % (HARNESS_NAMES[s["harness"]], safe(_display(s["path"]), 300), label))
+        out.append("%s: %s (%s)" % (HARNESS_NAMES[s["harness"]], code(_display(s["path"]), 300), label))
         if s["diff"]:
             fence = "`" * max(3, max([len(run) for run in re.findall(r"`+", s["diff"])] or [0]) + 1)
             out += [fence + "diff", s["diff"].rstrip("\n"), fence]
@@ -1100,7 +1103,7 @@ def render_generate(res):
             entries = [p for p in res["permission_rules"] if p["harness"] == h]
             if entries:
                 out.append("- %s, in %s: %s" % (HARNESS_NAMES[h], _PERMISSION_WHERE[h],
-                                                "; ".join(_code(p["entry"]) for p in entries)))
+                                                "; ".join(code(p["entry"], 400) for p in entries)))
         out.append("")
     for n in res["notes"]:
         out.append("Note: " + n)
@@ -1224,6 +1227,9 @@ def _example(call, match=None):
             "tool": safe(call.tool.name, 60), "excerpt": _excerpt(call, match)}
 
 
+_FRESH_HOOK = "a fresh copy made from rules.json (not installed)"
+
+
 def _replay_result(rules, stats, others, outcomes, calls, label, fresh, hook):
     results, raw = [], {r["id"]: r for r in rules}
     for st in stats:
@@ -1251,7 +1257,7 @@ def _replay_result(rules, stats, others, outcomes, calls, label, fresh, hook):
         notes.append("Exit code 126 means the hook file cannot run: give it run permission (chmod +x), or, if the "
                      "folder does not allow running programs, test the installed hook with --hook.")
     return {"tool": "rules-to-guards", "version": VERSION, "command": "test", "headline": headline,
-            "hook": "a fresh copy made from rules.json (not installed)" if fresh else safe(_display(hook), 300),
+            "hook": _FRESH_HOOK if fresh else safe(_display(hook), 300),
             "window": label, "rules": results,
             "others": {"sampled": len(others), "allowed": sum(1 for _c, v in other_verdicts if v == "allowed"),
                        "blocked": len(wrongly), "errors": sum(1 for _c, v in other_verdicts if v == "error"),
@@ -1299,7 +1305,8 @@ def _replay_headline(results, rules, raw, tested_calls, others, wrongly, calls, 
 
 
 def render_replay(res):
-    out = ["**%s**" % res["headline"], "", "Hook: %s." % res["hook"], ""]
+    hook = res["hook"] if res["hook"] == _FRESH_HOOK else code(res["hook"], 300)
+    out = ["**%s**" % res["headline"], "", "Hook: %s." % hook, ""]
     if res["rules"]:
         out += ["| Rule | Breaks | Replayed | Blocked | Missed |", "|---|---|---|---|---|"]
         out += ["| %s | %d | %d | %d | %d |" % (r["id"], r["violations"], r["tested"], r["blocked"], r["missed"])
@@ -1310,12 +1317,12 @@ def render_replay(res):
         o["sampled"], o["allowed"], o["blocked"], o["errors"]))
     misses = [(r["id"], e) for r in res["rules"] for e in r["missed_examples"]]
     if misses:
-        out += ["", "Breaks the hook let through:"] + ["- %s, %s, %s: `%s`" % (
-            rid, HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"], e["excerpt"]) for rid, e in misses]
+        out += ["", "Breaks the hook let through:"] + ["- %s, %s, %s: %s" % (
+            rid, HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"], code(e["excerpt"])) for rid, e in misses]
     if o["examples"]:
         out += ["", "Calls the hook blocked that rules.json does not count as breaks (false positives):"] + [
-            "- %s, %s, blocked by %s: `%s`" % (HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"],
-                                               e["rule"] or "an unnamed rule", e["excerpt"]) for e in o["examples"]]
+            "- %s, %s, blocked by %s: %s" % (HARNESS_NAMES.get(e["harness"], e["harness"]), e["time"],
+                                             e["rule"] or "an unnamed rule", code(e["excerpt"])) for e in o["examples"]]
     out += ["", "Hook speed: median %s ms, slowest %s ms per call (Python start-up included)." % (
         res["timing_ms"]["median"], res["timing_ms"]["max"])]
     for n in res["notes"]:

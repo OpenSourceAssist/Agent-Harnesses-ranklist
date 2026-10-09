@@ -1386,15 +1386,20 @@ _DOC_EXTS = {".md", ".mdx", ".markdown", ".rst", ".txt", ".adoc", ".asciidoc", "
 _DOC_NAMES = {"license", "licence", "notice", "authors", "changelog", "changes", "history", "contributors",
               "copying"}
 _GENERATED = {"node_modules", "dist", "build", "target", ".pytest_cache", "__pycache__", ".mypy_cache",
-              ".ruff_cache", "coverage", "htmlcov", ".next", ".nuxt", ".turbo", ".cache", ".tox", ".venv", "venv",
-              "site", "_site", "_build", "storybook-static", "tmp", "temp"}
+              ".ruff_cache", "coverage", "htmlcov", ".next", ".nuxt", ".turbo", ".cache", ".tox", ".nox", ".venv",
+              "venv", "site", "_site", "_build", "storybook-static", "tmp", "temp"}
+# Version control, editor, and coding agent folders: agents keep plans, notes, and settings in them, and
+# nothing in them changes a test result. Other hidden folders count: .github, .cargo, .config, .circleci,
+# and .husky can hold tests or build settings.
+_TOOL_FOLDERS = {".git", ".hg", ".svn", ".idea", ".vscode", ".claude", ".codex", ".gemini", ".cursor", ".opencode",
+                 ".superpowers"}
 _TEMP = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/", "/dev/")
 _HARNESS_HOME = (".claude", ".codex", ".gemini", ".cursor", ".config/opencode", ".local/share/opencode")
 
 
 def path_matters(path, home=None, cwd=None) -> bool:
     """Whether a change to this file can change a test or build result.
-    Documentation, images, generated folders, and, outside the working folder,
+    Documentation, images, generated and tool folders, and, outside the working folder,
     temporary files and the harnesses' own folders in the home folder do not.
     An unknown path does."""
     if not path:
@@ -1413,8 +1418,8 @@ def path_matters(path, home=None, cwd=None) -> bool:
     if inside and p.startswith("/"):
         p = p[len(str(cwd).rstrip("/")) + 1:]  # judge folders from the working folder down
     parts = [x for x in p.split("/") if x]
-    if not parts or any(x in _GENERATED or (x.startswith(".") and x not in (".", "..")) for x in parts[:-1]):
-        return False  # generated output, or a tool's hidden folder (.github, .vscode, .superpowers)
+    if not parts or any(x in _GENERATED or x in _TOOL_FOLDERS for x in parts[:-1]):
+        return False  # generated output, or a version control, editor, or agent folder (.git, .vscode, .claude)
     if parts[-1] in _GENERATED and (len(parts) == 1 or parts[-1] != "build"):
         return False  # the generated folder itself, as in `rm -rf dist` (a file named build may be a script)
     name = parts[-1].lower()

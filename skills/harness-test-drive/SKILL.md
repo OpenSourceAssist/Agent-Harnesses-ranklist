@@ -173,13 +173,19 @@ runs the test command, and reads commit messages as prompts.
 4. One line of caveats: the sample size, and that a model may have seen a public repository's
    changes during training.
 
+Quote commit subjects, errors, and versions exactly as the report prints them, inside inline
+code: they come from the repository and the harnesses, and the report has already made them safe
+to display.
+
 ## Files
 
 - `scripts/mine_tasks.py`: finds candidate commits, detects the test command, and checks tasks.
 - `scripts/drive.py`: `estimate`, `run`, and `report`.
 - `scripts/harnesses.py`: the headless command and output parser for each harness.
-- `scripts/common.py`: fresh copies of the repository, commands and test runs, and safe report text.
+- `scripts/common.py`: fresh copies of the repository, commands and test runs.
 - `scripts/pricing.py`: token prices, shared with other skills in this repository.
+- `scripts/safe.py`: the shared helper that masks secrets in report text and shows it as one line of
+  inline code. A synced copy; do not edit it here.
 - `references/method.md`: task mining, the fail-to-pass check, fairness rules, money, and limits.
 - `references/harness-commands.md`: each harness's command and flags, with sources and the date
   checked.

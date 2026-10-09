@@ -13,35 +13,35 @@ Folder: `~/code/my-app`
 
 | Harness | Servers | Tools | Tokens (estimate) | Unclear purpose | Collisions | Config files read |
 |---|---|---|---|---|---|---|
-| Claude Code | 3 | 10 | 823 | 4 | 1 | ~/.claude.json, ~/code/my-app/.mcp.json |
+| Claude Code | 3 | 10 | 823 | 4 | 1 | `~/.claude.json`, `~/code/my-app/.mcp.json` |
 | Codex | 0 | 0 | 0 | 0 | 0 | none found |
 | Gemini CLI | 0 | 0 | 0 | 0 | 0 | none found |
-| Cursor | 1 | 5 | 590 | 1 | 0 | ~/.cursor/mcp.json |
+| Cursor | 1 | 5 | 590 | 1 | 0 | `~/.cursor/mcp.json` |
 | OpenCode | 0 | 0 | 0 | 0 | 0 | none found |
 
 ## Servers
 
 | Server | Where | Runs | Status | Grade | Tools | Tokens |
 |---|---|---|---|---|---|---|
-| docs | Claude Code project (project file) | `docs-mcp --site ./docs` | listed | D (68) | 3 | 116 |
-| github | Claude Code user; Cursor global | `github-mcp` (env: GITHUB_TOKEN) | listed | A (90) | 5 | 590 |
-| wiki | Claude Code user | `wiki-mcp --space ENG` | listed | B (80) | 2 | 117 |
+| `docs` | Claude Code project (project file) | `docs-mcp --site ./docs` | listed | D (68) | 3 | 116 |
+| `github` | Claude Code user; Cursor global | `github-mcp` (env: `GITHUB_TOKEN`) | listed | A (90) | 5 | 590 |
+| `wiki` | Claude Code user | `wiki-mcp --space ENG` | listed | B (80) | 2 | 117 |
 
 ## Tools that collide across servers
 
-- search (docs) and search (wiki), in Claude Code: the names mean the same thing and at least one description is unclear. Fix: ...
+- `search` (`docs`) and `search` (`wiki`), in Claude Code: the names mean the same thing and at least one description is unclear. Fix: ...
 
 ## Fixes for the weakest tools
 
-**search (docs)** (F, 48)
+**`search` (`docs`)** (F, 48)
 - medium, short-description: The description has 1 sentence; the guidance is at least 3. Fix: ...
 - medium, unclear-purpose: The description mostly repeats the name; it adds 1 new word. Fix: ...
-- medium, param-no-description: Parameters without a description: q. Fix: ...
+- medium, param-no-description: Parameters without a description: `q`. Fix: ...
 - low, readonly-hint-missing: The name says it only reads, but readOnlyHint is not set to true. Fix: ...
 - medium, list-without-limit: A list or search tool with no limit, page, or cursor parameter. Fix: ...
 ```
 
-Before anything starts, a plain `installed` run prints the same server list with "With --launch, 3 stdio servers would start (1 from files inside this project: docs)." For one server, `lint` prints the same grades and fixes for each of its tools, headed by a line such as "16 tools grade B (86 of 100) and add about 2,700 tokens of definitions to every session that loads them".
+Before anything starts, a plain `installed` run prints the same server list with "With --launch, 3 stdio servers would start (1 from files inside this project: `docs`)." For one server, `lint` prints the same grades and fixes for each of its tools, headed by a line such as "16 tools grade B (86 of 100) and add about 2,700 tokens of definitions to every session that loads them".
 
 ## Install
 
@@ -80,7 +80,7 @@ python3 ~/.claude/skills/tool-design-checker/scripts/tools_check.py lint --serve
 3. **Grades** each tool from 100 down (A to F), then each server, with the rubric printed under every report.
 4. **Counts the load.** In `installed` mode it reads the MCP config files of Claude Code, Codex, Gemini CLI, Cursor, and OpenCode, applies each one's precedence, trust, approval, and tool filters, counts each server once, and totals tools, tokens, unclear purposes, and colliding tool pairs for each harness.
 
-Every rule, threshold, and source is in [references/smells.md](references/smells.md); every config file and harness rule is in [references/mcp-configs.md](references/mcp-configs.md). Tool names, descriptions, and server messages are untrusted text: the report shows each one on a single line with backticks, pipes, and control characters replaced, so a hostile server cannot break the tables or slip instructions into them.
+Every rule, threshold, and source is in [references/smells.md](references/smells.md); every config file and harness rule is in [references/mcp-configs.md](references/mcp-configs.md). Tool names, descriptions, and server messages are untrusted text: the report shows each one inside inline code, on a single line with secrets masked and backticks, pipes, and control characters replaced, so a hostile server cannot break the tables, add links or HTML, or slip instructions into them.
 
 ## Works with
 

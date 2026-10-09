@@ -907,9 +907,9 @@ def test_count_headline_names_the_most_broken_rule(tmp_path, capsys, _fake_home)
     make_sessions(_fake_home)
     _code, data = count_json(tmp_path, capsys)
     assert data["headline"].startswith("Your agent broke 3 of your 4 checkable rules 8 times in the last 30 days")
-    assert "'Use pnpm, never npm' leads with 5" in data["headline"]
+    assert "`Use pnpm, never npm` leads with 5" in data["headline"]
     _code, one = count_json(tmp_path, capsys, rules=[rule()])
-    assert one["headline"].startswith("Your agent broke 'Use pnpm, never npm' 5 times in the last 30 days")
+    assert one["headline"].startswith("Your agent broke `Use pnpm, never npm` 5 times in the last 30 days")
 
 
 def test_count_warns_when_a_rule_matches_most_calls(tmp_path, capsys, _fake_home):
@@ -1167,7 +1167,7 @@ def test_replay_reports_misses_from_a_stale_hook(tmp_path, capsys, _fake_home):
     code, data = replay_json(tmp_path, capsys, "--hook", stale, rules=[rule()])
     npm = data["rules"][0]
     assert (npm["tested"], npm["blocked"], npm["missed"]) == (5, 1, 4)
-    assert data["headline"].startswith("Your agent broke 'Use pnpm, never npm' 5 times in the last 30 days. "
+    assert data["headline"].startswith("Your agent broke `Use pnpm, never npm` 5 times in the last 30 days. "
                                        "The hook blocks 1 of 5 (4 get through)")
     assert all(SECRET not in e["excerpt"] and "`" not in e["excerpt"] for e in npm["missed_examples"])
     path = write_rules(tmp_path, [rule()], name="strict-rules.json")
@@ -1667,3 +1667,224 @@ def test_replay_explains_a_hook_file_that_cannot_run(tmp_path, capsys, _fake_hom
     os.chmod(hook, 0o644)
     _code, data = replay_json(tmp_path, capsys, "--hook", hook, rules=[rule()])
     assert data["errors"] == 6 and any("126" in n and "run permission" in n for n in data["notes"])
+
+
+# ---------------------------------------------------------------------------
+# Review fixes: commands inside unquoted heredocs, and paths after cd
+# ---------------------------------------------------------------------------
+
+DIST_SHELL = rule(kind="protect_path", rid="no-dist", pattern="dist/**", tool="edit|write|shell")
+
+
+@pytest.mark.parametrize("command", [
+    "cat <<EOF\n$(npm publish)\nEOF",
+    "cat <<EOF\n`npm publish`\nEOF",
+    "cat <<-EOF\n\tnote: $(npm publish)\n\tEOF",
+    "cat > notes.md <<EOF\nline one\n$(npm publish)\nEOF\necho done",
+    "git commit -m \"$(cat <<EOF\nRelease $(npm publish)\nEOF\n)\"",
+])
+def test_commands_inside_an_unquoted_heredoc_are_checked(command):
+    assert hits([rule()], shell(command))["match"] == "npm publish"
+
+
+def test_paths_inside_an_unquoted_heredoc_command_are_checked():
+    assert hits([DIST_SHELL], shell("cat <<EOF\n$(echo x > dist/app.js)\nEOF")) is not None
+    assert hits([DIST_SHELL], shell("cat <<'EOF'\n$(echo x > dist/app.js)\nEOF")) is None
+
+
+@pytest.mark.parametrize("command", [
+    "cat <<'EOF'\n$(npm publish)\nEOF",
+    "cat <<\"EOF\"\n`npm publish`\nEOF",
+    "cat <<\\EOF\n$(npm publish)\nEOF",
+    "cat <<EOF\nRun npm publish by hand, not \\$(npm publish).\nEOF",
+])
+def test_heredoc_text_the_shell_does_not_run_is_allowed(command):
+    assert hits([rule()], shell(command)) is None
+
+
+@pytest.mark.parametrize("command,rules", [
+    ("cat <<EOF\n$(npm publish)\nEOF", [rule()]),
+    ("cd src && echo x > ../dist/app.js", [DIST_SHELL]),
+])
+def test_hook_blocks_the_reported_bypasses(command, rules):
+    assert run_hook(dict(BASH_NPM, tool_input={"command": command}), rules)[0] == 2
+
+
+@pytest.mark.parametrize("command", [
+    "cd src && echo x > ../dist/app.js",
+    "cd src; echo x > ../dist/app.js",
+    "cd src\necho x > ../dist/app.js",
+    "cd src || exit 1; echo x > ../dist/app.js",
+    "cd src/lib && cd .. && cp a.js ../dist/",
+    "cd -P -- src && echo x > ../dist/app.js",
+    "pushd src && echo x > ../dist/app.js",
+    "cd /work/app/src && echo x > ../dist/app.js",
+    "cd /tmp && cd /work/app/src && echo x >> ../dist/app.js",
+    "(cd src && echo x > ../dist/app.js)",
+    "(cd /tmp && make) && echo x > dist/app.js",
+    "ROOT=$(cd /tmp && pwd) && echo x > dist/app.js",
+    "echo \"$(cd src && echo x > ../dist/app.js)\"",
+    "cd src && bash -c 'echo x > ../dist/app.js'",
+])
+def test_paths_after_cd_resolve_against_the_new_folder(command):
+    assert hits([DIST_SHELL], shell(command)) is not None
+
+
+@pytest.mark.parametrize("command", [
+    "cd src && echo x > out.txt",
+    "cd /tmp && echo x > dist/app.js",
+    "cd src && cd .. && echo x > ../dist/app.js",
+    "pushd src && popd && echo x > ../dist/app.js",
+])
+def test_paths_after_cd_that_miss_the_protected_folder_are_allowed(command):
+    assert hits([DIST_SHELL], shell(command)) is None
+
+
+def test_cd_into_a_protected_folder_counts_like_naming_it():
+    writes_only = [rule(kind="protect_path", rid="no-dist", pattern="dist/**")]  # edit|write: shell not checked
+    assert hits(writes_only, shell("cd dist && cat app.js")) is None
+    assert hits([DIST_SHELL], shell("cd dist && cat app.js")) is not None  # like cat dist/app.js
+
+
+def test_cd_home_resolves_against_the_home_folder(_fake_home):
+    zshrc = [rule(kind="protect_path", rid="no-zshrc", pattern="~/.zshrc", tool="shell")]
+    for command in ("cd && echo x >> .zshrc", "cd ~ && echo x >> .zshrc", "cd ~/code && echo x >> ../.zshrc"):
+        assert hits(zshrc, shell(command)) is not None, command
+
+
+@pytest.mark.parametrize("command", [
+    'cd "$BUILD_DIR" && echo x > dist/app.js',
+    'cd "$(git rev-parse --show-toplevel)" && echo x > dist/app.js',
+    "cd - && echo x > dist/app.js",
+    "cd ~bob && echo x > dist/app.js",
+    "cd src && cd $(mktemp -d) && echo x > ../dist/app.js",
+    "pushd && echo x > dist/app.js",
+    "popd && echo x > dist/app.js",
+    'cd "$APP" && cd /work/app/src && echo x > ../dist/app.js',
+])
+def test_a_cd_the_hook_cannot_follow_keeps_the_last_known_folder(command):
+    assert hits([DIST_SHELL], shell(command)) is not None
+
+
+@pytest.mark.parametrize("command,blocked", [
+    ("cd /tmp | true; echo x > dist/app.js", True),
+    ("true | cd /tmp && echo x > dist/app.js", True),
+    ("cd src | true; echo x > ../dist/app.js", False),
+])
+def test_a_cd_in_a_pipeline_does_not_change_the_folder(command, blocked):
+    assert (hits([DIST_SHELL], shell(command)) is not None) is blocked
+
+
+@pytest.mark.parametrize("delimiter", ["E\"OF\"", "'E'OF", "\\EOF", "E\\OF", "\"E\"'O'F"])
+def test_a_partly_quoted_heredoc_delimiter_ends_at_the_unquoted_word(delimiter):
+    assert hits([rule()], shell("cat <<%s\nx\nEOF\nnpm publish" % delimiter))["match"] == "npm publish"
+    assert hits([rule()], shell("cat <<%s\n$(npm publish)\nEOF\nls" % delimiter)) is None
+
+
+# ---------------------------------------------------------------------------
+# Review fixes: untrusted text reaches a Markdown report only inside inline code
+# ---------------------------------------------------------------------------
+
+LINK = "[the runbook](https://evil.example/runbook)"
+HTML = "<img src=x onerror=alert(1)>"
+
+
+def outside_code(md):
+    """The Markdown without fenced blocks and inline code spans."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def live_markup(md):
+    """Lines where the hostile link or tag is outside code, so it would render."""
+    return [line for line in outside_code(md).splitlines() if "evil.example" in line or "<img" in line]
+
+
+def test_extract_rule_text_stays_in_inline_code(tmp_path, capsys):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "AGENTS.md").write_text("# Rules\n\n- Never deploy without reading %s %s\n" % (LINK, HTML))
+    assert R.main(["extract", "--repo", str(repo)]) == 0
+    out = capsys.readouterr().out
+    bad = [line for line in out.splitlines() if "evil.example" in outside_code(line) or "<img" in outside_code(line)]
+    assert not bad, bad
+
+
+def test_count_headline_rule_text_stays_in_inline_code(tmp_path, capsys, _fake_home):
+    make_sessions(_fake_home)
+    rules = [rule(text="Never run npm, see %s" % LINK)]
+    assert R.main(["count", "--rules", write_rules(tmp_path, rules)]) == 0
+    out = capsys.readouterr().out
+    bad = [line for line in out.splitlines() if "evil.example" in outside_code(line)]
+    assert not bad, bad
+
+
+def test_pattern_is_masked_and_capped(tmp_path, capsys, _fake_home):
+    make_sessions(_fake_home)
+    rules = [rule(pattern=r"^npm(?:\s|$)|deploy --token " + SECRET + "x" * 400)]
+    assert R.main(["count", "--rules", write_rules(tmp_path, rules)]) == 0
+    out = capsys.readouterr().out
+    line = next(line for line in out.splitlines() if line.startswith("- no-npm ("))
+    assert SECRET not in line, line
+    assert len(line) < 300, len(line)
+
+
+def test_extract_paths_stay_in_inline_code(tmp_path, capsys):
+    empty = tmp_path / ("repo " + HTML)
+    empty.mkdir()
+    assert R.main(["extract", "--repo", str(empty)]) == 0
+    out = capsys.readouterr().out
+    assert "No context files found" in out and not live_markup(out), live_markup(out)
+    repo = tmp_path / "repo"
+    write(repo / ".claude" / "rules" / (HTML + ".md"), "Never use npm.\n")
+    assert R.main(["extract", "--repo", str(repo), "--out", str(tmp_path / (HTML + ".md"))]) == 0
+    out = capsys.readouterr().out + read_text(tmp_path / (HTML + ".md"))
+    assert "Report written to" in out and not live_markup(out), live_markup(out)
+
+
+def test_count_and_replay_keep_every_untrusted_value_in_inline_code(tmp_path, capsys, _fake_home):
+    project = "/work/" + HTML
+    cc_file(_fake_home, cc_call("h1", "Bash", {"command": "npm install %s %s" % (LINK, HTML)}, ago(0, 30),
+                                cwd=project), sid="sess-h", cwd=project, age_days=0)
+    cc_file(_fake_home, cc_call("h2", "Bash", {"command": "npm ci"}, HTML, cwd=project), sid="sess-t", cwd=project,
+            age_days=0)
+    rules = [rule(text="Never run npm, see %s %s" % (LINK, HTML), source="AGENTS.md:3 %s %s" % (LINK, HTML)),
+             {"id": "tone", "kind": "advice", "text": "Be kind.", "source": "%s %s" % (LINK, HTML)}]
+    path = write_rules(tmp_path, rules)
+    assert R.main(["count", "--rules", path, "--project", project]) == 0
+    out = capsys.readouterr().out
+    assert "Breaks" in out and not live_markup(out), live_markup(out)
+    stale = hook_file(tmp_path, [rule(pattern=r"^npm ci\b")])
+    assert R.main(["test", "--rules", path, "--project", project, "--hook", stale]) == 0
+    out = capsys.readouterr().out
+    assert "let through" in out and not live_markup(out), live_markup(out)
+
+
+def test_generate_keeps_paths_and_rule_ids_in_inline_code(tmp_path, capsys, _fake_home):
+    outside = tmp_path / ("outside " + HTML)
+    write(outside / "settings.json", "{}\n")
+    os.makedirs(str(tmp_path / "project" / ".claude"))
+    os.symlink(str(outside / "settings.json"), str(tmp_path / "project" / ".claude" / "settings.local.json"))
+    hook = str(outside / "rules_guard.py")
+    rules = [rule(message="Use pnpm, see %s %s" % (LINK, HTML)), GEN_RULES[1]]
+    reports = []
+    code, project = gen(tmp_path, "--harness", "claude-code,codex", "--hook-path", hook, rules=rules)
+    reports.append(capsys.readouterr().out)
+    code, project = gen(tmp_path, "--hook-path", hook, "--write", "--follow-symlinks", rules=rules)
+    capsys.readouterr()
+    write(hook, read_text(hook).replace("'no-npm'", repr("x %s %s" % (LINK, HTML))))
+    code, project = gen(tmp_path, "--hook-path", hook, "--write", "--follow-symlinks", "--replace", "--only",
+                        "no-dist", rules=rules)
+    reports.append(capsys.readouterr().out)
+    code, project = gen(tmp_path, "--uninstall", "--hook-path", hook, "--write", "--follow-symlinks")
+    reports.append(capsys.readouterr().out)
+    assert "Symlinks lead" in reports[0] and "No longer enforced" in reports[1] and "stays at" in reports[2]
+    for out in reports:
+        assert not live_markup(out), live_markup(out)
+
+
+def test_timestamps_that_are_not_dates_never_reach_a_report(tmp_path, capsys, _fake_home):
+    cc_file(_fake_home, cc_call("h3", "Bash", {"command": "npm ci"}, "[x](evil.example) " + HTML), sid="sess-x",
+            age_days=0)
+    _code, data = count_json(tmp_path, capsys, rules=[rule()])
+    assert data["rules"][0]["last"] == "" and data["rules"][0]["examples"][0]["time"] == "unknown time"

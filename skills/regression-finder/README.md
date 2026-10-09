@@ -7,7 +7,7 @@ Splits your own Claude Code or Codex sessions by version, model, or week, measur
 A sample report. Every number and version in it is invented; your agent prints its own.
 
 ```
-**After Claude Code 2.1.270, your agent reads 41% less before it edits and gets interrupted twice as often.**
+**After Claude Code `2.1.270`, your agent reads 41% less before it edits and gets interrupted twice as often.**
 
 Claude Code, last 90 days, split by version: 2,412 turns in 318 sessions across 21 versions, with 14 updates
 tested. Each session counts once: the test compares one value per session, and a change is flagged when p is
@@ -15,35 +15,35 @@ under 0.01 after adjusting for the number of tests and the change is at least 20
 
 ## Flagged changes
 
-| Where         | What changed                                 | Before (per session) | After (per session) | Change | Usually means | Compared           | Sessions (before, after) | Adjusted p |
-|---------------|----------------------------------------------|----------------------|---------------------|--------|---------------|--------------------|--------------------------|------------|
-| after 2.1.270 | Reads before the first edit (session median) | 5                    | 3                   | -41%   | worse         | 2.1.268 vs 2.1.270 | 34, 29                   | 0.0021     |
-| after 2.1.270 | Interrupts per 100 turns (session mean)      | 4.1                  | 8.3                 | +102%  | worse         | 2.1.268 vs 2.1.270 | 34, 29                   | 0.0068     |
+| Where           | What changed                                 | Before (per session) | After (per session) | Change | Usually means | Compared               | Sessions (before, after) | Adjusted p |
+|-----------------|----------------------------------------------|----------------------|---------------------|--------|---------------|------------------------|--------------------------|------------|
+| after `2.1.270` | Reads before the first edit (session median) | 5                    | 3                   | -41%   | worse         | `2.1.268` vs `2.1.270` | 34, 29                   | 0.0021     |
+| after `2.1.270` | Interrupts per 100 turns (session mean)      | 4.1                  | 8.3                 | +102%  | worse         | `2.1.268` vs `2.1.270` | 34, 29                   | 0.0068     |
 
 ## What else changed at the same point
 
 These numbers show what changed, not why: the kind of work may have changed too.
 
-- after 2.1.270: One project, `~/code/api`, holds 64% of the turns after. Run again with
+- after `2.1.270`: One project, `~/code/api`, holds 64% of the turns after. Run again with
   `--project '~/code/api'` to check the change within that project alone.
 
 ## By version
 
-| Version | Days                     | Sessions | Turns | Reads before edit | Reads per edit | Interrupts/100 | Cost/turn |
-|---------|--------------------------|----------|-------|-------------------|----------------|----------------|-----------|
-| 2.1.262 | 2026-08-30 to 2026-09-06 | 19       | 141   | 5                 | 4.2            | 3.5            | $0.184    |
-| 2.1.268 | 2026-09-06 to 2026-09-12 | 15       | 118   | 5                 | 4.0            | 4.2            | $0.191    |
-| 2.1.270 | 2026-09-12 to 2026-09-19 | 29       | 244   | 3                 | 2.6            | 8.3            | $0.163    |
+| Version   | Days                     | Sessions | Turns | Reads before edit | Reads per edit | Interrupts/100 | Cost/turn |
+|-----------|--------------------------|----------|-------|-------------------|----------------|----------------|-----------|
+| `2.1.262` | 2026-08-30 to 2026-09-06 | 19       | 141   | 5                 | 4.2            | 3.5            | $0.184    |
+| `2.1.268` | 2026-09-06 to 2026-09-12 | 15       | 118   | 5                 | 4.0            | 4.2            | $0.191    |
+| `2.1.270` | 2026-09-12 to 2026-09-19 | 29       | 244   | 3                 | 2.6            | 8.3            | $0.163    |
 
 ## Notes
 
-- Left out 2.1.199: it ran 2026-09-01 to 2026-09-18, after newer versions, which usually means a second
+- Left out `2.1.199`: it ran 2026-09-01 to 2026-09-18, after newer versions, which usually means a second
   install such as the desktop app or an SDK script. Run with --by week to see it in time order.
-- Not tested: 2.1.265 (4 sessions): each side of an update needs 20 sessions and 30 turns, even with
+- Not tested: `2.1.265` (4 sessions): each side of an update needs 20 sessions and 30 turns, even with
   neighbors added.
 ```
 
-The real report has a column for each of the eleven numbers (reads before the first edit, reads per edit, edits to files not read earlier, edits per turn, failed tool calls, interrupts, corrections, output tokens, reasoning share, tool calls, and cost per turn). When the test had to borrow neighboring versions, "Where" reads "between 2.1.260 and 2.1.270": the change is placed within that span. With `--svg` it also draws one small line chart per flagged number, and with `--json` it prints the same result for a program.
+The real report has a column for each of the eleven numbers (reads before the first edit, reads per edit, edits to files not read earlier, edits per turn, failed tool calls, interrupts, corrections, output tokens, reasoning share, tool calls, and cost per turn). When the test had to borrow neighboring versions, "Where" reads "between `2.1.260` and `2.1.270`": the change is placed within that span. With `--svg` it also draws one small line chart per flagged number, and with `--json` it prints the same result for a program.
 
 ## Install
 
@@ -99,7 +99,7 @@ It needs Python 3.9 or newer and nothing else to install. It has been run on mac
 - It shows what changed, not why. A new model, different projects, or scripted runs can move the numbers as much as an update; the report names the ones it can see, and it cannot see a change in how hard your tasks were.
 - Small changes need many sessions to show. Even a 50% drop in reads before editing is rarely found with a few sessions a day. With fewer than 20 sessions on each side of an update, it reports that the history is too short instead of guessing.
 - A change found by borrowing neighboring versions is placed within a span of versions, not at one version.
-- A second install on an old version is left out of the version split; `--by week` shows its sessions in time order.
+- A second install on an old version, or a rollback to an old version after an update, is left out of the version split and named in the notes; `--by week` shows those sessions in time order.
 - It counts edits made through edit tools. Files changed by shell commands (`sed -i`, `cat > file`) are left out of the edit counts.
 - Corrections come from a short list of phrases, so many corrections go uncounted; the same list applies to every version.
 - Claude Code deletes transcripts after 30 days by default (`cleanupPeriodDays`), except sessions from Claude Desktop, so a 90-day window may hold 30 days. The report says so when it happens.

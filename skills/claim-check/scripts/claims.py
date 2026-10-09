@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import evidence as E  # noqa: E402
 import transcripts as T  # noqa: E402
 import weakened as W  # noqa: E402
+from safe import code  # noqa: E402
 
 LABELS = ("backed", "stale", "contradicted", "unsupported", "unclear")
 NOT_BACKED = ("stale", "contradicted", "unsupported")
@@ -184,14 +185,14 @@ def scan(days=30, harness="all", project=None, examples=10) -> dict:
 
 def _example_lines(examples) -> list:
     """Numbered evidence for each example claim. Every piece of transcript
-    text sits in inline code, already made safe by safe_text."""
+    text goes through code(), so it sits in inline code as one inert line."""
     lines = []
     for i, ex in enumerate(examples, 1):
         what = "test" if ex["kind"] == E.TESTS else "build"
-        lines.append("%d. **%s** (%s claim), %s, %s, session %s, project `%s`" % (
-            i, ex["label"], what, ex["time"], NAMES.get(ex["harness"], ex["harness"]), ex["session"][:12],
-            ex["project"] or "unknown"))
-        lines.append("   - Claim: `%s`" % ex["claim"])
+        lines.append("%d. **%s** (%s claim), %s, %s, session %s, project %s" % (
+            i, ex["label"], what, ex["time"], NAMES.get(ex["harness"], ex["harness"]), code(ex["session"][:12]),
+            code(ex["project"]) if ex["project"] else "unknown"))
+        lines.append("   - Claim: %s" % code(ex["claim"]))
         if ex.get("why"):
             lines.append("   - Why: %s." % ex["why"])
         run = ex["run"]
@@ -199,15 +200,15 @@ def _example_lines(examples) -> list:
             lines.append("   - No %s run before this claim in the session." % what)
             continue
         verb = {"pass": "passed", "fail": "failed", "unknown": "ended with an unreadable result"}[run["result"]]
-        detail = " (`%s`)" % run["detail"] if run["detail"] else ""
+        detail = " (%s)" % code(run["detail"], 80) if run["detail"] else ""
         changed = ""
         if ex["changed_count"]:
-            shown = ", ".join("`%s`" % p for p in ex["changed"])
+            shown = ", ".join(code(p) for p in ex["changed"])
             more = " and %d more" % (ex["changed_count"] - len(ex["changed"])) \
                 if ex["changed_count"] > len(ex["changed"]) else ""
             changed = "; then %s changed: %s%s" % (_plural(ex["changed_count"], "file"), shown, more)
-        lines.append("   - Last %s run: `%s` %s%s at %s%s." % (what, run["command"], verb, detail, run["time"],
-                                                             changed))
+        lines.append("   - Last %s run: %s %s%s at %s%s." % (what, code(run["command"]), verb, detail, run["time"],
+                                                           changed))
     return lines
 
 
@@ -283,8 +284,8 @@ def render_diff(data) -> str:
     if data["signals"]:
         lines += ["| Signal | File | Line | Detail |", "|---|---|---|---|"]
         for s in data["signals"]:
-            lines.append("| %s | `%s` | %s | `%s` |" % (SIGNALS[s["kind"]][0], s["file"], s["line"] or "",
-                                                       s["detail"]))
+            lines.append("| %s | %s | %s | %s |" % (SIGNALS[s["kind"]][0], code(s["file"]), s["line"] or "",
+                                                   code(s["detail"], 120)))
         lines += ["", "What each signal means:"]
         lines += ["- %s: %s" % (SIGNALS[k][0], SIGNALS[k][2]) for k in SIGNALS if k in data["counts"]]
         lines.append("")

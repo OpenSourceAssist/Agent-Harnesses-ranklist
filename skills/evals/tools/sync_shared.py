@@ -26,6 +26,10 @@ MODULES = {
     "transcripts.py": ("guardrail-tester", "runaway-guard", "claim-check", "rules-to-guards",
                        "session-waste-report", "regression-finder"),
     "pricing.py": ("harness-test-drive", "runaway-guard", "session-waste-report", "regression-finder"),
+    # transcripts.py imports safe.py, so every skill that gets transcripts.py needs safe.py too.
+    "safe.py": ("guardrail-tester", "runaway-guard", "claim-check", "rules-to-guards",
+                "session-waste-report", "regression-finder",
+                "harness-test-drive", "tool-design-checker", "agents-md-checker"),
 }
 HEADER = ("# Copied from skills/evals/shared/{module} by skills/evals/tools/sync_shared.py. "
           "Edit the source, then run the sync.\n")

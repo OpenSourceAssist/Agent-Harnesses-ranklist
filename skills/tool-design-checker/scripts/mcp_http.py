@@ -31,7 +31,8 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcp_client import (CLIENT_INFO, LEGACY_VERSION, MODERN_VERSION,  # noqa: E402
-                        UNSUPPORTED_VERSION, McpError, excerpt, exit_on_signals, modern_meta, safe_text)
+                        UNSUPPORTED_VERSION, McpError, excerpt, exit_on_signals, inline, modern_meta,
+                        safe_text)
 
 ACCEPT = "application/json, text/event-stream"
 MODERN_ERRORS = {-32020, -32021, UNSUPPORTED_VERSION}
@@ -287,15 +288,15 @@ def main(argv=None) -> int:
     try:
         result = list_tools_http(args.url, headers=headers, timeout=args.timeout, mask=list(headers.values()))
     except McpError as exc:
-        print("error (%s): %s" % (exc.kind, exc), file=sys.stderr)
+        print("error (%s): %s" % (exc.kind, inline(exc, 400, list(headers.values()))), file=sys.stderr)
         return 2
     if args.json:
         print(json.dumps(result, indent=2))
     else:
         print("%d tools (%s protocol %s)" % (len(result["tools"]), result["era"],
-                                            safe_text(result["protocol_version"], 40)))
+                                            inline(result["protocol_version"], 40)))
         for tool in result["tools"]:
-            print("- %s" % safe_text(tool.get("name"), 128))
+            print("- %s" % inline(tool.get("name"), 128))
     return 0
 
 

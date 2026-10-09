@@ -37,7 +37,8 @@ from collections import Counter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mcp_client  # noqa: E402
 import mcp_configs  # noqa: E402
-from mcp_client import safe_text  # noqa: E402
+from mcp_client import inline, safe_text  # noqa: E402
+from safe import code  # noqa: E402
 
 VERSION = "1.0.0"
 WEIGHTS = {"high": 30, "medium": 12, "low": 4}
@@ -283,7 +284,7 @@ def walk_params(schema, root, path="", depth=0, refs=(), notes=None, mask=()):
         yield here, name, spec, depth + 1
         for child, ref in object_children(spec, root, ref_of(raw)):
             if ref and ref in refs:
-                note = "recursive schema at %s" % safe_text(here, 120, mask)
+                note = "recursive schema at %s" % inline(here, 120, mask)
                 if notes is not None and note not in notes:
                     notes.append(note)
                 continue
@@ -384,8 +385,8 @@ def finding(check: str, severity: str, message: str) -> dict:
 
 
 def names_text(values, mask=()) -> str:
-    """A list of untrusted names (parameters, tools) as one inert line."""
-    return ", ".join(safe_text(v, 80, mask) for v in values)
+    """A list of untrusted names (parameters, tools), each inside inline code."""
+    return ", ".join(inline(v, 80, mask) for v in values)
 
 
 def is_limit_param(leaf: str, spec: dict) -> bool:
@@ -412,8 +413,8 @@ def lint_tool(tool: dict, siblings=(), mask=()) -> dict:
 
     if not NAME_RE.fullmatch(name):
         found.append(finding("invalid-name", "medium",
-                             "The name \"%s\" is not 1 to 128 characters of A-Z, a-z, 0-9, _, - and ." %
-                             safe_text(name, 80, mask)))
+                             "The name %s is not 1 to 128 characters of A-Z, a-z, 0-9, _, - and ." %
+                             inline(name, 80, mask)))
     if not valid_schema:
         found.append(finding("schema-invalid", "high",
                              "The input schema is missing or is not a JSON Schema object with "
@@ -477,7 +478,7 @@ def lint_tool(tool: dict, siblings=(), mask=()) -> dict:
         enums = big_enums(schema)
         if enums:
             found.append(finding("large-enum", "low", "Enum with more than %d values: %s." % (
-                ENUM_MAX, ", ".join("%s (%d)" % (safe_text(path, 80, mask), n) for path, n in enums))))
+                ENUM_MAX, ", ".join("%s (%d)" % (inline(path, 80, mask), n) for path, n in enums))))
         deepest = max([d for _p, _l, spec, d in params if object_children(spec, schema)] or [0])
         if deepest > DEPTH_MAX:
             found.append(finding("deep-nesting", "low", "The input nests objects %d levels deep; "
@@ -597,7 +598,7 @@ def lint_server(tools: list, extra_findings=(), mask=()) -> dict:
             " and ".join(sorted(styles)), main_style, names_text(odd, mask))))
     for a, b, reason, _sim in similar_pairs(tools):
         found.append(finding("near-duplicate", "medium", "%s and %s look alike: %s." % (
-            safe_text(a.get("name"), 80, mask), safe_text(b.get("name"), 80, mask), reason)))
+            inline(a.get("name"), 80, mask), inline(b.get("name"), 80, mask), reason)))
     if results:
         mean = sum(r["score"] for r in results) / float(len(results))
         score = int(round(max(0.0, mean - min(SERVER_FINDING_CAP, SERVER_FINDING_COST * len(found)))))
@@ -644,15 +645,16 @@ def tool_rows(results: list, limit: int = 0) -> list:
     ordered = worst_first(results)
     for r in ordered[:limit] if limit else ordered:
         checks = ", ".join(f["check"] for f in r["findings"]) or "none"
-        rows.append("| %s | %s (%d) | %d | %s |" % (md_cell(r["name"]), r["grade"], r["score"], r["tokens"], checks))
+        rows.append("| %s | %s (%d) | %d | %s |" % (code(r["name"], 128), r["grade"], r["score"], r["tokens"], checks))
     return rows
 
 
 def fix_lines(results: list, count: int = 5) -> list:
+    """results may carry a "label": the tool name already in inline code, with its server."""
     lines = []
     for r in [r for r in worst_first(results) if r["findings"]][:count]:
         lines.append("")
-        lines.append("**%s** (%s, %d)" % (md_cell(r["name"]), r["grade"], r["score"]))
+        lines.append("**%s** (%s, %d)" % (r.get("label") or code(r["name"], 128), r["grade"], r["score"]))
         for f in r["findings"]:
             lines.append("- %s, %s: %s Fix: %s" % (f["severity"], f["check"], f["message"], f["fix"]))
     return lines
@@ -678,10 +680,11 @@ def lint_report(source: str, server: dict, listing=None, notes=(), mask=()) -> d
         headline = ("%s grade %s (%d of 100) and add about %s tokens of definitions to every "
                     "session that loads them; %s an unclear purpose, and the weakest is %s (%s)." % (
                         plural(len(results), "tool"), server["grade"], server["score"],
-                        about(server["tokens"]), unclear_phrase(unclear), worst["name"], worst["grade"]))
+                        about(server["tokens"]), unclear_phrase(unclear), code(worst["name"], 128),
+                        worst["grade"]))
     else:
         headline = "The server lists 0 tools, so there is nothing to grade."
-    tool_notes = ["%s: %s" % (r["name"], n) for r in results for n in r["notes"]]
+    tool_notes = ["%s: %s" % (code(r["name"], 128), n) for r in results for n in r["notes"]]
     return {
         "checker": "tool-design-checker", "version": VERSION, "mode": "lint",
         "source": safe_text(source, 300, mask), "headline": headline,
@@ -695,11 +698,11 @@ def lint_report(source: str, server: dict, listing=None, notes=(), mask=()) -> d
 
 def render_lint(report: dict) -> str:
     s = report["summary"]
-    lines = ["**%s**" % report["headline"], "", "Source: `%s`" % md_cell(report["source"])]
+    lines = ["**%s**" % report["headline"], "", "Source: %s" % code(report["source"], 300)]
     listing = report.get("listing")
     if listing:
         lines.append("Listed over the %s protocol (version %s) in %s, %.1f s." % (
-            safe_text(listing["era"], 20), safe_text(listing["protocol_version"], 20),
+            safe_text(listing["era"], 20), code(listing["protocol_version"], 40),
             plural(listing["pages"], "page"), listing["seconds"]))
     lines += ["", "| Grade | Score | Tools | Tokens (estimate) | Unclear purpose |", "|---|---|---|---|---|",
               "| %s | %s | %d | %s | %d |" % (s["grade"], s["score"] if s["score"] is not None else "n/a",
@@ -896,7 +899,7 @@ def installed_report(args, harnesses: tuple) -> tuple:
         wanted = {n.strip() for n in args.only.split(",") if n.strip()}
         groups = [g for g in groups if wanted & set(g["names"])]
         found = {n for g in groups for n in g["names"]}
-        notes.extend("no server named %s" % n for n in sorted(wanted - found))
+        notes.extend("no server named %s" % inline(n, 100) for n in sorted(wanted - found))
     plan = []
     for group in groups:
         enabled = [e for e in group["entries"] if e["enabled"]]
@@ -927,7 +930,7 @@ def installed_report(args, harnesses: tuple) -> tuple:
         elif args.launch:
             record.update(launch_server(group, first, args, project, mask))
             record["error"] = safe_text(record["error"], 300, mask)
-        notes.extend("%s: %s" % (record["name"], n) for n in record.pop("_notes", []))
+        notes.extend("%s: %s" % (code(record["name"], 100), n) for n in record.pop("_notes", []))
         record["_group"], record["_enabled"] = group, enabled
         servers.append(record)
 
@@ -982,22 +985,23 @@ def installed_report(args, harnesses: tuple) -> tuple:
                     "unclear_purpose": top_row.get("unclear_purpose"), "collisions": top_row.get("collisions")},
         "launch_plan": launch_plan, "harnesses": per_harness, "servers": servers,
         "collisions": list(collisions.values()), "config_findings": config_findings,
-        "notes": [safe_text(n, 300, mask) for n in notes],
+        # Each note is fixed text with any untrusted value already inside inline code.
+        "notes": notes,
     }, mask
 
 
 def render_installed(report: dict) -> str:
     names = mcp_configs.HARNESS_NAMES
-    lines = ["**%s**" % report["headline"], "", "Folder: `%s`" % md_cell(report["project"])]
+    lines = ["**%s**" % report["headline"], "", "Folder: %s" % code(report["project"], 200)]
     plan = report["launch_plan"]
     if not report["launched"] and plan["stdio"]:
         parts = []
         if plan["from_project_files"]:
             parts.append("%d from files inside this project: %s" % (
-                len(plan["from_project_files"]), ", ".join(plan["from_project_files"])))
+                len(plan["from_project_files"]), ", ".join(code(n, 100) for n in plan["from_project_files"])))
         if plan["approved_by_project_settings"]:
             parts.append("approved by settings files inside this project: %s" %
-                         ", ".join(plan["approved_by_project_settings"]))
+                         ", ".join(code(n, 100) for n in plan["approved_by_project_settings"]))
         lines.append("With --launch, %s would start%s." % (
             plural(plan["stdio"], "stdio server"), " (%s)" % "; ".join(parts) if parts else ""))
     lines += ["", "| Harness | Servers | Tools | Tokens (estimate) | Unclear purpose | Collisions | Config files read |",
@@ -1010,7 +1014,7 @@ def render_installed(report: dict) -> str:
         lines.append("| %s | %d | %s | %s | %s | %s | %s |" % (
             names[harness], row["servers"], tools, "{:,}".format(row["tokens"]) if counted else "not counted",
             row["unclear_purpose"] if counted else "-", row["collisions"] if counted else "-",
-            md_cell(", ".join(row["config_files"]) or "none found")))
+            ", ".join(code(p, 200) for p in row["config_files"]) or "none found"))
     if report["servers"]:
         lines += ["", "## Servers", "", "| Server | Where | Runs | Status | Grade | Tools | Tokens |",
                   "|---|---|---|---|---|---|---|"]
@@ -1019,31 +1023,34 @@ def render_installed(report: dict) -> str:
                                              " (project file)" if c["project_file"] else "",
                                              "" if c["enabled"] else " (off: %s)" % c["status"])
                               for c in s["configured_in"])
-            runs = "`%s`" % md_cell(s["command"])
+            runs = code(s["command"], 300)
             if s["env_names"]:
-                runs += " (env: %s)" % ", ".join(s["env_names"])
-            status = s["status"] + (": " + s["error"] if s["error"] else "")
+                runs += " (env: %s)" % ", ".join(code(n, 80) for n in s["env_names"])
+            status = s["status"] + (": " + code(s["error"], 300) if s["error"] else "")
             grade = "%s (%d)" % (s["grade"], s["score"]) if s["score"] is not None else "-"
             lines.append("| %s | %s | %s | %s | %s | %s | %s |" % (
-                md_cell(", ".join(s["names"])), md_cell(where), runs, md_cell(status), grade,
+                ", ".join(code(n, 100) for n in s["names"]), md_cell(where), runs, status, grade,
                 "-" if s["tools_count"] is None else s["tools_count"],
                 "-" if s["tokens"] is None else "{:,}".format(s["tokens"])))
     if report["collisions"]:
         lines += ["", "## Tools that collide across servers", ""]
         lines += ["- %s (%s) and %s (%s), in %s: %s. Fix: %s" % (
-            c["a"]["tool"], c["a"]["server"], c["b"]["tool"], c["b"]["server"],
+            code(c["a"]["tool"], 128), code(c["a"]["server"], 100), code(c["b"]["tool"], 128),
+            code(c["b"]["server"], 100),
             ", ".join(names[h] for h in c["harnesses"]), c["reason"], c["fix"]) for c in report["collisions"]]
-    tagged = [dict(r, name="%s (%s)" % (r["name"], s["name"])) for s in report["servers"] for r in s["tools"]]
+    tagged = [dict(r, label="%s (%s)" % (code(r["name"], 128), code(s["name"], 100)))
+              for s in report["servers"] for r in s["tools"]]
     fixes = fix_lines(tagged)
     if fixes:
         lines += ["", "## Fixes for the weakest tools"] + fixes
     server_findings = [(s["name"], f) for s in report["servers"] for f in s["findings"]]
     if server_findings or report["config_findings"]:
         lines += ["", "## Server and config findings", ""]
-        lines += ["- %s: %s, %s: %s Fix: %s" % (n, f["severity"], f["check"], f["message"], f["fix"])
+        lines += ["- %s: %s, %s: %s Fix: %s" % (code(n, 100), f["severity"], f["check"], f["message"], f["fix"])
                   for n, f in server_findings]
         lines += ["- %s in %s (%s): %s, %s: %s Fix: %s" % (
-            f["server"], names[f["harness"]], f["config_path"], f["severity"], f["check"], f["message"], f["fix"])
+            code(f["server"], 100), names[f["harness"]], code(f["config_path"], 200), f["severity"], f["check"],
+            f["message"], f["fix"])
             for f in report["config_findings"]]
     if report["notes"]:
         lines += ["", "## Notes", ""] + ["- %s" % n for n in report["notes"]]
@@ -1057,10 +1064,10 @@ def run_installed(args) -> int:
     unknown = [h for h in chosen if h not in mcp_configs.HARNESSES]
     if unknown or not chosen:
         print("error: unknown harness %s; use all or: %s" % (
-            safe_text(", ".join(unknown), 100), ", ".join(mcp_configs.HARNESSES)), file=sys.stderr)
+            inline(", ".join(unknown), 100), ", ".join(mcp_configs.HARNESSES)), file=sys.stderr)
         return 2
     if not os.path.isdir(args.project):
-        print("error: %s is not a folder" % safe_text(args.project, 200), file=sys.stderr)
+        print("error: %s is not a folder" % inline(args.project, 200), file=sys.stderr)
         return 2
     report, mask = installed_report(args, chosen)
     emit(json.dumps(report, indent=2) + "\n" if args.json else render_installed(report), args.out, mask)
@@ -1114,14 +1121,14 @@ def run_lint(args) -> int:
                     data = json.load(fh)
             tools = normalize_tools(data)
         except (OSError, ValueError) as exc:
-            print("error: cannot read tools from %s: %s" % (safe_text(args.tools, 200), safe_text(exc, 200)),
+            print("error: cannot read tools from %s: %s" % (inline(args.tools, 200), inline(exc, 200)),
                   file=sys.stderr)
             return 2
     else:
         try:
             argv = plain_command(args.server)
         except ValueError as exc:
-            print("error: cannot parse --server: %s" % safe_text(exc, 200), file=sys.stderr)
+            print("error: cannot parse --server: %s" % inline(exc, 200), file=sys.stderr)
             return 2
         if argv is None:
             print("error: --server takes one plain command, with no &&, ;, |, redirects, or VAR=value "
@@ -1129,7 +1136,7 @@ def run_lint(args) -> int:
                   file=sys.stderr)
             return 2
         if not os.path.isdir(args.cwd):
-            print("error: --cwd %s is not a folder" % safe_text(args.cwd, 200), file=sys.stderr)
+            print("error: --cwd %s is not a folder" % inline(args.cwd, 200), file=sys.stderr)
             return 2
         source = args.server
         # The server inherits this shell's environment: its secret-looking values, and any
@@ -1142,7 +1149,7 @@ def run_lint(args) -> int:
             result = mcp_client.list_tools_stdio(argv, cwd=args.cwd, timeout=args.timeout, mask=mask)
         except mcp_client.McpError as exc:
             print(final_redact("error: could not list the server's tools (%s): %s" % (
-                exc.kind, safe_text(exc, 400, mask)), mask), file=sys.stderr)
+                exc.kind, inline(exc, 400, mask)), mask), file=sys.stderr)
             return 2
         except Exception as exc:  # anything else a server can cause
             print("error: could not list the server's tools (unexpected %s)" % exc.__class__.__name__,

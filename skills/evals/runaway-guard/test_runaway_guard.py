@@ -14,6 +14,7 @@ import io
 import itertools
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -1589,6 +1590,52 @@ def test_untrusted_text_reaches_the_report_as_one_inert_line(tmp_path, capsys):
     assert "\ud800" not in out
     report = json.loads(status_of(capsys, "--json")[1])
     assert all("\n" not in t["tool"] and "`" not in t["tool"] for t in report["recent_trips"])
+
+
+LINK = "[Click](https://evil.example/fix)"
+HTML = "<img src=x onerror=alert(1)>"
+
+
+def _outside_code(md):
+    """The markdown with fenced blocks and inline code spans taken out: what renders as markdown."""
+    md = re.sub(r"(?ms)^```.*?^```", "", md)
+    return re.sub(r"``.+?``|`[^`\n]*`", "", md)
+
+
+def test_a_model_id_from_the_transcript_stays_in_inline_code(tmp_path, capsys):
+    recs = [cc_user("go", "2026-09-25T10:00:00.000Z"),
+            cc_assistant("msg_u", tool_use("tu", "Read", {"file_path": "/w/a"}), "2026-09-25T10:00:01.000Z",
+                         cc_usage(inp=100, out=1000), model="mystery %s" % LINK),
+            cc_result("tu", "contents", "2026-09-25T10:00:02.000Z"),
+            cc_assistant("msg_v", tool_use("tv", "Read", {"file_path": "/w/b"}), "2026-09-25T10:00:03.000Z")]
+    read_call(cc_file(tmp_path / "home", recs))
+    code, out = status_of(capsys)
+    assert code == 0 and "no price is known for `mystery %s`, so its" % LINK in out
+    assert not [line for line in out.splitlines() if "evil.example" in _outside_code(line)]
+    assert json.loads(status_of(capsys, "--json")[1])["estimated_models"] == ["mystery " + LINK]  # JSON stays plain
+
+
+def test_a_tool_name_from_the_hook_stays_in_inline_code(tmp_path, capsys):
+    t = quiet_session(tmp_path)
+    for _ in range(3):
+        guard.run_hook(cc_hook(t, "mcp__evil__" + HTML, {"q": 1}))
+    code, out = status_of(capsys)
+    assert code == 0 and ", loop: `mcp__evil__%s`, 3rd identical call" % HTML in out
+    assert not [line for line in out.splitlines() if "<img" in _outside_code(line)]
+    assert json.loads(status_of(capsys, "--json")[1])["recent_trips"][0]["tool"] == "mcp__evil__" + HTML
+
+
+def test_a_session_id_stays_in_inline_code_in_the_headline_and_the_list(tmp_path, capsys):
+    sid = "[x](//e.co)"
+    guard.run_hook(cc_hook(quiet_session(tmp_path), sid=sid))
+    code, out = status_of(capsys)
+    assert code == 0 and out.startswith("**Session `%s` has spent" % sid)
+    listed = status_of(capsys, "--list")[1]
+    assert "| `%s` |" % sid in listed
+    for text in (out, listed):
+        assert not [line for line in text.splitlines() if "e.co" in _outside_code(line)]
+    report = json.loads(status_of(capsys, "--json")[1])
+    assert report["session"] == sid and report["headline"].startswith("Session %s has spent" % sid)  # plain
 
 
 def test_estimated_spend_and_logged_errors_are_reported(tmp_path, capsys):

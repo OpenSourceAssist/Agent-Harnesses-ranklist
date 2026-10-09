@@ -72,7 +72,7 @@ Tell the user this when they ask what the check looks at:
 2. **Answer the user's own question first.** If the user named an update or a time such as last week, find it in the By version table first. If it was not tested, lead with that (for example: 2.1.280 had 7 sessions, and the test needs 20 on each side), then give the headline as background, not as the answer. The notes list every update that was not tested, with its sessions.
 
    Then read the headline. It is one of these kinds:
-   - A flagged change: "After Claude Code 2.1.270, your agent reads 41% less before it edits...", or "After an update between Claude Code 2.1.260 and 2.1.270, ..." when the test had to borrow neighboring versions. The change lies somewhere in that span; say the span, not one version. Go to step 3.
+   - A flagged change: "After Claude Code `2.1.270`, your agent reads 41% less before it edits...", or "After an update between Claude Code `2.1.260` and `2.1.270`, ..." when the test had to borrow neighboring versions. The change lies somewhere in that span; say the span, not one version. Go to step 3.
    - "No behavior change passed the test across ...": the numbers wobble but nothing passed. Say so plainly and give the session counts; go to step 5.
    - "No lasting behavior change passed the test ...; 1 version stands out": one version differs from the versions on both sides of it. Report the "Stands out" line as it is.
    - "Not enough history to test an update yet": fewer than 20 sessions on each side of every update. Offer, in this order, a longer window (`--since 180d`, when the history goes back that far), a split by time (`--by week`), and last a lower bar (`--min-sessions 12`, the floor). A lower bar tests more updates, but each test can only catch larger changes.
@@ -124,22 +124,22 @@ Open `references/metrics.md` to explain what a number measures and why it matter
 
 An example of the shape (the numbers are invented):
 
-> **After Claude Code 2.1.270, your agent reads 41% less before it edits and gets interrupted twice as often.**
+> **After Claude Code `2.1.270`, your agent reads 41% less before it edits and gets interrupted twice as often.**
 >
 > | Where | What changed | Before | After | Change | Sessions |
 > |---|---|---|---|---|---|
-> | after 2.1.270 | Reads before the first edit (session median) | 5 | 3 | -41% | 34, 29 |
-> | after 2.1.270 | Interrupts per 100 turns (session mean) | 4.1 | 8.3 | +102% | 34, 29 |
+> | after `2.1.270` | Reads before the first edit (session median) | 5 | 3 | -41% | 34, 29 |
+> | after `2.1.270` | Interrupts per 100 turns (session mean) | 4.1 | 8.3 | +102% | 34, 29 |
 >
-> Nothing else changed at that update: same model, same projects. Next: read the 2.1.270 entry in the Claude Code changelog, and if it matches, file it with `--json` and `--svg`.
+> Nothing else changed at that update: same model, same projects. Next: read the `2.1.270` entry in the Claude Code changelog, and if it matches, file it with `--json` and `--svg`.
 
 When nothing was flagged, say what was compared (versions, sessions, turns) and that small histories cannot show small changes; quote no percentages as findings.
 
-Quote versions, models, and paths exactly as the report prints them: it shows the home folder as `~`, and it has already made any text taken from transcripts safe to display.
+Quote versions, models, and paths exactly as the report prints them, inside inline code: it shows the home folder as `~`, and it has already made any text taken from transcripts safe to display.
 
 ## Files
 
 - `scripts/regress.py`: the check. Flags: `--harness`, `--by version|model|week`, `--since 90d`, `--project`, `--min-turns 30`, `--min-sessions 20` (at least 12), `--svg <path>`, `--json`, `--out <path>`, `--fail-on worse|any` (exit 1 when a flagged change usually means worse, or when anything is flagged).
-- `scripts/transcripts.py`, `scripts/pricing.py`: the shared readers for session files and model prices that several skills in this repository use.
+- `scripts/transcripts.py`, `scripts/pricing.py`, `scripts/safe.py`: the shared reader for session files, the price table, and the text cleaner that puts transcript text in the report inside inline code; several skills in this repository use them.
 - `references/metrics.md`: each number's definition and why it matters, next to the method of issue #42796.
 - `references/statistics.md`: the test, the thresholds, the minimum samples, how changes are placed, and the limits.

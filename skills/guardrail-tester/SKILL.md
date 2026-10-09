@@ -174,5 +174,7 @@ timeout (600000 ms): hooks run one at a time, so a slow hook makes the run long.
 - `scripts/hook_runner.py`: runs one hook command with test JSON and reads its decision.
 - `scripts/shell_split.py`: splits a command line into the commands it runs.
 - `scripts/transcripts.py`: reads session transcripts for replay (shared copy).
+- `scripts/safe.py`: masks secrets and puts text from settings, hooks, and transcripts in inline
+  code for the report (shared copy).
 - `references/bypass-forms.md`: each form in the battery and why rules miss it.
 - `references/harness-rules.md`: matching rules per harness, with sources and the date checked.
