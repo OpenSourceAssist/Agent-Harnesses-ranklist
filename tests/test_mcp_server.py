@@ -20,10 +20,13 @@ def _load_server():
 
     class FastMCP:
         def __init__(self, name):
-            pass
+            self.tools = {}  # tool name -> annotations it was registered with
 
-        def tool(self):
-            return lambda fn: fn
+        def tool(self, name=None, description=None, annotations=None):
+            def register(fn):
+                self.tools[name or fn.__name__] = annotations
+                return fn
+            return register
 
         def run(self):
             pass
@@ -31,10 +34,15 @@ def _load_server():
     fastmcp.FastMCP = FastMCP
     server_pkg = types.ModuleType("mcp.server")
     server_pkg.fastmcp = fastmcp
+    mcp_types = types.ModuleType("mcp.types")
+    mcp_types.ToolAnnotations = types.SimpleNamespace
     mcp_pkg = types.ModuleType("mcp")
     mcp_pkg.server = server_pkg
-    saved = {k: sys.modules.get(k) for k in ("mcp", "mcp.server", "mcp.server.fastmcp")}
-    sys.modules.update({"mcp": mcp_pkg, "mcp.server": server_pkg, "mcp.server.fastmcp": fastmcp})
+    mcp_pkg.types = mcp_types
+    stubs = {"mcp": mcp_pkg, "mcp.server": server_pkg, "mcp.server.fastmcp": fastmcp,
+             "mcp.types": mcp_types}
+    saved = {k: sys.modules.get(k) for k in stubs}
+    sys.modules.update(stubs)
     try:
         spec = importlib.util.spec_from_file_location("ah_mcp_server", ROOT / "mcp" / "server.py")
         mod = importlib.util.module_from_spec(spec)
@@ -110,6 +118,15 @@ DATA = {
     ],
     "use_cases": [],
 }
+
+
+def test_every_tool_is_read_only(server):
+    # No tool writes anything, and every tool calls data(), which fetches
+    # harnesses.json from GitHub when installed from PyPI.
+    assert server.mcp.tools, "no tools registered"
+    for name, ann in server.mcp.tools.items():
+        assert getattr(ann, "readOnlyHint", None) is True, name
+        assert getattr(ann, "openWorldHint", None) is True, name
 
 
 def test_compare_two(server):

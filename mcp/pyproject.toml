@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-harnesses-mcp"
-version = "0.7.0"
+version = "0.7.1"
 description = "MCP server for best-of-Agent-Harnesses: opinionated harness recommendations (recommend/pick_harness), search, and head-to-head decision guides over a hand-curated, weekly-rescored list of agent harnesses"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Ryan Alberts" }]
 keywords = ["mcp", "model-context-protocol", "agents", "agent-harness", "llm"]
-dependencies = ["mcp>=1.2,<2"]
+dependencies = ["mcp>=1.7,<2"]
 
 [project.scripts]
 agent-harnesses-mcp = "agent_harnesses_mcp:main"
