@@ -1,0 +1,96 @@
+{
+  "skill": "claim-check",
+  "purpose": "Trigger-behavior spec for deterministic lexical routing and manual behavior checks. Positives doubt an agent's claim that tests or a build passed, ask about weakened tests in a diff, or want a Stop hook that sends the agent back to rerun tests; near misses belong to sibling skills or to no skill.",
+  "cases": [
+    {
+      "id": "really-ran-tests",
+      "prompt": "did my agent really run the tests before it said they pass",
+      "should_trigger": true,
+      "assert": "Runs claims.py scan and reports each claim as backed, stale, contradicted, unsupported, or unclear, leading with the headline."
+    },
+    {
+      "id": "how-often-without-proof",
+      "prompt": "how often does Claude Code say tests passed without proof",
+      "should_trigger": true,
+      "assert": "Runs the scan with --harness claude-code and reports how many claims were not backed by a passing run."
+    },
+    {
+      "id": "codex-all-tests-pass-true",
+      "prompt": "Codex told me all tests pass. Was that true?",
+      "should_trigger": true,
+      "assert": "Runs the scan with --harness codex and quotes the label and the last run for the latest claims."
+    },
+    {
+      "id": "deleted-skipped-tests-diff",
+      "prompt": "did the agent delete or skip failing tests in the current diff",
+      "should_trigger": true,
+      "assert": "Runs claims.py diff on the repository and reports removed tests and new skip markers by file and line."
+    },
+    {
+      "id": "stop-hook-rerun-tests",
+      "prompt": "add a Stop hook that sends the agent back to rerun tests before finishing",
+      "should_trigger": true,
+      "assert": "Shows the install.py dry run first and runs --write only after a clear yes."
+    },
+    {
+      "id": "false-success-claims",
+      "prompt": "catch false or stale success claims from my coding agent this month",
+      "should_trigger": true,
+      "assert": "Scans the last 30 days and lists the worst unbacked claims with their evidence."
+    },
+    {
+      "id": "build-clean-claim",
+      "prompt": "the agent said the build is clean, check its transcripts to see if that claim holds",
+      "should_trigger": true,
+      "assert": "Scans for build claims and reports whether a build or typecheck run backed each one."
+    },
+    {
+      "id": "near-miss-compare-agents",
+      "prompt": "which coding agent fixes the most bugs in my own repository",
+      "should_trigger": false,
+      "assert": "Belongs to harness-test-drive."
+    },
+    {
+      "id": "near-miss-rule-breaking",
+      "prompt": "the agent keeps breaking my rule to use pnpm, turn that rule into a hook",
+      "should_trigger": false,
+      "assert": "Belongs to rules-to-guards."
+    },
+    {
+      "id": "near-miss-loop-cap",
+      "prompt": "stop a session that loops on the same command or spends more than ten dollars",
+      "should_trigger": false,
+      "assert": "Belongs to runaway-guard."
+    },
+    {
+      "id": "near-miss-token-waste",
+      "prompt": "where did my tokens and money go this week",
+      "should_trigger": false,
+      "assert": "Belongs to session-waste-report."
+    },
+    {
+      "id": "near-miss-deny-rules",
+      "prompt": "do my deny rules block rm -rf and force pushes",
+      "should_trigger": false,
+      "assert": "Belongs to guardrail-tester."
+    },
+    {
+      "id": "near-miss-quality-dropped",
+      "prompt": "the agent got lazier since the last update, which version regressed",
+      "should_trigger": false,
+      "assert": "Belongs to regression-finder."
+    },
+    {
+      "id": "near-miss-stale-commands",
+      "prompt": "are the lint and build commands documented in AGENTS.md stale",
+      "should_trigger": false,
+      "assert": "Belongs to agents-md-checker."
+    },
+    {
+      "id": "near-miss-write-unit-tests",
+      "prompt": "write unit tests for the parser module",
+      "should_trigger": false,
+      "assert": "Ordinary coding work; no skill applies."
+    }
+  ]
+}
