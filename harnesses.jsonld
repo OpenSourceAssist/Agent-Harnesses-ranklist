@@ -11,7 +11,7 @@
     "name": "Ryan Alberts",
     "url": "https://github.com/RyanAlberts"
   },
-  "dateModified": "2026-10-04",
+  "dateModified": "2026-10-11",
   "keywords": [
     "agent harness",
     "AI agents",
@@ -384,11 +384,11 @@
         "position": 30,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Proliferate",
-          "url": "https://github.com/proliferate-ai/proliferate",
-          "description": "Open-source AI IDE for Claude Code, Codex, OpenCode, and more. The **harness** contribution is the workspace/session orchestration layer: run multiple coding agents in parallel, locally or in the cloud, with isolated workspaces, reusable workflows, and shared team context.",
+          "name": "AgentBox",
+          "url": "https://github.com/madarco/agentbox",
+          "description": "Runs multiple coding agents in parallel, each in its own sandboxed VM, locally or in the cloud, from one command. The **harness** contribution is the VM-per-agent isolation and fleet fan-out layer; whichever agent runs inside owns the loop.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "multi-agent, sandbox, ide, typescript"
+          "keywords": "sandbox, typescript"
         }
       },
       {
@@ -396,11 +396,11 @@
         "position": 31,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "AgentBox",
-          "url": "https://github.com/madarco/agentbox",
-          "description": "Runs multiple coding agents in parallel, each in its own sandboxed VM, locally or in the cloud, from one command. The **harness** contribution is the VM-per-agent isolation and fleet fan-out layer; whichever agent runs inside owns the loop.",
+          "name": "Proliferate",
+          "url": "https://github.com/proliferate-ai/proliferate",
+          "description": "Open-source AI IDE for Claude Code, Codex, OpenCode, and more. The **harness** contribution is the workspace/session orchestration layer: run multiple coding agents in parallel, locally or in the cloud, with isolated workspaces, reusable workflows, and shared team context.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "sandbox, typescript"
+          "keywords": "multi-agent, sandbox, ide, typescript"
         }
       },
       {
@@ -900,11 +900,11 @@
         "position": 73,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "semantic-kernel",
-          "url": "https://github.com/microsoft/semantic-kernel",
-          "description": "Microsoft's plugin and planner layer for LLMs; C#, Python, Java; strong on enterprise auth and orchestration.",
+          "name": "mastra",
+          "url": "https://github.com/mastra-ai/mastra",
+          "description": "TypeScript-first; agents, tools, and workflows with a single runtime and minimal boilerplate.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "python"
+          "keywords": "typed, typescript"
         }
       },
       {
@@ -912,11 +912,11 @@
         "position": 74,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "mastra",
-          "url": "https://github.com/mastra-ai/mastra",
-          "description": "TypeScript-first; agents, tools, and workflows with a single runtime and minimal boilerplate.",
+          "name": "semantic-kernel",
+          "url": "https://github.com/microsoft/semantic-kernel",
+          "description": "Microsoft's plugin and planner layer for LLMs; C#, Python, Java; strong on enterprise auth and orchestration.",
           "applicationCategory": "DeveloperApplication",
-          "keywords": "typed, typescript"
+          "keywords": "python"
         }
       },
       {
@@ -1488,9 +1488,9 @@
         "position": 122,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "Graphiti (Zep)",
-          "url": "https://github.com/getzep/graphiti",
-          "description": "Zep's open-source memory engine: real-time temporal knowledge graphs that track how facts about users and entities change over time, so agents can answer \"what was true when.\" The layer behind Zep's hosted memory platform.",
+          "name": "cognee",
+          "url": "https://github.com/topoteretes/cognee",
+          "description": "Open-source memory layer for agents: an extract–cognify–load pipeline that turns your data into a queryable knowledge graph plus vector store, so agents recall facts and relationships across sessions instead of re-reading context.",
           "applicationCategory": "DeveloperApplication",
           "keywords": "memory, rag, workflow, python"
         }
@@ -1500,9 +1500,9 @@
         "position": 123,
         "item": {
           "@type": "SoftwareApplication",
-          "name": "cognee",
-          "url": "https://github.com/topoteretes/cognee",
-          "description": "Open-source memory layer for agents: an extract–cognify–load pipeline that turns your data into a queryable knowledge graph plus vector store, so agents recall facts and relationships across sessions instead of re-reading context.",
+          "name": "Graphiti (Zep)",
+          "url": "https://github.com/getzep/graphiti",
+          "description": "Zep's open-source memory engine: real-time temporal knowledge graphs that track how facts about users and entities change over time, so agents can answer \"what was true when.\" The layer behind Zep's hosted memory platform.",
           "applicationCategory": "DeveloperApplication",
           "keywords": "memory, rag, workflow, python"
         }

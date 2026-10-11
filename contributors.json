@@ -511,6 +511,71 @@
         "kind": "issue",
         "number": 128,
         "title": "Add project: Orbi"
+      },
+      {
+        "kind": "pr",
+        "number": 130,
+        "title": "Add project: Orbi (Coding agent products)"
+      }
+    ]
+  },
+  {
+    "login": "lodar",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 129,
+        "title": "Add project: 5dive"
+      }
+    ]
+  },
+  {
+    "login": "huiliyi37",
+    "contributions": [
+      {
+        "kind": "pr",
+        "number": 131,
+        "title": "Add Tianshu Harness"
+      }
+    ]
+  },
+  {
+    "login": "tarasyarema",
+    "contributions": [
+      {
+        "kind": "pr",
+        "number": 132,
+        "title": "Add Desplega Agent Swarm"
+      }
+    ]
+  },
+  {
+    "login": "yannickmonney",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 133,
+        "title": "Add project: Tale"
+      }
+    ]
+  },
+  {
+    "login": "proxysoul",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 135,
+        "title": "Add project: Empryo"
+      }
+    ]
+  },
+  {
+    "login": "ianwieds",
+    "contributions": [
+      {
+        "kind": "issue",
+        "number": 136,
+        "title": "Add project: workkit"
       }
     ]
   }
