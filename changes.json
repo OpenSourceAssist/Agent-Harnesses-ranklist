@@ -2,6 +2,146 @@
  "description": "Week-by-week changes to best-of-Agent-Harnesses, newest first.",
  "weeks": [
   {
+   "date": "2026-11-08",
+   "since": "2026-11-01",
+   "project_count": 187,
+   "added": [],
+   "removed": [],
+   "gainers": [
+    {
+     "github_id": "deepseek-ai/deepseek-harness",
+     "name": "DeepSeek Harness",
+     "category": "Coding agent products (IDEs, CLIs, full suites)",
+     "stars": 276369,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/deepseek-harness/",
+     "delta": 8145
+    },
+    {
+     "github_id": "thedotmack/claude-mem",
+     "name": "claude-mem",
+     "category": "Memory and state",
+     "stars": 114800,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/claude-mem/",
+     "delta": 5869
+    },
+    {
+     "github_id": "obra/superpowers",
+     "name": "superpowers",
+     "category": "Coding harness configs and SDKs",
+     "stars": 314486,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/superpowers/",
+     "delta": 3975
+    },
+    {
+     "github_id": "anthropics/skills",
+     "name": "Anthropic Skills",
+     "category": "Coding harness configs and SDKs",
+     "stars": 189401,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/skills/",
+     "delta": 3149
+    },
+    {
+     "github_id": "NousResearch/hermes-agent",
+     "name": "Hermes",
+     "category": "Personal agent runtimes",
+     "stars": 261691,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/hermes-agent/",
+     "delta": 2250
+    },
+    {
+     "github_id": "garrytan/gstack",
+     "name": "GStack",
+     "category": "Coding harness configs and SDKs",
+     "stars": 140756,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/gstack/",
+     "delta": 2188
+    },
+    {
+     "github_id": "Orkas-AI/Orkas",
+     "name": "Orkas",
+     "category": "Multi-agent and orchestration",
+     "stars": 9106,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/orkas/",
+     "delta": 1952
+    },
+    {
+     "github_id": "anomalyco/opencode",
+     "name": "opencode",
+     "category": "Coding agent products (IDEs, CLIs, full suites)",
+     "stars": 225475,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/opencode/",
+     "delta": 1694
+    },
+    {
+     "github_id": "addyosmani/agent-skills",
+     "name": "addyosmani/agent-skills",
+     "category": "Coding harness configs and SDKs",
+     "stars": 114060,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/agent-skills/",
+     "delta": 1569
+    },
+    {
+     "github_id": "earendil-works/pi",
+     "name": "pi",
+     "category": "Coding agent products (IDEs, CLIs, full suites)",
+     "stars": 120804,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/pi/",
+     "delta": 1486
+    }
+   ],
+   "fastest": [
+    {
+     "github_id": "Orkas-AI/Orkas",
+     "name": "Orkas",
+     "category": "Multi-agent and orchestration",
+     "stars": 9106,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/orkas/",
+     "previous_stars": 7154,
+     "pct": 27.3
+    },
+    {
+     "github_id": "HarnessRouter/harnessrouter",
+     "name": "HarnessRouter",
+     "category": "Multi-agent and orchestration",
+     "stars": 4291,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/harnessrouter/",
+     "previous_stars": 3823,
+     "pct": 12.2
+    },
+    {
+     "github_id": "open-jarvis/OpenJarvis",
+     "name": "OpenJarvis",
+     "category": "Personal agent runtimes",
+     "stars": 13915,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/openjarvis/",
+     "previous_stars": 12853,
+     "pct": 8.3
+    },
+    {
+     "github_id": "vshulcz/deja-vu",
+     "name": "deja",
+     "category": "Memory and state",
+     "stars": 1441,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/deja-vu/",
+     "previous_stars": 1348,
+     "pct": 6.9
+    },
+    {
+     "github_id": "huiliyi37/Tianshu-harness",
+     "name": "Tianshu Harness",
+     "category": "Coding agent products (IDEs, CLIs, full suites)",
+     "stars": 1325,
+     "page_url": "https://ryanalberts.github.io/best-of-Agent-Harnesses/h/tianshu-harness/",
+     "previous_stars": 1244,
+     "pct": 6.5
+    }
+   ],
+   "archived": [],
+   "new_guides": [],
+   "new_skills": [],
+   "new_templates": []
+  },
+  {
    "date": "2026-11-01",
    "since": "2026-10-25",
    "project_count": 187,
